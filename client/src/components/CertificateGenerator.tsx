@@ -61,7 +61,9 @@ export default function CertificateGenerator() {
   };
 
   const calculatePercentage = (total: number) => {
-    return ((total / 600) * 100).toFixed(1);
+    if (!selectedExamData) return "0.0";
+    const maxTotal = selectedExamData.maxMarks * 6; // 6 subjects
+    return ((total / maxTotal) * 100).toFixed(1);
   };
 
   const getGrade = (percentage: number) => {
@@ -348,13 +350,13 @@ export default function CertificateGenerator() {
                           {studentMarks.map((mark) => (
                             <div key={mark.id} className="flex justify-between">
                               <span>{mark.subject}:</span>
-                              <span className="font-medium">{mark.marks}/{mark.maxMarks}</span>
+                              <span className="font-medium">{mark.marks}/{selectedExamData?.maxMarks}</span>
                             </div>
                           ))}
                         </div>
                         {certificateOptions.showTotalMarks && (
                           <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between font-semibold">
-                            <span>Total: {total}/600</span>
+                            <span>Total: {total}/{selectedExamData?.maxMarks ? selectedExamData.maxMarks * 6 : 600}</span>
                             <span>Percentage: {percentage}%</span>
                             {certificateOptions.showGrade && (
                               <span className="text-success-600">Grade: {grade}</span>

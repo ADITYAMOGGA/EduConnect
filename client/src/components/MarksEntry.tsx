@@ -14,15 +14,15 @@ import { Save, Plus, Edit, Trash2 } from "lucide-react";
 import type { Student, Exam, Mark } from "@shared/schema";
 import { z } from "zod";
 
-const marksSchema = z.object({
+const createMarksSchema = (maxMarks: number = 100) => z.object({
   studentId: z.string().min(1, "Please select a student"),
   examId: z.string().min(1, "Please select an exam"),
-  english: z.number().min(0),
-  mathematics: z.number().min(0),
-  science: z.number().min(0),
-  socialStudies: z.number().min(0),
-  hindi: z.number().min(0),
-  computerScience: z.number().min(0),
+  english: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
+  mathematics: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
+  science: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
+  socialStudies: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
+  hindi: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
+  computerScience: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
 });
 
 const examSchema = z.object({
@@ -31,7 +31,7 @@ const examSchema = z.object({
   maxMarks: z.number().min(1, "Maximum marks must be at least 1"),
 });
 
-type MarksFormData = z.infer<typeof marksSchema>;
+type MarksFormData = z.infer<ReturnType<typeof createMarksSchema>>;
 type ExamFormData = z.infer<typeof examSchema>;
 
 export default function MarksEntry() {
@@ -41,8 +41,16 @@ export default function MarksEntry() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch exams first to get maxMarks for selected exam
+  const { data: exams = [] } = useQuery<Exam[]>({
+    queryKey: ['/api/exams'],
+  });
+
+  const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
+  const maxMarks = selectedExamData?.maxMarks || 100;
+
   const form = useForm<MarksFormData>({
-    resolver: zodResolver(marksSchema),
+    resolver: zodResolver(createMarksSchema(maxMarks)),
     defaultValues: {
       studentId: "",
       examId: "",
@@ -65,55 +73,14 @@ export default function MarksEntry() {
   });
 
   // Fetch students
-  const { data: students = [] } = useQuery({
+  const { data: students = [] } = useQuery<Student[]>({
     queryKey: ['/api/students'],
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
-  });
-
-  // Fetch exams
-  const { data: exams = [] } = useQuery({
-    queryKey: ['/api/exams'],
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized", 
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   // Fetch marks for selected exam
-  const { data: examMarks = [] } = useQuery({
+  const { data: examMarks = [] } = useQuery<Mark[]>({
     queryKey: ['/api/marks', selectedExam],
     enabled: !!selectedExam,
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   // Create exam mutation
@@ -577,7 +544,9 @@ export default function MarksEntry() {
                       }, {})
                     ).map(([studentId, data]: [string, any]) => {
                       const total = calculateTotal(data.marks);
-                      const percentage = parseFloat(calculatePercentage(total, 600));
+                      const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
+                      const maxTotal = selectedExamData ? selectedExamData.maxMarks * 6 : 600;
+                      const percentage = parseFloat(calculatePercentage(total, maxTotal));
                       const grade = getGrade(percentage);
                       
                       return (
@@ -586,7 +555,7 @@ export default function MarksEntry() {
                             {data.student.name}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {total}/600
+                            {total}/{maxTotal}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {percentage}%
