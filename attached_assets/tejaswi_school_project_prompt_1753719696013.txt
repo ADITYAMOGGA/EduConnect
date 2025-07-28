@@ -1,0 +1,94 @@
+
+✅ Final Working Project Prompt (Updated Version)
+
+Create a full-stack, Single Page Application (SPA) for Tejaswi High School that allows authenticated staff to manage students, enter exam marks, and generate beautifully styled digital progress certificates as downloadable PDFs.
+
+🏫 Project Name:
+Tejaswi High School – Progress Card & Certificate Portal
+
+🔐 Authentication System (Using Supabase)
+- Real login/register system for school staff (teachers/admin)
+- Backend: Supabase (PostgreSQL DB, Auth, and Storage)
+- Store user details in Supabase
+- After logging in:
+  - Ask to enter the school name
+  - Ask to import student data via .CSV or .XML file OR
+  - Option to manually add students one-by-one via an Add Student form
+
+🧑‍🏫 Dashboard Sections (SPA - no page reloads)
+
+1. Student Management
+- Import via CSV/XML or Add manually
+- View & Edit existing students (Name, Admission No, Class)
+- Delete students
+- Filter by class (9 or 10)
+
+2. Exam & Marks Entry
+- Select student
+- Select or create exam name (e.g., Mid-Term, Final)
+- Enter subject-wise marks (e.g., English, Math, Science)
+- Save to Supabase
+
+3. Certificate Editor (Dynamic & Visual)
+- Preview live certificate in real-time
+- Teacher selects:
+  - What to show (e.g., student photo, admission number, school logo, exam name, date, grade, etc.)
+  - Whether to show total marks, average, grade
+  - Upload and position school logo
+- Preview updates live with animations (fade, slide, etc.)
+
+4. PDF Generation
+- Button to download the certificate as a beautiful PDF
+- PDF includes:
+  - School name
+  - Student full name, class, admission number
+  - Exam name
+  - Subjects and marks
+  - Grades (optional)
+  - Optional school logo and signature
+  - Styled layout (bordered, shaded background, watermark, etc.)
+
+5. User Settings & Logout
+- School name (editable)
+- Option to re-import students
+- Change password
+- Logout
+
+🌈 Design & UI Requirements
+- Clean, elegant light theme design
+- Fully responsive (mobile, tablet, desktop)
+- Hover effects, animations (Fade, Slide), smooth transitions
+- Use a UI library like Tailwind CSS (or custom CSS if preferred)
+- Fixed header with logo, page tabs, and logout option
+- Navigation tabs (SPA) with selected tab indicator
+- Font: Modern, readable (e.g., Poppins or Inter)
+
+💾 Backend & Storage (Supabase)
+- Users Table: id, email, school_name
+- Students Table: id, name, admission_no, class, user_id
+- Exams Table: id, exam_name, user_id
+- Marks Table: id, student_id, exam_id, subject, marks
+- Use Supabase Storage for storing imported CSV/XML if needed
+- Use row-level security to ensure only logged-in user can access their data
+
+📁 CSV Format Example (for Import)
+name,admission_no,class
+Rohit Sharma,101,9
+Sneha Rao,102,9
+Aarav Singh,103,10
+Ishika Das,104,9
+
+✅ Summary of Features
+
+| Feature                             | Included |
+|-------------------------------------|----------|
+| SPA with HTML + CSS + JS (Tailwind preferred) | ✅ |
+| Supabase Auth (Register/Login)     | ✅ |
+| Student Import (CSV/XML)           | ✅ |
+| Add/Edit/Delete students manually  | ✅ |
+| Subject-wise marks entry           | ✅ |
+| Real-time Certificate preview      | ✅ |
+| Teacher can choose certificate fields | ✅ |
+| Download certificate as styled PDF | ✅ |
+| Responsive, modern UI              | ✅ |
+| Fixed navigation tabs              | ✅ |
