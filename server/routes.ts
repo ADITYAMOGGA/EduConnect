@@ -1,45 +1,51 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { insertStudentSchema, insertExamSchema, insertMarkSchema } from "@shared/schema";
 import multer from "multer";
 import Papa from "papaparse";
 
+// Authentication middleware
+function isAuthenticated(req: any, res: any, next: any) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized" });
+}
+
 const upload = multer({ storage: multer.memoryStorage() });
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+export function registerRoutes(app: Express): Server {
+  // Setup authentication
+  setupAuth(app);
 
   // Update user (school name, etc.)
-  app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { schoolName } = req.body;
+      const userId = req.user.id;
+      const { schoolName, firstName, lastName } = req.body;
       
       const updatedUser = await storage.upsertUser({
         id: userId,
-        email: req.user.claims.email,
-        firstName: req.user.claims.first_name,
-        lastName: req.user.claims.last_name,
-        profileImageUrl: req.user.claims.profile_image_url,
+        email: req.user.email,
+        firstName: firstName || req.user.firstName,
+        lastName: lastName || req.user.lastName,
+        username: req.user.username,
+        password: req.user.password,
+        profileImageUrl: req.user.profileImageUrl,
         schoolName,
+        schoolLogoUrl: req.user.schoolLogoUrl,
       });
       
-      res.json(updatedUser);
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        schoolName: updatedUser.schoolName,
+      });
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
@@ -49,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Student routes
   app.get('/api/students', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { class: studentClass } = req.query;
       
       const students = studentClass 
@@ -65,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/students', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const studentData = insertStudentSchema.parse({
         ...req.body,
         userId,
@@ -81,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/students/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       const studentData = req.body;
       
@@ -95,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/students/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { id } = req.params;
       
       await storage.deleteStudent(id, userId);
@@ -109,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import students from CSV
   app.post('/api/students/import', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const file = req.file;
       
       if (!file) {
@@ -145,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Exam routes
   app.get('/api/exams', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const exams = await storage.getExams(userId);
       res.json(exams);
     } catch (error) {
@@ -156,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/exams', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const examData = insertExamSchema.parse({
         ...req.body,
         userId,

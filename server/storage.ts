@@ -19,8 +19,9 @@ import { nanoid } from "nanoid";
 // Interface for storage operations
 export interface IStorage {
   // User operations
-  // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Student operations
@@ -119,6 +120,28 @@ class MemoryStorage implements IStorage {
     }
   }
 
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(u => u.username === username);
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    const user: User = {
+      id: nanoid(),
+      email: userData.email ?? null,
+      firstName: userData.firstName ?? null,
+      lastName: userData.lastName ?? null,
+      profileImageUrl: userData.profileImageUrl ?? null,
+      schoolName: userData.schoolName ?? null,
+      schoolLogoUrl: userData.schoolLogoUrl ?? null,
+      username: userData.username ?? null,
+      password: userData.password ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
   async getExams(userId: string): Promise<Exam[]> {
     return Array.from(this.exams.values()).filter(e => e.userId === userId);
   }
@@ -188,13 +211,21 @@ export class DatabaseStorage implements IStorage {
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
 
   async getUser(id: string): Promise<User | undefined> {
-    if (!db) throw new Error("Database not available");
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
-    if (!db) throw new Error("Database not available");
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -211,7 +242,6 @@ export class DatabaseStorage implements IStorage {
 
   // Student operations
   async getStudents(userId: string): Promise<Student[]> {
-    if (!db) throw new Error("Database not available");
     return await db.select().from(students).where(eq(students.userId, userId));
   }
 
@@ -322,5 +352,5 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// Use memory storage as fallback when database is not available
+// Use memory storage as fallback when database is not available, otherwise use database
 export const storage = db ? new DatabaseStorage() : new MemoryStorage();

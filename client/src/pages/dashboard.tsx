@@ -1,141 +1,119 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { GraduationCap, Bell, User, LogOut } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  GraduationCap, 
+  Users, 
+  BookOpen, 
+  FileText, 
+  Settings, 
+  LogOut,
+  School
+} from "lucide-react";
 import StudentManagement from "@/components/StudentManagement";
 import MarksEntry from "@/components/MarksEntry";
 import CertificateGenerator from "@/components/CertificateGenerator";
-import Settings from "@/components/Settings";
-
-type TabType = 'students' | 'marks' | 'certificates' | 'settings';
+import SettingsComponent from "@/components/Settings";
 
 export default function Dashboard() {
-  const { user, isLoading } = useAuth();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<TabType>('students');
-
-  // Redirect to home if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [user, isLoading, toast]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <GraduationCap className="text-white text-2xl" />
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user, logoutMutation } = useAuth();
 
   if (!user) return null;
 
-  const tabs = [
-    { id: 'students', label: 'Students', icon: 'fas fa-users' },
-    { id: 'marks', label: 'Marks Entry', icon: 'fas fa-clipboard-list' },
-    { id: 'certificates', label: 'Certificates', icon: 'fas fa-certificate' },
-    { id: 'settings', label: 'Settings', icon: 'fas fa-cog' },
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'students':
-        return <StudentManagement />;
-      case 'marks':
-        return <MarksEntry />;
-      case 'certificates':
-        return <CertificateGenerator />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <StudentManagement />;
-    }
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-purple-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo and School Name */}
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
-                <GraduationCap className="text-white text-lg" />
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                <GraduationCap className="text-white text-xl" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-800">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   MARKSEET PRO
                 </h1>
-                <p className="text-sm text-gray-500">School Management System</p>
+                <p className="text-sm text-slate-600">
+                  {user.schoolName || 'School Management System'}
+                </p>
               </div>
             </div>
 
-            {/* User Menu */}
             <div className="flex items-center space-x-4">
-              <button className="text-gray-500 hover:text-gray-700 transition-colors duration-200">
-                <Bell className="w-5 h-5" />
-              </button>
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User className="text-gray-600 text-sm" />
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                  <School className="text-white text-sm" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">
-                  {user.firstName} {user.lastName}
-                </span>
-                <button 
-                  onClick={() => window.location.href = '/api/logout'}
-                  className="text-gray-500 hover:text-red-600 transition-colors duration-200"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-700">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-xs text-slate-500">@{user.username}</p>
+                </div>
               </div>
+              <Button
+                onClick={handleLogout}
+                variant="ghost"
+                size="sm"
+                className="text-slate-600 hover:text-slate-900 hover:bg-purple-100"
+                disabled={logoutMutation.isPending}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
-      </header>
-
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b border-gray-200 sticky top-16 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`border-b-2 py-4 px-1 text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <i className={`${tab.icon} mr-2`}></i>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
+      </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderTabContent()}
-      </main>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-purple-200">
+          <Tabs defaultValue="students" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-purple-100 to-indigo-100">
+              <TabsTrigger value="students" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
+                <Users className="h-4 w-4 mr-2" />
+                Students
+              </TabsTrigger>
+              <TabsTrigger value="marks" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Marks Entry
+              </TabsTrigger>
+              <TabsTrigger value="certificates" className="data-[state=active]:bg-white data-[state=active]:text-pink-700">
+                <FileText className="h-4 w-4 mr-2" />
+                Certificates
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-slate-700">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="students" className="space-y-4">
+              <StudentManagement />
+            </TabsContent>
+            
+            <TabsContent value="marks" className="space-y-4">
+              <MarksEntry />
+            </TabsContent>
+            
+            <TabsContent value="certificates" className="space-y-4">
+              <CertificateGenerator />
+            </TabsContent>
+            
+            <TabsContent value="settings" className="space-y-4">
+              <SettingsComponent />
+            </TabsContent>
+          </Tabs>
+        </Card>
+      </div>
     </div>
   );
 }
