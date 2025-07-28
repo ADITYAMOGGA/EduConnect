@@ -1,0 +1,530 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Save, Plus, Edit, Trash2 } from "lucide-react";
+import type { Student, Exam, Mark } from "@shared/schema";
+import { z } from "zod";
+
+const marksSchema = z.object({
+  studentId: z.string().min(1, "Please select a student"),
+  examId: z.string().min(1, "Please select an exam"),
+  english: z.number().min(0).max(100),
+  mathematics: z.number().min(0).max(100),
+  science: z.number().min(0).max(100),
+  socialStudies: z.number().min(0).max(100),
+  hindi: z.number().min(0).max(100),
+  computerScience: z.number().min(0).max(100),
+});
+
+type MarksFormData = z.infer<typeof marksSchema>;
+
+export default function MarksEntry() {
+  const [selectedExam, setSelectedExam] = useState<string>("");
+  const [newExamName, setNewExamName] = useState("");
+  const [showNewExamInput, setShowNewExamInput] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const form = useForm<MarksFormData>({
+    resolver: zodResolver(marksSchema),
+    defaultValues: {
+      studentId: "",
+      examId: "",
+      english: 0,
+      mathematics: 0,
+      science: 0,
+      socialStudies: 0,
+      hindi: 0,
+      computerScience: 0,
+    },
+  });
+
+  // Fetch students
+  const { data: students = [] } = useQuery({
+    queryKey: ['/api/students'],
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+      }
+    },
+  });
+
+  // Fetch exams
+  const { data: exams = [] } = useQuery({
+    queryKey: ['/api/exams'],
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized", 
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+      }
+    },
+  });
+
+  // Fetch marks for selected exam
+  const { data: examMarks = [] } = useQuery({
+    queryKey: ['/api/marks', selectedExam],
+    enabled: !!selectedExam,
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+      }
+    },
+  });
+
+  // Create exam mutation
+  const createExamMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await apiRequest('POST', '/api/exams', { name });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
+      setNewExamName("");
+      setShowNewExamInput(false);
+      toast({
+        title: "Success",
+        description: "Exam created successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to create exam",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save marks mutation
+  const saveMarksMutation = useMutation({
+    mutationFn: async (data: MarksFormData) => {
+      const subjects = [
+        { subject: 'English', marks: data.english },
+        { subject: 'Mathematics', marks: data.mathematics },
+        { subject: 'Science', marks: data.science },
+        { subject: 'Social Studies', marks: data.socialStudies },
+        { subject: 'Hindi', marks: data.hindi },
+        { subject: 'Computer Science', marks: data.computerScience },
+      ];
+
+      for (const subjectData of subjects) {
+        await apiRequest('POST', '/api/marks', {
+          studentId: data.studentId,
+          examId: data.examId,
+          subject: subjectData.subject,
+          marks: subjectData.marks,
+          maxMarks: 100,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/marks'] });
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Marks saved successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to save marks",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateExam = () => {
+    if (newExamName.trim()) {
+      createExamMutation.mutate(newExamName.trim());
+    }
+  };
+
+  const onSubmit = (data: MarksFormData) => {
+    saveMarksMutation.mutate(data);
+  };
+
+  const calculateTotal = (marks: any[]) => {
+    return marks.reduce((sum, mark) => sum + mark.marks, 0);
+  };
+
+  const calculatePercentage = (total: number, maxTotal: number) => {
+    return ((total / maxTotal) * 100).toFixed(1);
+  };
+
+  const getGrade = (percentage: number) => {
+    if (percentage >= 90) return 'A+';
+    if (percentage >= 80) return 'A';
+    if (percentage >= 70) return 'B+';
+    if (percentage >= 60) return 'B';
+    if (percentage >= 50) return 'C';
+    return 'F';
+  };
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Marks Entry</h2>
+        <p className="text-gray-600">Enter and manage exam marks for students</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Student & Exam Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Select Student & Exam</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
+              <Select onValueChange={(value) => form.setValue('studentId', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a student..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.map((student: Student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name} ({student.admissionNo})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Exam</label>
+              <div className="flex space-x-2">
+                <Select 
+                  onValueChange={(value) => {
+                    form.setValue('examId', value);
+                    setSelectedExam(value);
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select exam..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exams.map((exam: Exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={() => setShowNewExamInput(!showNewExamInput)}
+                  className="bg-primary-500 hover:bg-primary-600"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {showNewExamInput && (
+                <div className="mt-2 flex space-x-2">
+                  <Input
+                    placeholder="Enter exam name"
+                    value={newExamName}
+                    onChange={(e) => setNewExamName(e.target.value)}
+                  />
+                  <Button
+                    onClick={handleCreateExam}
+                    disabled={createExamMutation.isPending}
+                    className="bg-success-500 hover:bg-success-600"
+                  >
+                    {createExamMutation.isPending ? 'Creating...' : 'Create'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Marks Entry Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Enter Marks</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="english"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>English</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="mathematics"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mathematics</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="science"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Science</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="socialStudies"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Social Studies</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="hindi"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hindi</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="computerScience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Computer Science</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="0-100" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-success-500 hover:bg-success-600"
+                  disabled={saveMarksMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveMarksMutation.isPending ? 'Saving...' : 'Save Marks'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Marks Table */}
+      {selectedExam && (
+        <Card className="mt-8">
+          <CardHeader className="bg-gray-50">
+            <CardTitle>Recent Marks Entries</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {examMarks.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-600">No marks entered for this exam yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Student
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Percentage
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Grade
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {/* Group marks by student */}
+                    {Object.entries(
+                      examMarks.reduce((acc: any, mark: any) => {
+                        if (!acc[mark.studentId]) {
+                          acc[mark.studentId] = {
+                            student: mark.student,
+                            marks: [],
+                          };
+                        }
+                        acc[mark.studentId].marks.push(mark);
+                        return acc;
+                      }, {})
+                    ).map(([studentId, data]: [string, any]) => {
+                      const total = calculateTotal(data.marks);
+                      const percentage = parseFloat(calculatePercentage(total, 600));
+                      const grade = getGrade(percentage);
+                      
+                      return (
+                        <tr key={studentId} className="hover:bg-gray-50 transition-colors duration-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {data.student.name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {total}/600
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {percentage}%
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              grade === 'A+' || grade === 'A' 
+                                ? 'bg-success-100 text-success-800'
+                                : grade === 'B+' || grade === 'B'
+                                ? 'bg-primary-100 text-primary-800'
+                                : 'bg-warning-100 text-warning-800'
+                            }`}>
+                              {grade}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                            <button className="text-primary-600 hover:text-primary-900 transition-colors duration-200">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button className="text-red-600 hover:text-red-900 transition-colors duration-200">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
