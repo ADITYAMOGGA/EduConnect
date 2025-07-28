@@ -21,21 +21,8 @@ export default function StudentManagement() {
   const queryClient = useQueryClient();
 
   // Fetch students with optional class filter
-  const { data: students = [], isLoading } = useQuery({
-    queryKey: ['/api/students', selectedClass !== 'all' ? selectedClass : ''],
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-    },
+  const { data: students = [], isLoading } = useQuery<Student[]>({
+    queryKey: ['/api/students', selectedClass !== 'all' ? `?class=${selectedClass}` : ''],
   });
 
   // Delete student mutation
@@ -117,8 +104,18 @@ export default function StudentManagement() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Classes</SelectItem>
+              <SelectItem value="1">Class 1</SelectItem>
+              <SelectItem value="2">Class 2</SelectItem>
+              <SelectItem value="3">Class 3</SelectItem>
+              <SelectItem value="4">Class 4</SelectItem>
+              <SelectItem value="5">Class 5</SelectItem>
+              <SelectItem value="6">Class 6</SelectItem>
+              <SelectItem value="7">Class 7</SelectItem>
+              <SelectItem value="8">Class 8</SelectItem>
               <SelectItem value="9">Class 9</SelectItem>
               <SelectItem value="10">Class 10</SelectItem>
+              <SelectItem value="11">Class 11</SelectItem>
+              <SelectItem value="12">Class 12</SelectItem>
             </SelectContent>
           </Select>
         </div>

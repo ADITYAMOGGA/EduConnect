@@ -34,6 +34,9 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   schoolName: varchar("school_name"),
+  schoolLogoUrl: varchar("school_logo_url"),
+  username: varchar("username").unique(),
+  password: varchar("password"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -52,6 +55,8 @@ export const students = pgTable("students", {
 export const exams = pgTable("exams", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull(),
+  class: varchar("class", { length: 10 }).notNull(),
+  maxMarks: integer("max_marks").notNull().default(100),
   userId: varchar("user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });

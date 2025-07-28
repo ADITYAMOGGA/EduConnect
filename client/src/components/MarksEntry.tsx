@@ -17,19 +17,25 @@ import { z } from "zod";
 const marksSchema = z.object({
   studentId: z.string().min(1, "Please select a student"),
   examId: z.string().min(1, "Please select an exam"),
-  english: z.number().min(0).max(100),
-  mathematics: z.number().min(0).max(100),
-  science: z.number().min(0).max(100),
-  socialStudies: z.number().min(0).max(100),
-  hindi: z.number().min(0).max(100),
-  computerScience: z.number().min(0).max(100),
+  english: z.number().min(0),
+  mathematics: z.number().min(0),
+  science: z.number().min(0),
+  socialStudies: z.number().min(0),
+  hindi: z.number().min(0),
+  computerScience: z.number().min(0),
+});
+
+const examSchema = z.object({
+  name: z.string().min(1, "Exam name is required"),
+  class: z.string().min(1, "Please select a class"),
+  maxMarks: z.number().min(1, "Maximum marks must be at least 1"),
 });
 
 type MarksFormData = z.infer<typeof marksSchema>;
+type ExamFormData = z.infer<typeof examSchema>;
 
 export default function MarksEntry() {
   const [selectedExam, setSelectedExam] = useState<string>("");
-  const [newExamName, setNewExamName] = useState("");
   const [showNewExamInput, setShowNewExamInput] = useState(false);
   
   const { toast } = useToast();
@@ -40,12 +46,21 @@ export default function MarksEntry() {
     defaultValues: {
       studentId: "",
       examId: "",
-      english: 0,
-      mathematics: 0,
-      science: 0,
-      socialStudies: 0,
-      hindi: 0,
-      computerScience: 0,
+      english: undefined,
+      mathematics: undefined,
+      science: undefined,
+      socialStudies: undefined,
+      hindi: undefined,
+      computerScience: undefined,
+    },
+  });
+
+  const examForm = useForm<ExamFormData>({
+    resolver: zodResolver(examSchema),
+    defaultValues: {
+      name: "",
+      class: "",
+      maxMarks: 100,
     },
   });
 
@@ -103,13 +118,12 @@ export default function MarksEntry() {
 
   // Create exam mutation
   const createExamMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const response = await apiRequest('POST', '/api/exams', { name });
-      return response.json();
+    mutationFn: async (data: ExamFormData) => {
+      await apiRequest('POST', '/api/exams', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
-      setNewExamName("");
+      examForm.reset();
       setShowNewExamInput(false);
       toast({
         title: "Success",
@@ -186,10 +200,8 @@ export default function MarksEntry() {
     },
   });
 
-  const handleCreateExam = () => {
-    if (newExamName.trim()) {
-      createExamMutation.mutate(newExamName.trim());
-    }
+  const handleCreateExam = (data: ExamFormData) => {
+    createExamMutation.mutate(data);
   };
 
   const onSubmit = (data: MarksFormData) => {
@@ -273,19 +285,96 @@ export default function MarksEntry() {
               </div>
               
               {showNewExamInput && (
-                <div className="mt-2 flex space-x-2">
-                  <Input
-                    placeholder="Enter exam name"
-                    value={newExamName}
-                    onChange={(e) => setNewExamName(e.target.value)}
-                  />
-                  <Button
-                    onClick={handleCreateExam}
-                    disabled={createExamMutation.isPending}
-                    className="bg-success-500 hover:bg-success-600"
-                  >
-                    {createExamMutation.isPending ? 'Creating...' : 'Create'}
-                  </Button>
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <h4 className="font-medium text-gray-800 mb-3">Create New Exam</h4>
+                  <Form {...examForm}>
+                    <form onSubmit={examForm.handleSubmit(handleCreateExam)} className="space-y-3">
+                      <FormField
+                        control={examForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Exam Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Mid-Term Exam" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={examForm.control}
+                          name="class"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Class</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select class" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="1">Class 1</SelectItem>
+                                  <SelectItem value="2">Class 2</SelectItem>
+                                  <SelectItem value="3">Class 3</SelectItem>
+                                  <SelectItem value="4">Class 4</SelectItem>
+                                  <SelectItem value="5">Class 5</SelectItem>
+                                  <SelectItem value="6">Class 6</SelectItem>
+                                  <SelectItem value="7">Class 7</SelectItem>
+                                  <SelectItem value="8">Class 8</SelectItem>
+                                  <SelectItem value="9">Class 9</SelectItem>
+                                  <SelectItem value="10">Class 10</SelectItem>
+                                  <SelectItem value="11">Class 11</SelectItem>
+                                  <SelectItem value="12">Class 12</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={examForm.control}
+                          name="maxMarks"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Max Marks</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="100"
+                                  {...field}
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowNewExamInput(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={createExamMutation.isPending}
+                          className="flex-1 bg-success-500 hover:bg-success-600"
+                        >
+                          {createExamMutation.isPending ? 'Creating...' : 'Create Exam'}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
                 </div>
               )}
             </div>
@@ -310,9 +399,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -329,9 +419,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -350,9 +441,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -369,9 +461,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -390,9 +483,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -409,9 +503,10 @@ export default function MarksEntry() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="0-100" 
+                            placeholder="Enter marks" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value || ''}
+                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />

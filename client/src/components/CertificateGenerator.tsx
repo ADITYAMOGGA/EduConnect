@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, CloudUpload, GraduationCap } from "lucide-react";
-import type { Student, Exam, Mark } from "@shared/schema";
+import type { Student, Exam, Mark, User } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface CertificateOptions {
   showPhoto: boolean;
@@ -33,64 +35,29 @@ export default function CertificateGenerator() {
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const certificateRef = useRef<HTMLDivElement>(null);
 
   // Fetch students
-  const { data: students = [] } = useQuery({
+  const { data: students = [] } = useQuery<Student[]>({
     queryKey: ['/api/students'],
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   // Fetch exams
-  const { data: exams = [] } = useQuery({
+  const { data: exams = [] } = useQuery<Exam[]>({
     queryKey: ['/api/exams'],
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
   // Fetch marks for selected student and exam
-  const { data: studentMarks = [] } = useQuery({
+  const { data: studentMarks = [] } = useQuery<Mark[]>({
     queryKey: ['/api/marks', selectedStudent, selectedExam],
     enabled: !!selectedStudent && !!selectedExam,
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-      }
-    },
   });
 
-  const selectedStudentData = students.find((s: Student) => s.id === selectedStudent);
-  const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
+  const selectedStudentData = students.find((s) => s.id === selectedStudent);
+  const selectedExamData = exams.find((e) => e.id === selectedExam);
 
   const calculateTotal = () => {
-    return studentMarks.reduce((sum: number, mark: Mark) => sum + mark.marks, 0);
+    return studentMarks.reduce((sum, mark) => sum + mark.marks, 0);
   };
 
   const calculatePercentage = (total: number) => {
@@ -106,12 +73,61 @@ export default function CertificateGenerator() {
     return 'F';
   };
 
-  const handleDownloadPDF = () => {
-    // For a real implementation, you would use jsPDF or similar library
-    toast({
-      title: "PDF Generation",
-      description: "PDF generation feature would be implemented here with jsPDF library.",
-    });
+  const handleDownloadPDF = async () => {
+    if (!certificateRef.current || !selectedStudentData || !selectedExamData) {
+      toast({
+        title: "Error",
+        description: "Please select both student and exam before generating PDF",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while we generate your certificate...",
+      });
+
+      // Create canvas from the certificate element
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Calculate dimensions to fit the page
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Center the image on the page
+      const x = 10; // 10mm margin
+      const y = (pdfHeight - imgHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      
+      // Download the PDF
+      const fileName = `${selectedStudentData.name}_${selectedExamData.name}_Certificate.pdf`;
+      pdf.save(fileName);
+
+      toast({
+        title: "Success",
+        description: "Certificate PDF has been downloaded successfully!",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const total = calculateTotal();
@@ -276,7 +292,7 @@ export default function CertificateGenerator() {
           </CardHeader>
           <CardContent>
             {/* Certificate Preview Area */}
-            <div className="border border-gray-200 rounded-lg p-8 bg-gradient-to-br from-blue-50 to-indigo-50 relative min-h-[600px]">
+            <div ref={certificateRef} className="border border-gray-200 rounded-lg p-8 bg-gradient-to-br from-blue-50 to-indigo-50 relative min-h-[600px]">
               {!selectedStudent || !selectedExam ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center text-gray-500">
@@ -300,7 +316,7 @@ export default function CertificateGenerator() {
                       </div>
                     )}
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                      {user?.schoolName || 'Tejaswi High School'}
+                      {(user as User)?.schoolName || 'Tejaswi High School'}
                     </h2>
                     <p className="text-gray-600">Academic Progress Certificate</p>
                   </div>
@@ -329,7 +345,7 @@ export default function CertificateGenerator() {
                           {selectedExamData?.name} Results
                         </h4>
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                          {studentMarks.map((mark: Mark) => (
+                          {studentMarks.map((mark) => (
                             <div key={mark.id} className="flex justify-between">
                               <span>{mark.subject}:</span>
                               <span className="font-medium">{mark.marks}/{mark.maxMarks}</span>
