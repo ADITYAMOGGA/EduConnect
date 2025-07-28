@@ -316,7 +316,7 @@ export default function CertificateGenerator() {
                       </div>
                     )}
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                      {(user as User)?.schoolName || 'Tejaswi High School'}
+                      {(user as User)?.schoolName || 'MARKSEET PRO'}
                     </h2>
                     <p className="text-gray-600">Academic Progress Certificate</p>
                   </div>

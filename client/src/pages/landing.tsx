@@ -12,8 +12,8 @@ export default function Landing() {
           <div className="w-20 h-20 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <GraduationCap className="text-white text-3xl" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Tejaswi High School</h1>
-          <p className="text-gray-600">Progress Card & Certificate Portal</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">MARKSEET PRO</h1>
+          <p className="text-gray-600">Complete School Management System</p>
         </div>
 
         {/* Welcome Card */}

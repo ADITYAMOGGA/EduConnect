@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Upload, Download, ExternalLink, Mail } from "lucide-react";
 import { z } from "zod";
+import type { User } from "@shared/schema";
 
 const schoolInfoSchema = z.object({
   schoolName: z.string().min(1, "School name is required"),
@@ -40,9 +41,9 @@ export default function Settings() {
   const schoolForm = useForm<SchoolInfoData>({
     resolver: zodResolver(schoolInfoSchema),
     defaultValues: {
-      schoolName: user?.schoolName || "",
+      schoolName: (user as User)?.schoolName || "",
       address: "",
-      email: user?.email || "",
+      email: (user as User)?.email || "",
     },
   });
 

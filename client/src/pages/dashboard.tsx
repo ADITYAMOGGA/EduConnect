@@ -80,9 +80,9 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-800">
-                  {user.schoolName || 'Tejaswi High School'}
+                  MARKSEET PRO
                 </h1>
-                <p className="text-sm text-gray-500">Progress Portal</p>
+                <p className="text-sm text-gray-500">School Management System</p>
               </div>
             </div>
 

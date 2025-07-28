@@ -1,8 +1,8 @@
-# Tejaswi High School - Progress Card & Certificate Portal
+# MARKSEET PRO - School Management System
 
 ## Overview
 
-This is a full-stack Single Page Application (SPA) for Tejaswi High School that allows authenticated staff to manage students, enter exam marks, and generate digital progress certificates. The application provides a comprehensive school management system with authentication, student data management, marks entry, and PDF certificate generation capabilities.
+This is a full-stack Single Page Application (SPA) called MARKSEET PRO that allows authenticated staff to manage students, enter exam marks, and generate digital progress certificates. The application provides a comprehensive school management system with authentication, student data management, marks entry, and PDF certificate generation capabilities.
 
 ## User Preferences
 
