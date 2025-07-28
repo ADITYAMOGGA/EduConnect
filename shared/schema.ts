@@ -61,11 +61,19 @@ export const exams = pgTable("exams", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const subjects = pgTable("subjects", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  code: varchar("code", { length: 20 }).notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const marks = pgTable("marks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: uuid("student_id").notNull().references(() => students.id),
   examId: uuid("exam_id").notNull().references(() => exams.id),
-  subject: varchar("subject", { length: 100 }).notNull(),
+  subjectId: uuid("subject_id").notNull().references(() => subjects.id),
   marks: integer("marks").notNull(),
   maxMarks: integer("max_marks").notNull().default(100),
   createdAt: timestamp("created_at").defaultNow(),
@@ -89,6 +97,11 @@ export const insertExamSchema = createInsertSchema(exams).omit({
   createdAt: true,
 });
 
+export const insertSubjectSchema = createInsertSchema(subjects).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertMarkSchema = createInsertSchema(marks).omit({
   id: true,
   createdAt: true,
@@ -101,5 +114,7 @@ export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type Student = typeof students.$inferSelect;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type Exam = typeof exams.$inferSelect;
+export type InsertSubject = z.infer<typeof insertSubjectSchema>;
+export type Subject = typeof subjects.$inferSelect;
 export type InsertMark = z.infer<typeof insertMarkSchema>;
 export type Mark = typeof marks.$inferSelect;

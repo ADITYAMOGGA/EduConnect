@@ -1,20 +1,4 @@
-import {
-  users,
-  students,
-  exams,
-  marks,
-  type User,
-  type UpsertUser,
-  type Student,
-  type InsertStudent,
-  type Exam,
-  type InsertExam,
-  type Mark,
-  type InsertMark,
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
+export { storage } from "./storage-implementation";
 
 // Interface for storage operations
 export interface IStorage {

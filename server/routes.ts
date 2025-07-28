@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-implementation";
 import { setupAuth } from "./auth";
-import { insertStudentSchema, insertExamSchema, insertMarkSchema } from "@shared/schema";
+import { insertStudentSchema, insertExamSchema, insertMarkSchema, insertSubjectSchema } from "@shared/schema";
 import multer from "multer";
 import Papa from "papaparse";
 
@@ -148,6 +148,61 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Subject routes
+  app.get('/api/subjects', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const subjects = await storage.getSubjects(userId);
+      res.json(subjects);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+      res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+  });
+
+  app.post('/api/subjects', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const subjectData = insertSubjectSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const subject = await storage.createSubject(subjectData);
+      res.json(subject);
+    } catch (error) {
+      console.error("Error creating subject:", error);
+      res.status(400).json({ message: "Invalid subject data" });
+    }
+  });
+
+  app.patch('/api/subjects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const subjectData = req.body;
+      
+      const subject = await storage.updateSubject(id, subjectData, userId);
+      res.json(subject);
+    } catch (error) {
+      console.error("Error updating subject:", error);
+      res.status(500).json({ message: "Failed to update subject" });
+    }
+  });
+
+  app.delete('/api/subjects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      await storage.deleteSubject(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      res.status(500).json({ message: "Failed to delete subject" });
+    }
+  });
+
   // Exam routes
   app.get('/api/exams', isAuthenticated, async (req: any, res) => {
     try {
@@ -221,6 +276,11 @@ export function registerRoutes(app: Express): Server {
       console.error("Error updating mark:", error);
       res.status(500).json({ message: "Failed to update mark" });
     }
+  });
+
+  // Health check route for Render deployment
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   const httpServer = createServer(app);

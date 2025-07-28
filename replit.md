@@ -8,6 +8,22 @@ This is a full-stack Single Page Application (SPA) called MARKSEET PRO that allo
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (January 2025)
+
+✅ **Completed Migration Features:**
+- Migrated from Replit Agent to Replit environment
+- Replaced Replit authentication with username/password authentication system
+- Updated entire website theme to modern purple/indigo design with animations
+- Added Render deployment configuration (render.yaml) for production hosting
+- Implemented dynamic subject management with add/remove functionality
+- Fixed UUID validation issues in marks entry system
+- Added Framer Motion animations and loading states throughout interface
+- Created comprehensive storage layer with proper nanoid ID generation
+- Added health check route (/api/health) for Render deployment monitoring
+
+🔄 **In Progress:**
+- Final testing and verification of all features
+
 ## System Architecture
 
 ### Frontend Architecture
