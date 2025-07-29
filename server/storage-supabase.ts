@@ -77,6 +77,8 @@ export class SupabaseStorage {
       password: userData.password
     };
 
+    console.log('Creating user with data:', dbUserData);
+
     const { data, error } = await supabase
       .from('users')
       .insert(dbUserData)
