@@ -11,10 +11,26 @@ export class SupabaseStorage {
       .single();
     
     if (error) {
-      console.error('Error fetching user:', error);
+      if (error.code !== 'PGRST116') { // Don't log "no rows" as error
+        console.error('Error fetching user:', error);
+      }
       return undefined;
     }
-    return data;
+    
+    // Map snake_case to camelCase
+    return {
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      profileImageUrl: data.profile_image_url,
+      schoolName: data.school_name,
+      schoolLogoUrl: data.school_logo_url,
+      username: data.username,
+      password: data.password,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -25,16 +41,45 @@ export class SupabaseStorage {
       .single();
     
     if (error) {
-      console.error('Error fetching user by username:', error);
+      if (error.code !== 'PGRST116') { // Don't log "no rows" as error
+        console.error('Error fetching user by username:', error);
+      }
       return undefined;
     }
-    return data;
+    
+    // Map snake_case to camelCase
+    return {
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      profileImageUrl: data.profile_image_url,
+      schoolName: data.school_name,
+      schoolLogoUrl: data.school_logo_url,
+      username: data.username,
+      password: data.password,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
+    // Map the camelCase fields to snake_case for Supabase
+    const dbUserData = {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      profile_image_url: userData.profileImageUrl,
+      school_name: userData.schoolName,
+      school_logo_url: userData.schoolLogoUrl,
+      username: userData.username,
+      password: userData.password
+    };
+
     const { data, error } = await supabase
       .from('users')
-      .insert(userData)
+      .insert(dbUserData)
       .select()
       .single();
     
@@ -42,13 +87,40 @@ export class SupabaseStorage {
       console.error('Error creating user:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase for return
+    return {
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      profileImageUrl: data.profile_image_url,
+      schoolName: data.school_name,
+      schoolLogoUrl: data.school_logo_url,
+      username: data.username,
+      password: data.password,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Map the camelCase fields to snake_case for Supabase
+    const dbUserData = {
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      profile_image_url: userData.profileImageUrl,
+      school_name: userData.schoolName,
+      school_logo_url: userData.schoolLogoUrl,
+      username: userData.username,
+      password: userData.password
+    };
+
     const { data, error } = await supabase
       .from('users')
-      .upsert(userData)
+      .upsert(dbUserData)
       .select()
       .single();
     
@@ -56,7 +128,21 @@ export class SupabaseStorage {
       console.error('Error upserting user:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase for return
+    return {
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      profileImageUrl: data.profile_image_url,
+      schoolName: data.school_name,
+      schoolLogoUrl: data.school_logo_url,
+      username: data.username,
+      password: data.password,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   // Student operations
