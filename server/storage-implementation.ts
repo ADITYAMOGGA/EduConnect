@@ -154,4 +154,5 @@ export class DatabaseStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// This file is deprecated - use storage.ts instead
+// Keeping for compatibility during migration

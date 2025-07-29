@@ -73,7 +73,7 @@ export const marks = pgTable("marks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: uuid("student_id").notNull().references(() => students.id),
   examId: uuid("exam_id").notNull().references(() => exams.id),
-  subjectId: uuid("subject_id").notNull().references(() => subjects.id),
+  subject: varchar("subject", { length: 100 }).notNull(),
   marks: integer("marks").notNull(),
   maxMarks: integer("max_marks").notNull().default(100),
   createdAt: timestamp("created_at").defaultNow(),
