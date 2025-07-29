@@ -10,7 +10,8 @@ import {
   FileText, 
   Settings, 
   LogOut,
-  School
+  School,
+  HelpCircle
 } from "lucide-react";
 import StudentManagement from "@/components/StudentManagement";
 import MarksEntry from "@/components/MarksEntry";
@@ -59,6 +60,15 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500">@{user.username}</p>
                 </div>
               </div>
+              <Button
+                onClick={() => window.open('/support', '_blank')}
+                variant="ghost"
+                size="sm"
+                className="text-slate-600 hover:text-slate-900 hover:bg-purple-100"
+              >
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Support
+              </Button>
               <Button
                 onClick={handleLogout}
                 variant="ghost"

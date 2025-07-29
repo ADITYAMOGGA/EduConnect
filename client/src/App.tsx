@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
+import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <TooltipProvider>
           <Switch>
             <ProtectedRoute path="/" component={Dashboard} />
+            <ProtectedRoute path="/support" component={Support} />
             <Route path="/auth" component={AuthPage} />
             <Route component={NotFound} />
           </Switch>
