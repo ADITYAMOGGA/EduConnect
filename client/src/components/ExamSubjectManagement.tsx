@@ -33,12 +33,18 @@ interface Subject {
 
 export default function ExamSubjectManagement() {
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+  const [isExamDialogOpen, setIsExamDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<string>("");
-  const [formData, setFormData] = useState({
+  const [subjectFormData, setSubjectFormData] = useState({
     name: "",
     code: "",
     examId: "",
+  });
+  const [examFormData, setExamFormData] = useState({
+    name: "",
+    class: "",
+    maxMarks: 100,
   });
 
   // Fetch exams
@@ -61,6 +67,30 @@ export default function ExamSubjectManagement() {
       })
     : [];
 
+  // Create Exam Mutation
+  const createExamMutation = useMutation({
+    mutationFn: async (data: { name: string; class: string; maxMarks: number }) => {
+      const res = await apiRequest("POST", "/api/exams", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      setIsExamDialogOpen(false);
+      setExamFormData({ name: "", class: "", maxMarks: 100 });
+      toast({
+        title: "Exam created",
+        description: "New exam has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create exam",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createSubjectMutation = useMutation({
     mutationFn: async (data: { name: string; code: string; examId?: string }) => {
       // For now, we'll encode exam info in the subject code
@@ -75,8 +105,8 @@ export default function ExamSubjectManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
-      setIsDialogOpen(false);
-      setFormData({ name: "", code: "", examId: "" });
+      setIsSubjectDialogOpen(false);
+      setSubjectFormData({ name: "", code: "", examId: "" });
       toast({
         title: "Subject created",
         description: "Subject has been added to the exam successfully.",
@@ -111,9 +141,23 @@ export default function ExamSubjectManagement() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleExamSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.code.trim() || !selectedExam) {
+    if (!examFormData.name.trim() || !examFormData.class.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createExamMutation.mutate(examFormData);
+  };
+
+  const handleSubjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subjectFormData.name.trim() || !subjectFormData.code.trim() || !selectedExam) {
       toast({
         title: "Error",
         description: "Please fill in all fields and select an exam",
@@ -123,13 +167,13 @@ export default function ExamSubjectManagement() {
     }
 
     createSubjectMutation.mutate({
-      name: formData.name,
-      code: formData.code,
+      name: subjectFormData.name,
+      code: subjectFormData.code,
       examId: selectedExam,
     });
   };
 
-  const openCreateDialog = () => {
+  const openCreateSubjectDialog = () => {
     if (!selectedExam) {
       toast({
         title: "Select an exam first",
@@ -138,8 +182,8 @@ export default function ExamSubjectManagement() {
       });
       return;
     }
-    setFormData({ name: "", code: "", examId: selectedExam });
-    setIsDialogOpen(true);
+    setSubjectFormData({ name: "", code: "", examId: selectedExam });
+    setIsSubjectDialogOpen(true);
   };
 
   return (
@@ -153,21 +197,21 @@ export default function ExamSubjectManagement() {
         </div>
       </div>
 
-      {/* Exam Selection */}
+      {/* Exam Selection and Creation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
-            Select Examination
+            Examination Management
           </CardTitle>
           <CardDescription>
-            Choose an exam to view and manage its subjects
+            Select an existing exam or create a new one to manage subjects
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
+          <div className="flex items-end gap-4">
             <div className="flex-1">
-              <Label htmlFor="exam-select">Examination</Label>
+              <Label htmlFor="exam-select">Select Examination</Label>
               <Select value={selectedExam} onValueChange={setSelectedExam}>
                 <SelectTrigger id="exam-select">
                   <SelectValue placeholder="Choose an exam..." />
@@ -182,7 +226,15 @@ export default function ExamSubjectManagement() {
               </Select>
             </div>
             <Button
-              onClick={openCreateDialog}
+              onClick={() => setIsExamDialogOpen(true)}
+              variant="outline"
+              className="border-purple-200 text-purple-600 hover:bg-purple-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Exam
+            </Button>
+            <Button
+              onClick={openCreateSubjectDialog}
               disabled={!selectedExam}
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
             >
@@ -220,7 +272,7 @@ export default function ExamSubjectManagement() {
               <h3 className="text-xl font-semibold text-slate-700 mb-2">No Subjects Added</h3>
               <p className="text-slate-500 mb-6">Add subjects for this examination to organize the curriculum</p>
               <Button 
-                onClick={openCreateDialog}
+                onClick={openCreateSubjectDialog}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -300,23 +352,109 @@ export default function ExamSubjectManagement() {
         )}
       </AnimatePresence>
 
+      {/* Create Exam Dialog */}
+      <Dialog open={isExamDialogOpen} onOpenChange={setIsExamDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Create New Exam
+            </DialogTitle>
+            <DialogDescription>
+              Add a new examination to manage subjects for
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleExamSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="exam-name">Exam Name</Label>
+              <Input
+                id="exam-name"
+                value={examFormData.name}
+                onChange={(e) => setExamFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="e.g., Mid Term Examination"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="exam-class">Class</Label>
+              <Select
+                value={examFormData.class}
+                onValueChange={(value) => setExamFormData(prev => ({ ...prev, class: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="9">Class 9</SelectItem>
+                  <SelectItem value="10">Class 10</SelectItem>
+                  <SelectItem value="11">Class 11</SelectItem>
+                  <SelectItem value="12">Class 12</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="max-marks">Maximum Marks</Label>
+              <Input
+                id="max-marks"
+                type="number"
+                value={examFormData.maxMarks}
+                onChange={(e) => setExamFormData(prev => ({ ...prev, maxMarks: parseInt(e.target.value) || 100 }))}
+                placeholder="100"
+                min="1"
+                max="1000"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsExamDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createExamMutation.isPending}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              >
+                {createExamMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Exam
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Subject Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isSubjectDialogOpen} onOpenChange={setIsSubjectDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Subject</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Add New Subject
+            </DialogTitle>
             <DialogDescription>
               Add a subject for {exams.find(e => e.id === selectedExam)?.name}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubjectSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Subject Name</Label>
               <Input
                 id="name"
                 placeholder="e.g., Mathematics"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                value={subjectFormData.name}
+                onChange={(e) => setSubjectFormData(prev => ({ ...prev, name: e.target.value }))}
                 required
               />
             </div>
@@ -325,13 +463,13 @@ export default function ExamSubjectManagement() {
               <Input
                 id="code"
                 placeholder="e.g., MATH"
-                value={formData.code}
-                onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                value={subjectFormData.code}
+                onChange={(e) => setSubjectFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                 required
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsSubjectDialogOpen(false)}>
                 Cancel
               </Button>
               <Button 
