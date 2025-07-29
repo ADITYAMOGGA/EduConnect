@@ -59,10 +59,10 @@ export default function Settings() {
   // Update school info mutation
   const updateSchoolMutation = useMutation({
     mutationFn: async (data: SchoolInfoData) => {
-      const response = await apiRequest('PATCH', '/api/auth/user', {
+      const response = await apiRequest('PATCH', '/api/user', {
         schoolName: data.schoolName,
       });
-      return response.json();
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
