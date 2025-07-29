@@ -7,6 +7,7 @@ This is a full-stack Single Page Application (SPA) called MARKSEET PRO that allo
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Design preference: Original purple/indigo theme and design.
 
 ## Recent Changes (January 2025)
 
