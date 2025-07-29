@@ -309,6 +309,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete('/api/marks/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      
+      await storage.deleteMark(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting mark:", error);
+      res.status(500).json({ message: "Failed to delete mark" });
+    }
+  });
+
   // Health check route for Render deployment
   app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

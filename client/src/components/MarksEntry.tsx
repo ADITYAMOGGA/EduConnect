@@ -37,6 +37,7 @@ type ExamFormData = z.infer<typeof examSchema>;
 export default function MarksEntry() {
   const [selectedExam, setSelectedExam] = useState<string>("");
   const [showNewExamInput, setShowNewExamInput] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<string | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -129,28 +130,56 @@ export default function MarksEntry() {
         { subject: 'Computer Science', marks: data.computerScience },
       ];
 
-      for (const subjectData of subjects) {
-        await apiRequest('POST', '/api/marks', {
-          studentId: data.studentId,
-          examId: data.examId,
-          subject: subjectData.subject,
-          marks: subjectData.marks,
-          maxMarks: 100,
-        });
+      if (editingStudent) {
+        // Update existing marks
+        const existingMarks = examMarks.filter(mark => mark.studentId === editingStudent);
+        
+        for (const subjectData of subjects) {
+          const existingMark = existingMarks.find(mark => mark.subject === subjectData.subject);
+          
+          if (existingMark) {
+            // Update existing mark
+            await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
+              marks: subjectData.marks,
+              maxMarks: maxMarks,
+            });
+          } else {
+            // Create new mark if it doesn't exist
+            await apiRequest('POST', '/api/marks', {
+              studentId: data.studentId,
+              examId: data.examId,
+              subject: subjectData.subject,
+              marks: subjectData.marks,
+              maxMarks: maxMarks,
+            });
+          }
+        }
+      } else {
+        // Create new marks
+        for (const subjectData of subjects) {
+          await apiRequest('POST', '/api/marks', {
+            studentId: data.studentId,
+            examId: data.examId,
+            subject: subjectData.subject,
+            marks: subjectData.marks,
+            maxMarks: maxMarks,
+          });
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/marks'] });
       form.reset();
+      setEditingStudent(null);
       toast({
         title: "Success",
-        description: "Marks saved successfully",
+        description: editingStudent ? "Marks updated successfully" : "Marks saved successfully",
       });
     },
     onError: (error) => {
       if (isUnauthorizedError(error as Error)) {
         toast({
-          title: "Unauthorized",
+          title: "Unauthorized", 
           description: "You are logged out. Logging in again...",
           variant: "destructive",
         });
@@ -167,12 +196,81 @@ export default function MarksEntry() {
     },
   });
 
+  // Delete student marks mutation
+  const deleteStudentMarksMutation = useMutation({
+    mutationFn: async (studentId: string) => {
+      const studentMarks = examMarks.filter(mark => mark.studentId === studentId);
+      for (const mark of studentMarks) {
+        await apiRequest('DELETE', `/api/marks/${mark.id}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/marks'] });
+      toast({
+        title: "Success",
+        description: "Student marks deleted successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete marks",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateExam = (data: ExamFormData) => {
     createExamMutation.mutate(data);
   };
 
   const onSubmit = (data: MarksFormData) => {
     saveMarksMutation.mutate(data);
+  };
+
+  const handleEditStudent = (studentId: string, marks: Mark[]) => {
+    setEditingStudent(studentId);
+    
+    // Pre-populate the form with existing marks
+    const marksMap: any = {};
+    marks.forEach(mark => {
+      switch(mark.subject) {
+        case 'English': marksMap.english = mark.marks; break;
+        case 'Mathematics': marksMap.mathematics = mark.marks; break;
+        case 'Science': marksMap.science = mark.marks; break;
+        case 'Social Studies': marksMap.socialStudies = mark.marks; break;
+        case 'Hindi': marksMap.hindi = mark.marks; break;
+        case 'Computer Science': marksMap.computerScience = mark.marks; break;
+      }
+    });
+    
+    form.reset({
+      studentId: studentId,
+      examId: selectedExam,
+      english: marksMap.english || 0,
+      mathematics: marksMap.mathematics || 0,
+      science: marksMap.science || 0,
+      socialStudies: marksMap.socialStudies || 0,
+      hindi: marksMap.hindi || 0,
+      computerScience: marksMap.computerScience || 0,
+    });
+  };
+
+  const handleDeleteStudent = (studentId: string) => {
+    if (confirm("Are you sure you want to delete all marks for this student?")) {
+      deleteStudentMarksMutation.mutate(studentId);
+    }
   };
 
   const calculateTotal = (marks: any[]) => {
@@ -351,7 +449,17 @@ export default function MarksEntry() {
         {/* Marks Entry Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Enter Marks</CardTitle>
+            <CardTitle>
+              {editingStudent ? 'Edit Marks' : 'Enter Marks'}
+              {editingStudent && (
+                <span className="text-sm text-gray-600 ml-2">
+                  (Editing: {(() => {
+                    const studentData = examMarks.find(mark => mark.studentId === editingStudent);
+                    return studentData?.student?.name || `Student ${editingStudent.slice(0, 8)}`;
+                  })()})
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -482,14 +590,31 @@ export default function MarksEntry() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-success-500 hover:bg-success-600"
-                  disabled={saveMarksMutation.isPending}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {saveMarksMutation.isPending ? 'Saving...' : 'Save Marks'}
-                </Button>
+                <div className="flex space-x-2">
+                  {editingStudent && (
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingStudent(null);
+                        form.reset();
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel Edit
+                    </Button>
+                  )}
+                  <Button 
+                    type="submit" 
+                    className={`${editingStudent ? 'flex-1' : 'w-full'} bg-success-500 hover:bg-success-600`}
+                    disabled={saveMarksMutation.isPending}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {saveMarksMutation.isPending 
+                      ? (editingStudent ? 'Updating...' : 'Saving...') 
+                      : (editingStudent ? 'Update Marks' : 'Save Marks')}
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>
@@ -572,10 +697,18 @@ export default function MarksEntry() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button className="text-primary-600 hover:text-primary-900 transition-colors duration-200">
+                            <button 
+                              onClick={() => handleEditStudent(studentId, data.marks)}
+                              className="text-primary-600 hover:text-primary-900 transition-colors duration-200"
+                              title="Edit marks"
+                            >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="text-red-600 hover:text-red-900 transition-colors duration-200">
+                            <button 
+                              onClick={() => handleDeleteStudent(studentId)}
+                              className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                              title="Delete marks"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
