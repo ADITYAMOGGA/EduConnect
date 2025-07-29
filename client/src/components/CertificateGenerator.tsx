@@ -112,8 +112,12 @@ export default function CertificateGenerator() {
         height: certificateRef.current.scrollHeight,
       });
 
-      // Create PDF in landscape for better certificate layout
-      const pdf = new jsPDF('l', 'mm', 'a4'); // landscape orientation
+      // Create PDF in A4 landscape format
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
       const imgData = canvas.toDataURL('image/png', 0.95);
       
       // Get page dimensions
@@ -353,7 +357,7 @@ export default function CertificateGenerator() {
           <CardContent>
             {/* Certificate Preview Area */}
             <div className="overflow-auto max-h-[600px] border border-gray-200 rounded-lg">
-              <div ref={certificateRef} className="bg-white shadow-lg" style={{ width: '297mm', height: '210mm', minWidth: '800px' }}>
+              <div ref={certificateRef} className="bg-gradient-to-br from-blue-50 via-white to-purple-50 shadow-lg" style={{ width: '297mm', height: '210mm', minWidth: '800px' }}>
               {!selectedStudent || !selectedExam ? (
                 <div className="flex items-center justify-center h-full min-h-[500px]">
                   <div className="text-center text-gray-500">
@@ -368,74 +372,78 @@ export default function CertificateGenerator() {
                   </div>
                 </div>
               ) : (
-                <div className="p-16 bg-white h-full w-full flex flex-col justify-center">
-                  {/* Elegant Border */}
-                  <div className="border-4 border-double border-gray-300 p-8 relative">
+                <div className="p-16 bg-gradient-to-br from-blue-50 via-white to-purple-50 h-full w-full flex flex-col justify-center">
+                  {/* Elegant Colorful Border */}
+                  <div className="border-4 border-double border-gradient-to-r from-purple-400 to-blue-400 p-8 relative bg-white/90 backdrop-blur-sm shadow-xl rounded-lg">
                     {/* Certificate Header */}
                     <div className="text-center mb-8">
                       {certificateOptions.showLogo && (
-                        <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <GraduationCap className="text-white text-2xl" />
+                        <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                          <GraduationCap className="text-white text-3xl" />
                         </div>
                       )}
-                      <h1 className="text-3xl font-bold text-gray-800 mb-2 tracking-wide">
+                      <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-3 tracking-wide">
                         {(user as User)?.schoolName || (user as User)?.firstName + "'s School" || 'Academy of Excellence'}
                       </h1>
-                      <div className="w-24 h-0.5 bg-gray-400 mx-auto mb-3"></div>
-                      <h2 className="text-xl font-semibold text-gray-700 mb-1">CERTIFICATE OF ACADEMIC ACHIEVEMENT</h2>
-                      <p className="text-gray-600 text-sm">Academic Year {new Date().getFullYear()}</p>
+                      <div className="w-32 h-1 bg-gradient-to-r from-purple-400 to-blue-400 mx-auto mb-4 rounded-full"></div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">CERTIFICATE OF ACADEMIC ACHIEVEMENT</h2>
+                      <p className="text-blue-600 text-base font-medium">Academic Year {new Date().getFullYear()}</p>
                     </div>
 
                     {/* Certificate Body */}
                     <div className="text-center mb-6">
-                      <p className="text-lg text-gray-700 mb-4">This is to certify that</p>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-300 inline-block px-4">
-                        {selectedStudentData?.name}
-                      </h3>
-                      <div className="text-gray-600 mb-6">
-                        {certificateOptions.showAdmissionNo && (
-                          <p>Admission No: <span className="font-medium">{selectedStudentData?.admissionNo}</span></p>
-                        )}
-                        <p>Class: <span className="font-medium">{selectedStudentData?.class}</span></p>
+                      <p className="text-xl text-blue-700 mb-4 font-medium">This is to certify that</p>
+                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 p-4 rounded-lg mb-4">
+                        <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                          {selectedStudentData?.name}
+                        </h3>
                       </div>
-                      <p className="text-gray-700 mb-6">
+                      <div className="text-gray-700 mb-6 space-y-1">
+                        {certificateOptions.showAdmissionNo && (
+                          <p className="text-lg">Admission No: <span className="font-bold text-purple-600">{selectedStudentData?.admissionNo}</span></p>
+                        )}
+                        <p className="text-lg">Class: <span className="font-bold text-blue-600">{selectedStudentData?.class}</span></p>
+                      </div>
+                      <p className="text-xl text-gray-700 mb-6 font-medium">
                         has successfully completed the examination requirements for
                       </p>
-                      <h4 className="text-lg font-semibold text-gray-800 mb-6">
-                        {selectedExamData?.name}
-                      </h4>
+                      <div className="bg-gradient-to-r from-indigo-100 to-purple-100 p-3 rounded-lg inline-block">
+                        <h4 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                          {selectedExamData?.name}
+                        </h4>
+                      </div>
                     </div>
 
-                    {/* Clean Marks Table */}
+                    {/* Colorful Marks Table */}
                     {certificateOptions.showSubjectMarks && (
                       <div className="mb-8">
-                        <div className="max-w-2xl mx-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b-2 border-gray-400">
-                                <th className="text-left py-3 px-4 font-semibold text-gray-800">Subject</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">Marks</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">Max</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">%</th>
+                        <div className="max-w-2xl mx-auto bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg shadow-lg">
+                          <table className="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-md">
+                            <thead className="bg-gradient-to-r from-purple-500 to-blue-500">
+                              <tr>
+                                <th className="text-left py-4 px-6 font-bold text-white">Subject</th>
+                                <th className="text-center py-4 px-6 font-bold text-white">Marks</th>
+                                <th className="text-center py-4 px-6 font-bold text-white">Max</th>
+                                <th className="text-center py-4 px-6 font-bold text-white">%</th>
                               </tr>
                             </thead>
                             <tbody>
                               {studentMarks.map((mark, index) => (
-                                <tr key={mark.id} className="border-b border-gray-200">
-                                  <td className="py-2 px-4 text-gray-800">{mark.subject}</td>
-                                  <td className="py-2 px-4 text-center font-medium text-gray-900">{mark.marks}</td>
-                                  <td className="py-2 px-4 text-center text-gray-600">{selectedExamData?.maxMarks}</td>
-                                  <td className="py-2 px-4 text-center text-gray-700">
+                                <tr key={mark.id} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-purple-25' : 'bg-blue-25'} hover:bg-gradient-to-r hover:from-purple-50 hover:to-blue-50`}>
+                                  <td className="py-3 px-6 text-gray-800 font-medium">{mark.subject}</td>
+                                  <td className="py-3 px-6 text-center font-bold text-purple-600">{mark.marks}</td>
+                                  <td className="py-3 px-6 text-center text-gray-600">{selectedExamData?.maxMarks}</td>
+                                  <td className="py-3 px-6 text-center font-semibold text-blue-600">
                                     {((mark.marks / (selectedExamData?.maxMarks || 100)) * 100).toFixed(0)}%
                                   </td>
                                 </tr>
                               ))}
                               {certificateOptions.showTotalMarks && (
-                                <tr className="border-t-2 border-gray-400 font-bold">
-                                  <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{total}</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * subjects.length : subjects.length * 100}</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{percentage}%</td>
+                                <tr className="bg-gradient-to-r from-purple-100 to-blue-100 border-t-2 border-purple-300 font-bold">
+                                  <td className="py-4 px-6 text-purple-800 text-lg">TOTAL</td>
+                                  <td className="py-4 px-6 text-center text-purple-800 text-lg">{total}</td>
+                                  <td className="py-4 px-6 text-center text-purple-800 text-lg">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * subjects.length : subjects.length * 100}</td>
+                                  <td className="py-4 px-6 text-center text-purple-800 text-lg">{percentage}%</td>
                                 </tr>
                               )}
                             </tbody>
@@ -445,9 +453,9 @@ export default function CertificateGenerator() {
                         {/* Grade Display */}
                         {certificateOptions.showGrade && (
                           <div className="mt-6 text-center">
-                            <div className="inline-block border-2 border-gray-800 px-6 py-3 bg-gray-50">
-                              <span className="text-sm text-gray-700 block">Overall Grade</span>
-                              <span className="text-2xl font-bold text-gray-900">{grade}</span>
+                            <div className="inline-block bg-gradient-to-r from-purple-500 to-blue-500 px-8 py-4 rounded-full shadow-lg">
+                              <span className="text-sm text-white block font-medium">Overall Grade</span>
+                              <span className="text-3xl font-bold text-white">{grade}</span>
                             </div>
                           </div>
                         )}
@@ -456,32 +464,34 @@ export default function CertificateGenerator() {
 
                     {/* Recognition Text */}
                     <div className="text-center mb-8">
-                      <p className="text-gray-700 italic">
-                        in recognition of dedicated effort and academic achievement
-                      </p>
+                      <div className="bg-gradient-to-r from-purple-100 to-blue-100 p-4 rounded-lg inline-block">
+                        <p className="text-xl text-gray-700 italic font-medium">
+                          in recognition of dedicated effort and academic achievement
+                        </p>
+                      </div>
                     </div>
 
                     {/* Signature Section */}
                     <div className="flex justify-between items-end mt-12">
                       <div className="text-center">
-                        <div className="w-32 h-px bg-gray-800 mb-2"></div>
-                        <p className="text-xs text-gray-600 uppercase tracking-wide">Principal</p>
+                        <div className="w-32 h-1 bg-gradient-to-r from-purple-400 to-blue-400 mb-2 rounded-full"></div>
+                        <p className="text-sm text-purple-600 uppercase tracking-wide font-semibold">Principal</p>
+                      </div>
+                      <div className="text-center bg-gradient-to-r from-blue-100 to-purple-100 p-3 rounded-lg">
+                        <p className="text-sm text-blue-600 uppercase tracking-wide mb-1 font-semibold">Date</p>
+                        <p className="text-base font-bold text-purple-700">{new Date().toLocaleDateString()}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Date</p>
-                        <p className="text-sm font-medium text-gray-800">{new Date().toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-32 h-px bg-gray-800 mb-2"></div>
-                        <p className="text-xs text-gray-600 uppercase tracking-wide">School Seal</p>
+                        <div className="w-32 h-1 bg-gradient-to-r from-blue-400 to-purple-400 mb-2 rounded-full"></div>
+                        <p className="text-sm text-blue-600 uppercase tracking-wide font-semibold">School Seal</p>
                       </div>
                     </div>
 
                     {/* Corner Decorative Elements */}
-                    <div className="absolute top-2 left-2 w-8 h-8 border-l-2 border-t-2 border-gray-400"></div>
-                    <div className="absolute top-2 right-2 w-8 h-8 border-r-2 border-t-2 border-gray-400"></div>
-                    <div className="absolute bottom-2 left-2 w-8 h-8 border-l-2 border-b-2 border-gray-400"></div>
-                    <div className="absolute bottom-2 right-2 w-8 h-8 border-r-2 border-b-2 border-gray-400"></div>
+                    <div className="absolute top-3 left-3 w-10 h-10 border-l-4 border-t-4 border-purple-400 rounded-tl-lg"></div>
+                    <div className="absolute top-3 right-3 w-10 h-10 border-r-4 border-t-4 border-blue-400 rounded-tr-lg"></div>
+                    <div className="absolute bottom-3 left-3 w-10 h-10 border-l-4 border-b-4 border-blue-400 rounded-bl-lg"></div>
+                    <div className="absolute bottom-3 right-3 w-10 h-10 border-r-4 border-b-4 border-purple-400 rounded-br-lg"></div>
                   </div>
                 </div>
               )}
