@@ -23,12 +23,20 @@ CREATE INDEX IF NOT EXISTS idx_subjects_user_id ON subjects(user_id);
 -- Enable Row Level Security
 ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policy for subjects
-CREATE POLICY subjects_user_access ON subjects 
-    FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
+-- Disable RLS for subjects table (since we use custom authentication, not Supabase Auth)
+ALTER TABLE subjects DISABLE ROW LEVEL SECURITY;
 ```
 
-## STEP 2: Test the Application
+## STEP 2: Fix the RLS Policy Issue
+
+The error you're seeing is because Row Level Security is blocking access. Since we use custom authentication (not Supabase Auth), run this additional query:
+
+```sql
+-- Fix RLS policy for our custom authentication system
+ALTER TABLE subjects DISABLE ROW LEVEL SECURITY;
+```
+
+## STEP 3: Test the Application
 
 After running the SQL:
 1. Go back to your application

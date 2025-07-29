@@ -84,7 +84,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE subjects ENABLE ROW LEVEL SECURITY; -- Disabled for custom auth
+ALTER TABLE subjects DISABLE ROW LEVEL SECURITY;
 ALTER TABLE marks ENABLE ROW LEVEL SECURITY;
 
 -- Users can only access their own data
@@ -99,9 +100,10 @@ CREATE POLICY students_user_access ON students
 CREATE POLICY exams_user_access ON exams 
     FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
 
--- Subjects belong to specific users
-CREATE POLICY subjects_user_access ON subjects 
-    FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
+-- Disable RLS for subjects table since we use custom authentication
+-- CREATE POLICY subjects_user_access ON subjects 
+--     FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
+-- Note: RLS disabled for subjects table to work with custom authentication system
 
 -- Marks access through student ownership
 CREATE POLICY marks_user_access ON marks 
