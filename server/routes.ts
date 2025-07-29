@@ -193,15 +193,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/subjects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { examId } = req.query;
-      
-      // If examId is provided, filter subjects for that exam
-      let subjects = await storage.getSubjects(userId);
-      
-      if (examId) {
-        subjects = subjects.filter(subject => subject.examId === examId);
-      }
-      
+      const subjects = await storage.getSubjects(userId);
       res.json(subjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
@@ -225,17 +217,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bulk create subjects - Optimized
+  // Bulk create subjects - Fixed for database schema
   app.post('/api/subjects/bulk', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { subjects, examId } = req.body;
+      const { subjects } = req.body;
       
       if (!Array.isArray(subjects) || subjects.length === 0) {
         return res.status(400).json({ message: "Invalid subjects data" });
       }
       
-      console.log('Bulk creating subjects:', { subjects, examId, userId });
+      console.log('Bulk creating subjects:', { subjects, userId });
       
       const createdSubjects = [];
       const batchSize = 5; // Process in smaller batches for subjects
@@ -245,9 +237,9 @@ export function registerRoutes(app: Express): Server {
         const batchPromises = batch.map(async (subjectItem) => {
           try {
             const subjectData = insertSubjectSchema.parse({
-              ...subjectItem,
+              name: subjectItem.name,
+              code: subjectItem.code,
               userId,
-              examId: examId || null, // Link to specific exam if provided
             });
             
             console.log('Creating subject with data:', subjectData);
