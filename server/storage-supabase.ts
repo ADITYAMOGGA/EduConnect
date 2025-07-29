@@ -399,30 +399,13 @@ export class SupabaseStorage {
       console.error('Error fetching subjects:', error);
       return [];
     }
-    
-    // Map snake_case to camelCase
-    return (data || []).map(subject => ({
-      id: subject.id,
-      name: subject.name,
-      code: subject.code,
-      userId: subject.user_id,
-      createdAt: subject.created_at
-    }));
+    return data || [];
   }
 
   async createSubject(subjectData: InsertSubject): Promise<Subject> {
-    // Map camelCase to snake_case
-    const dbSubjectData = {
-      name: subjectData.name,
-      code: subjectData.code,
-      user_id: subjectData.userId
-    };
-
-    console.log('Creating subject with data:', dbSubjectData);
-
     const { data, error } = await supabase
       .from('subjects')
-      .insert(dbSubjectData)
+      .insert(subjectData)
       .select()
       .single();
     
@@ -430,26 +413,13 @@ export class SupabaseStorage {
       console.error('Error creating subject:', error);
       throw error;
     }
-    
-    // Map snake_case back to camelCase
-    return {
-      id: data.id,
-      name: data.name,
-      code: data.code,
-      userId: data.user_id,
-      createdAt: data.created_at
-    };
+    return data;
   }
 
   async updateSubject(id: string, subjectData: Partial<InsertSubject>, userId: string): Promise<Subject> {
-    // Map camelCase to snake_case
-    const dbSubjectData: any = {};
-    if (subjectData.name !== undefined) dbSubjectData.name = subjectData.name;
-    if (subjectData.code !== undefined) dbSubjectData.code = subjectData.code;
-
     const { data, error } = await supabase
       .from('subjects')
-      .update(dbSubjectData)
+      .update(subjectData)
       .eq('id', id)
       .eq('user_id', userId)
       .select()
@@ -459,15 +429,7 @@ export class SupabaseStorage {
       console.error('Error updating subject:', error);
       throw error;
     }
-    
-    // Map snake_case back to camelCase
-    return {
-      id: data.id,
-      name: data.name,
-      code: data.code,
-      userId: data.user_id,
-      createdAt: data.created_at
-    };
+    return data;
   }
 
   async deleteSubject(id: string, userId: string): Promise<void> {
