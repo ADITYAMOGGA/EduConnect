@@ -394,7 +394,16 @@ export class SupabaseStorage {
   async getMarksByExam(examId: string): Promise<Mark[]> {
     const { data, error } = await supabase
       .from('marks')
-      .select('*')
+      .select(`
+        *,
+        students (
+          id,
+          name,
+          admission_no,
+          class,
+          email
+        )
+      `)
       .eq('exam_id', examId);
     
     if (error) {
@@ -402,7 +411,7 @@ export class SupabaseStorage {
       return [];
     }
     
-    // Map snake_case to camelCase
+    // Map snake_case to camelCase including student data
     return (data || []).map(mark => ({
       id: mark.id,
       studentId: mark.student_id,
@@ -411,7 +420,14 @@ export class SupabaseStorage {
       marks: mark.marks,
       maxMarks: mark.max_marks,
       createdAt: mark.created_at,
-      updatedAt: mark.updated_at
+      updatedAt: mark.updated_at,
+      student: mark.students ? {
+        id: mark.students.id,
+        name: mark.students.name,
+        admissionNumber: mark.students.admission_no,
+        class: mark.students.class,
+        email: mark.students.email
+      } : undefined
     }));
   }
 

@@ -117,4 +117,12 @@ export type Exam = typeof exams.$inferSelect;
 export type InsertSubject = z.infer<typeof insertSubjectSchema>;
 export type Subject = typeof subjects.$inferSelect;
 export type InsertMark = z.infer<typeof insertMarkSchema>;
-export type Mark = typeof marks.$inferSelect;
+export type Mark = typeof marks.$inferSelect & {
+  student?: {
+    id: string;
+    name: string;
+    admissionNumber: string;
+    class: string;
+    email?: string;
+  };
+};

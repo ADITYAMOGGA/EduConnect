@@ -552,7 +552,7 @@ export default function MarksEntry() {
                       return (
                         <tr key={studentId} className="hover:bg-gray-50 transition-colors duration-200">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {data.student.name}
+                            {data.student?.name || `Student ${studentId.slice(0, 8)}`}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {total}/{maxTotal}
