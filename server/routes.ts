@@ -20,6 +20,24 @@ export function registerRoutes(app: Express): Server {
   // Setup authentication
   setupAuth(app);
 
+  // Get current user info
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      res.json({
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        schoolName: req.user.schoolName,
+        profileImageUrl: req.user.profileImageUrl,
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Update user (school name, etc.)
   app.patch('/api/user', isAuthenticated, async (req: any, res) => {
     try {

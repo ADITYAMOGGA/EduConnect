@@ -323,7 +323,7 @@ export default function CertificateGenerator() {
                         </div>
                       )}
                       <h1 className="text-3xl font-bold text-gray-800 mb-2 tracking-wide">
-                        {(user as User)?.schoolName || 'Elite Academy'}
+                        {(user as User)?.schoolName || (user as User)?.firstName + "'s School" || 'Academy of Excellence'}
                       </h1>
                       <div className="w-24 h-0.5 bg-gray-400 mx-auto mb-3"></div>
                       <h2 className="text-xl font-semibold text-gray-700 mb-1">CERTIFICATE OF ACADEMIC ACHIEVEMENT</h2>
