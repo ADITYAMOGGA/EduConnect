@@ -102,29 +102,46 @@ export default function CertificateGenerator() {
 
       // Create canvas from the certificate element
       const canvas = await html2canvas(certificateRef.current, {
-        scale: 3, // Higher quality
+        scale: 2, // Reduced scale for better PDF compatibility
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
         allowTaint: false,
         removeContainer: true,
+        width: certificateRef.current.scrollWidth,
+        height: certificateRef.current.scrollHeight,
       });
 
       // Create PDF in landscape for better certificate layout
       const pdf = new jsPDF('l', 'mm', 'a4'); // landscape orientation
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgData = canvas.toDataURL('image/png', 0.95);
       
-      // Calculate dimensions to fit the page
+      // Get page dimensions
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // 10mm margin on each side
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Calculate image dimensions in mm (1 px = 0.264583 mm at 96 DPI)
+      const imgWidthMM = canvas.width * 0.264583;
+      const imgHeightMM = canvas.height * 0.264583;
+      
+      // Calculate scale to fit the image within the page margins
+      const margin = 10; // 10mm margin on all sides
+      const availableWidth = pdfWidth - (margin * 2);
+      const availableHeight = pdfHeight - (margin * 2);
+      
+      const scaleX = availableWidth / imgWidthMM;
+      const scaleY = availableHeight / imgHeightMM;
+      const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+      
+      // Final image dimensions
+      const finalWidth = imgWidthMM * scale;
+      const finalHeight = imgHeightMM * scale;
       
       // Center the image on the page
-      const x = 10; // 10mm margin
-      const y = Math.max(10, (pdfHeight - imgHeight) / 2); // Ensure minimum top margin
+      const x = (pdfWidth - finalWidth) / 2;
+      const y = (pdfHeight - finalHeight) / 2;
       
-      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
       
       // Download the PDF
       const fileName = `${selectedStudentData.name}_${selectedExamData.name}_Certificate.pdf`;
@@ -335,7 +352,8 @@ export default function CertificateGenerator() {
           </CardHeader>
           <CardContent>
             {/* Certificate Preview Area */}
-            <div ref={certificateRef} className="bg-white rounded-lg border border-gray-200 shadow-lg min-h-[700px] relative overflow-hidden">
+            <div className="overflow-auto max-h-[600px] border border-gray-200 rounded-lg">
+              <div ref={certificateRef} className="bg-white shadow-lg" style={{ width: '297mm', height: '210mm', minWidth: '800px' }}>
               {!selectedStudent || !selectedExam ? (
                 <div className="flex items-center justify-center h-full min-h-[500px]">
                   <div className="text-center text-gray-500">
@@ -350,7 +368,7 @@ export default function CertificateGenerator() {
                   </div>
                 </div>
               ) : (
-                <div className="p-12 bg-white">
+                <div className="p-16 bg-white h-full w-full flex flex-col justify-center">
                   {/* Elegant Border */}
                   <div className="border-4 border-double border-gray-300 p-8 relative">
                     {/* Certificate Header */}
@@ -467,6 +485,7 @@ export default function CertificateGenerator() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </CardContent>
         </Card>

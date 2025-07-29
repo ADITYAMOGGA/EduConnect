@@ -554,6 +554,7 @@ export class SupabaseStorage {
       name: subject.name,
       code: subject.code,
       userId: subject.user_id,
+      examId: subject.exam_id,
       createdAt: subject.created_at
     }));
   }
@@ -579,6 +580,7 @@ export class SupabaseStorage {
       name: data.name,
       code: data.code,
       userId: data.user_id,
+      examId: data.exam_id,
       createdAt: data.created_at
     };
   }
@@ -588,7 +590,8 @@ export class SupabaseStorage {
     const dbSubjectData = {
       name: subjectData.name,
       code: subjectData.code,
-      user_id: subjectData.userId
+      user_id: subjectData.userId,
+      exam_id: subjectData.examId || null
     };
 
     console.log('Creating subject with data:', dbSubjectData);
@@ -610,6 +613,7 @@ export class SupabaseStorage {
       name: data.name,
       code: data.code,
       userId: data.user_id,
+      examId: data.exam_id,
       createdAt: data.created_at
     };
   }
@@ -619,6 +623,7 @@ export class SupabaseStorage {
     const dbSubjectData: any = {};
     if (subjectData.name !== undefined) dbSubjectData.name = subjectData.name;
     if (subjectData.code !== undefined) dbSubjectData.code = subjectData.code;
+    if (subjectData.examId !== undefined) dbSubjectData.exam_id = subjectData.examId;
 
     const { data, error } = await supabase
       .from('subjects')
@@ -639,6 +644,7 @@ export class SupabaseStorage {
       name: data.name,
       code: data.code,
       userId: data.user_id,
+      examId: data.exam_id,
       createdAt: data.created_at
     };
   }

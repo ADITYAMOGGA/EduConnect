@@ -18,6 +18,7 @@ import MarksEntry from "@/components/MarksEntry";
 import CertificateGenerator from "@/components/CertificateGenerator";
 import SettingsComponent from "@/components/Settings";
 import SubjectManagement from "@/components/SubjectManagement";
+import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -88,7 +89,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-purple-200">
           <Tabs defaultValue="students" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100">
+            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-purple-100 to-indigo-100">
               <TabsTrigger value="students" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
                 <Users className="h-4 w-4 mr-2" />
                 Students
@@ -96,6 +97,10 @@ export default function Dashboard() {
               <TabsTrigger value="subjects" className="data-[state=active]:bg-white data-[state=active]:text-blue-700">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Subjects
+              </TabsTrigger>
+              <TabsTrigger value="exam-subjects" className="data-[state=active]:bg-white data-[state=active]:text-green-700">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Exam Subjects
               </TabsTrigger>
               <TabsTrigger value="marks" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
                 <FileText className="h-4 w-4 mr-2" />
@@ -117,6 +122,10 @@ export default function Dashboard() {
             
             <TabsContent value="subjects" className="space-y-4">
               <SubjectManagement />
+            </TabsContent>
+            
+            <TabsContent value="exam-subjects" className="space-y-4">
+              <ExamSubjectManagement />
             </TabsContent>
             
             <TabsContent value="marks" className="space-y-4">

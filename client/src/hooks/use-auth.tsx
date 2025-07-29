@@ -102,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all cached data to prevent data leakage between users
+      queryClient.clear();
+      // Explicitly set user to null
       queryClient.setQueryData(["/api/user"], null);
+      // Force a page reload to ensure clean state
+      window.location.href = '/';
       toast({
         title: "Logged out",
         description: "Come back soon!",
