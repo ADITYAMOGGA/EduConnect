@@ -588,13 +588,21 @@ export class SupabaseStorage {
   async createSubject(subjectData: InsertSubject): Promise<Subject> {
     // Map camelCase to snake_case for database
     const dbSubjectData = {
-      name: subjectData.name,
-      code: subjectData.code,
+      name: subjectData.name?.trim(),
+      code: subjectData.code?.trim(),
       user_id: subjectData.userId,
       exam_id: subjectData.examId || null
     };
 
     console.log('Creating subject with data:', dbSubjectData);
+    console.log('Input subject data:', subjectData);
+
+    // Validate required fields
+    if (!dbSubjectData.name || !dbSubjectData.code || !dbSubjectData.user_id) {
+      const error = new Error(`Missing required fields: name=${dbSubjectData.name}, code=${dbSubjectData.code}, userId=${dbSubjectData.user_id}`);
+      console.error('Validation error:', error);
+      throw error;
+    }
 
     const { data, error } = await supabase
       .from('subjects')
@@ -603,9 +611,21 @@ export class SupabaseStorage {
       .single();
     
     if (error) {
-      console.error('Error creating subject:', error);
-      throw error;
+      console.error('Supabase error creating subject:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(`Database error: ${error.message} (${error.code})`);
     }
+    
+    if (!data) {
+      throw new Error('No data returned from subject creation');
+    }
+    
+    console.log('Subject created successfully:', data);
     
     // Map snake_case back to camelCase
     return {

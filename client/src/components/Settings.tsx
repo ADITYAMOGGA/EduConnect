@@ -122,17 +122,89 @@ export default function Settings() {
   };
 
   const handleImportData = () => {
-    toast({
-      title: "Import Data",
-      description: "Data import feature would be implemented here",
-    });
+    // Create a file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xml';
+    
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      try {
+        const response = await fetch('/api/students/import', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          toast({
+            title: "Import Successful",
+            description: `${result.message}. ${result.skipped ? `Skipped ${result.skipped} invalid rows.` : ''}`,
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+        } else {
+          throw new Error(result.message);
+        }
+      } catch (error) {
+        console.error('Import error:', error);
+        toast({
+          title: "Import Failed",
+          description: "Failed to import data. Please check your file format.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    input.click();
   };
 
-  const handleExportData = () => {
-    toast({
-      title: "Export Data",
-      description: "Data export feature would be implemented here",
-    });
+  const handleExportData = async () => {
+    try {
+      const response = await fetch('/api/export/complete', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+      
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('content-disposition');
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') 
+        : 'school_data_export.json';
+      
+      // Create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Export Successful",
+        description: "Your school data has been exported successfully",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

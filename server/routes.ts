@@ -20,10 +20,11 @@ export function registerRoutes(app: Express): Server {
   // Setup authentication
   setupAuth(app);
 
-  // Get current user info
+  // Get current user info - Optimized
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      res.json({
+      // Return user info directly from session/request (already available from authentication)
+      const userInfo = {
         id: req.user.id,
         username: req.user.username,
         email: req.user.email,
@@ -31,7 +32,11 @@ export function registerRoutes(app: Express): Server {
         lastName: req.user.lastName,
         schoolName: req.user.schoolName,
         profileImageUrl: req.user.profileImageUrl,
-      });
+      };
+      
+      // Cache the response for 5 minutes to reduce database calls
+      res.set('Cache-Control', 'public, max-age=300');
+      res.json(userInfo);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -130,7 +135,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Import students from CSV
+  // Import students from CSV - Optimized for speed
   app.post('/api/students/import', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       const userId = req.user.id;
@@ -143,23 +148,41 @@ export function registerRoutes(app: Express): Server {
       const csvData = file.buffer.toString('utf8');
       const parsed = Papa.parse(csvData, { header: true });
       
-      const students = [];
+      // Validate and prepare all students data first
+      const studentsToCreate = [];
       for (const row of parsed.data as any[]) {
         if (row.name && row.admission_no && row.class) {
-          const studentData = insertStudentSchema.parse({
-            name: row.name,
-            admissionNo: row.admission_no,
-            class: row.class,
-            email: row.email || null,
-            userId,
-          });
-          
-          const student = await storage.createStudent(studentData);
-          students.push(student);
+          try {
+            const studentData = insertStudentSchema.parse({
+              name: row.name.trim(),
+              admissionNo: row.admission_no.trim(),
+              class: row.class.trim(),
+              email: row.email?.trim() || null,
+              userId,
+            });
+            studentsToCreate.push(studentData);
+          } catch (validationError) {
+            console.warn(`Invalid student data for row: ${row.name}`, validationError);
+          }
         }
       }
       
-      res.json({ message: `Successfully imported ${students.length} students`, students });
+      // Bulk create students for better performance
+      const students = [];
+      const batchSize = 10; // Process in batches to avoid overwhelming the database
+      
+      for (let i = 0; i < studentsToCreate.length; i += batchSize) {
+        const batch = studentsToCreate.slice(i, i + batchSize);
+        const batchPromises = batch.map(studentData => storage.createStudent(studentData));
+        const batchResults = await Promise.all(batchPromises);
+        students.push(...batchResults);
+      }
+      
+      res.json({ 
+        message: `Successfully imported ${students.length} students from ${parsed.data.length} rows`, 
+        students,
+        skipped: parsed.data.length - students.length
+      });
     } catch (error) {
       console.error("Error importing students:", error);
       res.status(500).json({ message: "Failed to import students" });
@@ -170,7 +193,15 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/subjects', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const subjects = await storage.getSubjects(userId);
+      const { examId } = req.query;
+      
+      // If examId is provided, filter subjects for that exam
+      let subjects = await storage.getSubjects(userId);
+      
+      if (examId) {
+        subjects = subjects.filter(subject => subject.examId === examId);
+      }
+      
       res.json(subjects);
     } catch (error) {
       console.error("Error fetching subjects:", error);
@@ -194,25 +225,41 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Bulk create subjects
+  // Bulk create subjects - Optimized
   app.post('/api/subjects/bulk', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { subjects } = req.body;
+      const { subjects, examId } = req.body;
       
       if (!Array.isArray(subjects) || subjects.length === 0) {
         return res.status(400).json({ message: "Invalid subjects data" });
       }
       
+      console.log('Bulk creating subjects:', { subjects, examId, userId });
+      
       const createdSubjects = [];
-      for (const subjectItem of subjects) {
-        const subjectData = insertSubjectSchema.parse({
-          ...subjectItem,
-          userId,
+      const batchSize = 5; // Process in smaller batches for subjects
+      
+      for (let i = 0; i < subjects.length; i += batchSize) {
+        const batch = subjects.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (subjectItem) => {
+          try {
+            const subjectData = insertSubjectSchema.parse({
+              ...subjectItem,
+              userId,
+              examId: examId || null, // Link to specific exam if provided
+            });
+            
+            console.log('Creating subject with data:', subjectData);
+            return await storage.createSubject(subjectData);
+          } catch (error) {
+            console.error('Error creating individual subject:', error);
+            throw error;
+          }
         });
         
-        const subject = await storage.createSubject(subjectData);
-        createdSubjects.push(subject);
+        const batchResults = await Promise.all(batchPromises);
+        createdSubjects.push(...batchResults);
       }
       
       res.json({ 
@@ -221,7 +268,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error("Error creating subjects:", error);
-      res.status(400).json({ message: "Failed to create subjects" });
+      res.status(400).json({ message: "Failed to create subjects", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -336,6 +383,82 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error deleting mark:", error);
       res.status(500).json({ message: "Failed to delete mark" });
+    }
+  });
+
+  // Export data functionality
+  app.get('/api/export/students', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const students = await storage.getStudents(userId);
+      
+      // Convert to CSV Format
+      const csvData = [
+        ['Name', 'Admission No', 'Class', 'Email'], // Headers
+        ...students.map(student => [
+          student.name,
+          student.admissionNo,
+          student.class,
+          student.email || ''
+        ])
+      ];
+      
+      // Convert to CSV string
+      const csv = csvData.map(row => 
+        row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="students.csv"');
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting students:", error);
+      res.status(500).json({ message: "Failed to export students" });
+    }
+  });
+
+  app.get('/api/export/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      
+      // Fetch all data
+      const [students, exams, subjects, user] = await Promise.all([
+        storage.getStudents(userId),
+        storage.getExams(userId),
+        storage.getSubjects(userId),
+        storage.getUser(userId)
+      ]);
+      
+      // Get all marks for all exams
+      const allMarks = [];
+      for (const exam of exams) {
+        const examMarks = await storage.getMarksByExam(exam.id);
+        allMarks.push(...examMarks);
+      }
+      
+      const exportData = {
+        user: {
+          schoolName: user?.schoolName,
+          exportDate: new Date().toISOString(),
+        },
+        students,
+        exams,
+        subjects,
+        marks: allMarks,
+        summary: {
+          totalStudents: students.length,
+          totalExams: exams.length,
+          totalSubjects: subjects.length,
+          totalMarks: allMarks.length
+        }
+      };
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="school_data_export.json"');
+      res.json(exportData);
+    } catch (error) {
+      console.error("Error exporting complete data:", error);
+      res.status(500).json({ message: "Failed to export data" });
     }
   });
 
