@@ -102,9 +102,9 @@ export default function CertificateGenerator() {
         description: "Please wait while we generate your certificate...",
       });
 
-      // Create canvas from the certificate element
+      // Create high-quality canvas from the certificate element
       const canvas = await html2canvas(certificateRef.current, {
-        scale: 2, // Reduced scale for better PDF compatibility
+        scale: 3, // Higher scale for better quality
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -394,147 +394,141 @@ export default function CertificateGenerator() {
                   </div>
                 </div>
               ) : (
-                <div className="p-16 bg-white h-full w-full flex flex-col justify-center">
-                  {/* Elegant Border */}
-                  <div className="border-4 border-double border-gray-300 p-8 relative">
-                    {/* Certificate Header */}
-                    <div className="text-center mb-8">
+                <div className="bg-white h-full w-full p-6" style={{ minHeight: '800px' }}>
+                  {/* Professional Certificate Layout matching reference design */}
+                  <div className="border-4 border-orange-400 rounded-lg h-full p-6 relative bg-gradient-to-br from-orange-50 to-white">
+                    {/* Header Section */}
+                    <div className="text-center mb-6">
+                      {/* School Logo */}
                       {certificateOptions.showLogo && (
-                        <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
                           {certificateOptions.logoUrl ? (
                             <img 
                               src={certificateOptions.logoUrl} 
                               alt="School Logo" 
-                              className="w-16 h-16 object-contain rounded"
+                              className="w-12 h-12 object-contain"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
-                              <GraduationCap className="text-white text-2xl" />
+                            <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center text-xs text-white">
+                              School Logo
                             </div>
                           )}
                         </div>
                       )}
-                      <h1 className="text-2xl font-bold text-gray-900 mb-1 uppercase">
-                        {(user as any)?.schoolName || "SCHOOL NAME"}
+                      
+                      {/* School Name */}
+                      <h1 className="text-xl font-bold text-black mb-2">
+                        {(user as any)?.schoolName || "National Public High School"}
                       </h1>
-                      <p className="text-sm text-gray-600 mb-3">Progress Report</p>
-                      <h2 className="text-lg font-bold text-gray-800 mb-4 uppercase border-2 border-gray-800 py-2 px-4 inline-block">
-                        {selectedExamData?.name}
-                      </h2>
+                      
+                      {/* School Address */}
+                      <p className="text-xs text-gray-600 mb-4">
+                        123, Gandhi Marg, Hyderabad, Telangana - 500001
+                      </p>
+                      
+                      {/* Green Divider Line */}
+                      <div className="w-full h-1 bg-green-600 mb-6"></div>
                     </div>
 
                     {/* Student Information Section */}
-                    <div className="mb-8">
-                      <div className="grid grid-cols-2 gap-6 text-sm">
-                        <div className="flex items-center">
-                          <span className="font-semibold mr-2 min-w-fit">Student Name:</span>
-                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
-                            {selectedStudentData?.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="font-semibold mr-2 min-w-fit">Class:</span>
-                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
-                            {selectedStudentData?.class}
-                          </span>
+                    <div className="bg-blue-100 p-4 rounded mb-6">
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                        <div>
+                          <span className="font-semibold text-black">Name: </span>
+                          <span className="text-black">{selectedStudentData?.name}</span>
                         </div>
                         {certificateOptions.showAdmissionNo && (
-                          <div className="flex items-center">
-                            <span className="font-semibold mr-2 min-w-fit">Admission No:</span>
-                            <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
-                              {selectedStudentData?.admissionNo}
-                            </span>
+                          <div>
+                            <span className="font-semibold text-black">Admission No: </span>
+                            <span className="text-black">{selectedStudentData?.admissionNo}</span>
                           </div>
                         )}
-                        <div className="flex items-center">
-                          <span className="font-semibold mr-2 min-w-fit">Academic Year:</span>
-                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
-                            {new Date().getFullYear()}-{new Date().getFullYear() + 1}
-                          </span>
+                        <div>
+                          <span className="font-semibold text-black">Class: </span>
+                          <span className="text-black">{selectedStudentData?.class}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-black">Academic Year: </span>
+                          <span className="text-black">{selectedExamData?.name || "2024-2025"}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Clean Marks Table */}
+                    {/* Marks Table - Professional Design */}
                     {certificateOptions.showSubjectMarks && (
-                      <div className="mb-8">
-                        <div className="max-w-2xl mx-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b-2 border-gray-400">
-                                <th className="text-left py-3 px-4 font-semibold text-gray-800">Subject</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">Marks</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">Max</th>
-                                <th className="text-center py-3 px-4 font-semibold text-gray-800">%</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {studentMarks.map((mark, index) => (
-                                <tr key={mark.id} className="border-b border-gray-200">
-                                  <td className="py-2 px-4 text-gray-800">{mark.subject}</td>
-                                  <td className="py-2 px-4 text-center font-medium text-gray-900">{mark.marks}</td>
-                                  <td className="py-2 px-4 text-center text-gray-600">{selectedExamData?.maxMarks}</td>
-                                  {certificateOptions.showPercentage && (
-                                    <td className="py-2 px-4 text-center text-gray-700">
-                                      {((mark.marks / (selectedExamData?.maxMarks || 100)) * 100).toFixed(0)}%
-                                    </td>
-                                  )}
+                      <div className="mb-6">
+                        <table className="w-full border-collapse border-2 border-black">
+                          <thead>
+                            <tr className="bg-yellow-400">
+                              <th className="border border-black p-2 text-left font-bold text-black text-sm">Subject</th>
+                              <th className="border border-black p-2 text-center font-bold text-black text-sm">Marks Obtained</th>
+                              <th className="border border-black p-2 text-center font-bold text-black text-sm">Maximum Marks</th>
+                              <th className="border border-black p-2 text-center font-bold text-black text-sm">Grade</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {studentMarks.map((mark, index) => {
+                              const subject = subjects.find(s => s.id === mark.subject);
+                              const percentage = (mark.marks / selectedExamData!.maxMarks) * 100;
+                              const markGrade = getGrade(percentage);
+                              return (
+                                <tr key={mark.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                  <td className="border border-black p-2 text-black text-sm">
+                                    {subject?.name || mark.subject || "Unknown Subject"}
+                                  </td>
+                                  <td className="border border-black p-2 text-center text-black text-sm">
+                                    {mark.marks}
+                                  </td>
+                                  <td className="border border-black p-2 text-center text-black text-sm">
+                                    {selectedExamData?.maxMarks || 100}
+                                  </td>
+                                  <td className="border border-black p-2 text-center font-semibold text-black text-sm">
+                                    {markGrade}
+                                  </td>
                                 </tr>
-                              ))}
-                              {certificateOptions.showTotalMarks && (
-                                <tr className="border-t-2 border-gray-400 font-bold">
-                                  <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{total}</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * subjects.length : subjects.length * 100}</td>
-                                  {certificateOptions.showPercentage && (
-                                    <td className="py-3 px-4 text-center text-gray-900">{percentage}%</td>
-                                  )}
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Grade Display */}
-                        {certificateOptions.showGrade && (
-                          <div className="mt-6 text-center">
-                            <div className="inline-block border-2 border-gray-800 px-6 py-3 bg-gray-50">
-                              <span className="text-sm text-gray-700 block">Overall Grade</span>
-                              <span className="text-2xl font-bold text-gray-900">{grade}</span>
-                            </div>
-                          </div>
-                        )}
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     )}
 
-                    {/* Recognition Text */}
-                    <div className="text-center mb-8">
-                      <p className="text-gray-700 italic">
-                        in recognition of dedicated effort and academic achievement
-                      </p>
+                    {/* Results Summary */}
+                    <div className="flex justify-end mb-8">
+                      <div className="text-right">
+                        {(() => {
+                          const total = calculateTotal();
+                          const percentage = parseFloat(calculatePercentage(total));
+                          const overallGrade = getGrade(percentage);
+                          const result = percentage >= 40 ? "Passed" : "Failed";
+                          
+                          return (
+                            <div>
+                              <div className="text-sm text-black mb-1">
+                                <span className="font-semibold">Overall Grade: </span>
+                                <span className="font-bold text-lg">{overallGrade}</span>
+                              </div>
+                              <div className="text-sm text-black">
+                                <span className="font-semibold">Result: </span>
+                                <span className="font-bold">{result}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {/* Signature Section */}
-                    <div className="flex justify-between items-end mt-12">
+                    <div className="flex justify-between mt-auto pt-8">
                       <div className="text-center">
-                        <div className="w-32 h-px bg-gray-800 mb-2"></div>
-                        <p className="text-xs text-gray-600 uppercase tracking-wide">Principal</p>
+                        <div className="w-32 border-b border-black mb-1"></div>
+                        <p className="text-sm font-medium text-black">Class Teacher</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Date</p>
-                        <p className="text-sm font-medium text-gray-800">{new Date().toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-32 h-px bg-gray-800 mb-2"></div>
-                        <p className="text-xs text-gray-600 uppercase tracking-wide">School Seal</p>
+                        <div className="w-32 border-b border-black mb-1"></div>
+                        <p className="text-sm font-medium text-black">Principal</p>
                       </div>
                     </div>
-
-                    {/* Corner Decorative Elements */}
-                    <div className="absolute top-2 left-2 w-8 h-8 border-l-2 border-t-2 border-gray-400"></div>
-                    <div className="absolute top-2 right-2 w-8 h-8 border-r-2 border-t-2 border-gray-400"></div>
-                    <div className="absolute bottom-2 left-2 w-8 h-8 border-l-2 border-b-2 border-gray-400"></div>
-                    <div className="absolute bottom-2 right-2 w-8 h-8 border-r-2 border-b-2 border-gray-400"></div>
                   </div>
                 </div>
               )}
