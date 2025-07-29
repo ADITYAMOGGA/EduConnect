@@ -13,9 +13,10 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Plus, Edit, Trash2 } from "lucide-react";
+import { Save, Plus, Edit, Trash2, Award } from "lucide-react";
 import type { Student, Exam, Mark, Subject } from "@shared/schema";
 import { z } from "zod";
+import { motion, AnimatePresence } from "framer-motion";
 
 const createMarksSchema = (subjects: Subject[], maxMarks: number = 100) => {
   const schema: any = {
@@ -385,7 +386,7 @@ export default function MarksEntry() {
                   <SelectContent>
                     {exams.map((exam: Exam) => (
                       <SelectItem key={exam.id} value={exam.id}>
-                        {exam.name}
+                        {exam.name} (Max: {exam.maxMarks} marks)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -398,6 +399,22 @@ export default function MarksEntry() {
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
+              
+              {/* Show maximum marks info */}
+              {selectedExam && selectedExamData && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-700">
+                      {selectedExamData.name} - Maximum {maxMarks} marks per subject
+                    </span>
+                  </div>
+                </motion.div>
+              )}
               
               {showNewExamInput && (
                 <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -515,64 +532,103 @@ export default function MarksEntry() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {/* Dynamic subject fields based on custom subjects */}
-                <div className="grid grid-cols-2 gap-4">
-                  {subjects.map((subject, index) => {
-                    const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-                    return (
-                      <FormField
-                        key={subject.id}
-                        control={form.control}
-                        name={fieldName}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {subject.name}
-                              {subject.code && (
-                                <span className="text-xs text-gray-500 ml-1">({subject.code})</span>
+                {!selectedExam ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Select an exam to see subjects for marks entry</p>
+                  </div>
+                ) : subjects.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No subjects found for this exam</p>
+                    <p className="text-sm mt-2">Go to Subject Management to add subjects</p>
+                  </div>
+                ) : (
+                  <motion.div className="grid grid-cols-2 gap-4">
+                    <AnimatePresence>
+                      {subjects.map((subject, index) => {
+                        const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+                        return (
+                          <motion.div
+                            key={subject.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.1, duration: 0.3 }}
+                          >
+                            <FormField
+                              control={form.control}
+                              name={fieldName}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-2">
+                                    <motion.span
+                                      initial={{ scale: 0.8 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ delay: index * 0.1 + 0.2 }}
+                                    >
+                                      {subject.name}
+                                    </motion.span>
+                                    {subject.code && (
+                                      <span className="text-xs text-gray-500">({subject.code.split('-').pop()})</span>
+                                    )}
+                                    <span className="text-xs text-purple-600 font-medium">
+                                      (Max: {maxMarks})
+                                    </span>
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      placeholder={`0-${maxMarks}`}
+                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                      className="border-purple-200 focus:border-purple-400 focus:ring-purple-200"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
                               )}
-                            </FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="Enter marks" 
-                                {...field}
-                                value={field.value || ''}
-                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    );
-                  })}
-                </div>
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
 
-                <div className="flex space-x-2">
-                  {editingStudent && (
-                    <Button 
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingStudent(null);
-                        form.reset();
-                      }}
-                      className="flex-1"
-                    >
-                      Cancel Edit
-                    </Button>
-                  )}
-                  <Button 
-                    type="submit" 
-                    className={`${editingStudent ? 'flex-1' : 'w-full'} bg-success-500 hover:bg-success-600`}
-                    disabled={saveMarksMutation.isPending}
+                {selectedExam && subjects.length > 0 && (
+                  <motion.div 
+                    className="flex space-x-2"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: subjects.length * 0.1 + 0.3 }}
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    {saveMarksMutation.isPending 
-                      ? (editingStudent ? 'Updating...' : 'Saving...') 
-                      : (editingStudent ? 'Update Marks' : 'Save Marks')}
-                  </Button>
-                </div>
+                    {editingStudent && (
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingStudent(null);
+                          form.reset();
+                        }}
+                        className="flex-1"
+                      >
+                        Cancel Edit
+                      </Button>
+                    )}
+                    <Button 
+                      type="submit" 
+                      className={`${editingStudent ? 'flex-1' : 'w-full'} bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700`}
+                      disabled={saveMarksMutation.isPending}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {saveMarksMutation.isPending 
+                        ? (editingStudent ? 'Updating...' : 'Saving...') 
+                        : (editingStudent ? 'Update Marks' : 'Save Marks')}
+                    </Button>
+                  </motion.div>
+                )}
               </form>
             </Form>
           </CardContent>
