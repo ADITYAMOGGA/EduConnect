@@ -41,6 +41,16 @@ CREATE TABLE IF NOT EXISTS exams (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Subjects table for managing course subjects
+CREATE TABLE IF NOT EXISTS subjects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) NOT NULL,
+    user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Marks table for storing student marks in different subjects
 CREATE TABLE IF NOT EXISTS marks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -64,6 +74,8 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id);
 CREATE INDEX IF NOT EXISTS idx_students_class ON students(class);
 CREATE INDEX IF NOT EXISTS idx_exams_user_id ON exams(user_id);
+CREATE INDEX IF NOT EXISTS idx_subjects_user_id ON subjects(user_id);
+CREATE INDEX IF NOT EXISTS idx_subjects_exam_id ON subjects(exam_id);
 CREATE INDEX IF NOT EXISTS idx_marks_student_id ON marks(student_id);
 CREATE INDEX IF NOT EXISTS idx_marks_exam_id ON marks(exam_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
@@ -72,6 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE marks ENABLE ROW LEVEL SECURITY;
 
 -- Users can only access their own data
@@ -84,6 +97,10 @@ CREATE POLICY students_user_access ON students
 
 -- Exams belong to specific users
 CREATE POLICY exams_user_access ON exams 
+    FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
+
+-- Subjects belong to specific users
+CREATE POLICY subjects_user_access ON subjects 
     FOR ALL USING (user_id = auth.uid()::text OR auth.role() = 'service_role');
 
 -- Marks access through student ownership
@@ -136,5 +153,6 @@ VALUES (
 COMMENT ON TABLE users IS 'User accounts for school staff and administrators';
 COMMENT ON TABLE students IS 'Student records managed by users';
 COMMENT ON TABLE exams IS 'Examination definitions for different classes';
+COMMENT ON TABLE subjects IS 'Subject definitions managed by users, optionally linked to exams';
 COMMENT ON TABLE marks IS 'Student marks for specific exams and subjects';
 COMMENT ON TABLE sessions IS 'User session storage for authentication';

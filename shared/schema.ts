@@ -66,7 +66,6 @@ export const subjects = pgTable("subjects", {
   name: varchar("name", { length: 100 }).notNull(),
   code: varchar("code", { length: 20 }).notNull(),
   userId: varchar("user_id").notNull().references(() => users.id),
-  examId: uuid("exam_id").references(() => exams.id), // Optional: link subjects to specific exams
   createdAt: timestamp("created_at").defaultNow(),
 });
 
