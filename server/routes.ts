@@ -327,6 +327,88 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.patch('/api/exams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const examData = req.body;
+      
+      const exam = await storage.updateExam(id, examData, userId);
+      res.json(exam);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      res.status(500).json({ message: "Failed to update exam" });
+    }
+  });
+
+  app.delete('/api/exams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      await storage.deleteExam(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      res.status(500).json({ message: "Failed to delete exam" });
+    }
+  });
+
+  app.patch('/api/exams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const subjectData = req.body;
+      
+      const subject = await storage.updateSubject(id, subjectData, userId);
+      res.json(subject);
+    } catch (error) {
+      console.error("Error updating subject:", error);
+      res.status(500).json({ message: "Failed to update subject" });
+    }
+  });
+
+  app.delete('/api/subjects/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      await storage.deleteSubject(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      res.status(500).json({ message: "Failed to delete subject" });
+    }
+  });
+
+  // Exam routes
+  app.get('/api/exams', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const exams = await storage.getExams(userId);
+      res.json(exams);
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      res.status(500).json({ message: "Failed to fetch exams" });
+    }
+  });
+
+  app.post('/api/exams', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const examData = insertExamSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const exam = await storage.createExam(examData);
+      res.json(exam);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      res.status(400).json({ message: "Invalid exam data" });
+    }
+  });
+
   // Marks routes
   app.get('/api/marks/:examId', isAuthenticated, async (req: any, res) => {
     try {

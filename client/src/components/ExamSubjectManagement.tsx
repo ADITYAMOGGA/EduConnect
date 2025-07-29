@@ -38,6 +38,8 @@ export default function ExamSubjectManagement() {
   const [isBulkSubjectDialogOpen, setIsBulkSubjectDialogOpen] = useState(false);
   const [isExamDialogOpen, setIsExamDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<string>("");
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
   const [subjectFormData, setSubjectFormData] = useState({
     name: "",
     code: "",
@@ -70,19 +72,25 @@ export default function ExamSubjectManagement() {
       })
     : [];
 
-  // Create Exam Mutation
+  // Create/Update Exam Mutation
   const createExamMutation = useMutation({
     mutationFn: async (data: { name: string; class: string; maxMarks: number }) => {
-      const res = await apiRequest("POST", "/api/exams", data);
-      return await res.json();
+      if (editingExam) {
+        const res = await apiRequest("PATCH", `/api/exams/${editingExam.id}`, data);
+        return await res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/exams", data);
+        return await res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
       setIsExamDialogOpen(false);
       setExamFormData({ name: "", class: "", maxMarks: 100 });
+      setEditingExam(null);
       toast({
-        title: "Exam created",
-        description: "New exam has been created successfully.",
+        title: editingExam ? "Exam updated" : "Exam created",
+        description: `Exam has been ${editingExam ? 'updated' : 'created'} successfully.`,
       });
     },
     onError: (error: Error) => {
@@ -96,23 +104,29 @@ export default function ExamSubjectManagement() {
 
   const createSubjectMutation = useMutation({
     mutationFn: async (data: { name: string; code: string; examId?: string }) => {
-      // For now, we'll encode exam info in the subject code
-      const examData = exams.find(e => e.id === data.examId);
-      const enhancedCode = examData ? `${examData.name}-${data.code}` : data.code;
-      
-      const res = await apiRequest("POST", "/api/subjects", {
-        name: data.name,
-        code: enhancedCode,
-      });
-      return await res.json();
+      if (editingSubject) {
+        const res = await apiRequest("PATCH", `/api/subjects/${editingSubject.id}`, data);
+        return await res.json();
+      } else {
+        // For new subjects, encode exam info in the subject code
+        const examData = exams.find(e => e.id === data.examId);
+        const enhancedCode = examData ? `${examData.name}-${data.code}` : data.code;
+        
+        const res = await apiRequest("POST", "/api/subjects", {
+          name: data.name,
+          code: enhancedCode,
+        });
+        return await res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
       setIsSubjectDialogOpen(false);
       setSubjectFormData({ name: "", code: "", examId: "" });
+      setEditingSubject(null);
       toast({
-        title: "Subject created",
-        description: "Subject has been added to the exam successfully.",
+        title: editingSubject ? "Subject updated" : "Subject created",
+        description: `Subject has been ${editingSubject ? 'updated' : 'added to the exam'} successfully.`,
       });
     },
     onError: (error: Error) => {

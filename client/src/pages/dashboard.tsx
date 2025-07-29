@@ -103,7 +103,7 @@ export default function Dashboard() {
               </TabsTrigger>
               <TabsTrigger value="certificates" className="data-[state=active]:bg-white data-[state=active]:text-pink-700">
                 <GraduationCap className="h-4 w-4 mr-2" />
-                Certificates
+                Progress Cards
               </TabsTrigger>
               <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-slate-700">
                 <Settings className="h-4 w-4 mr-2" />

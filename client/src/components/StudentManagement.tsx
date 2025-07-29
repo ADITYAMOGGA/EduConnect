@@ -6,7 +6,8 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Upload, Edit, Trash2, User } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Upload, Edit, Trash2, User, UserX } from "lucide-react";
 import type { Student } from "@shared/schema";
 import AddStudentModal from "./AddStudentModal";
 import ImportModal from "./ImportModal";
@@ -16,6 +17,8 @@ export default function StudentManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,6 +60,40 @@ export default function StudentManagement() {
     },
   });
 
+  // Bulk delete students mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (studentIds: string[]) => {
+      await Promise.all(studentIds.map(id => apiRequest('DELETE', `/api/students/${id}`)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      setSelectedStudents(new Set());
+      setSelectAll(false);
+      toast({
+        title: "Success",
+        description: "Selected students deleted successfully",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: "Failed to delete selected students",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteStudent = (student: Student) => {
     if (window.confirm(`Are you sure you want to delete ${student.name}?`)) {
       deleteStudentMutation.mutate(student.id);
@@ -71,6 +108,39 @@ export default function StudentManagement() {
   const handleCloseModal = () => {
     setShowAddModal(false);
     setEditingStudent(null);
+  };
+
+  const handleSelectStudent = (studentId: string, checked: boolean) => {
+    const newSelected = new Set(selectedStudents);
+    if (checked) {
+      newSelected.add(studentId);
+    } else {
+      newSelected.delete(studentId);
+    }
+    setSelectedStudents(newSelected);
+    setSelectAll(newSelected.size === students.length && students.length > 0);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStudents(new Set(students.map(s => s.id)));
+    } else {
+      setSelectedStudents(new Set());
+    }
+    setSelectAll(checked);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedStudents.size === 0) return;
+    
+    const count = selectedStudents.size;
+    const message = count === students.length 
+      ? `Are you sure you want to delete ALL ${count} students? This action cannot be undone.`
+      : `Are you sure you want to delete the ${count} selected students? This action cannot be undone.`;
+    
+    if (window.confirm(message)) {
+      bulkDeleteMutation.mutate(Array.from(selectedStudents));
+    }
   };
 
   return (
@@ -96,6 +166,16 @@ export default function StudentManagement() {
           <Upload className="w-4 h-4 mr-2" />
           Import CSV/XML
         </Button>
+        {selectedStudents.size > 0 && (
+          <Button 
+            onClick={handleBulkDelete}
+            className="bg-red-500 text-white hover:bg-red-600 transition-all duration-200 transform hover:scale-105"
+            disabled={bulkDeleteMutation.isPending}
+          >
+            <UserX className="w-4 h-4 mr-2" />
+            Delete Selected ({selectedStudents.size})
+          </Button>
+        )}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium text-gray-700">Filter by Class:</label>
           <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -147,6 +227,12 @@ export default function StudentManagement() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left">
+                      <Checkbox 
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Student
                     </th>
@@ -164,6 +250,12 @@ export default function StudentManagement() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {students.map((student) => (
                     <tr key={student.id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Checkbox 
+                          checked={selectedStudents.has(student.id)}
+                          onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center mr-4">

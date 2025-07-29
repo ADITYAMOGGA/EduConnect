@@ -16,12 +16,12 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 interface CertificateOptions {
-  showPhoto: boolean;
   showAdmissionNo: boolean;
   showLogo: boolean;
   showSubjectMarks: boolean;
   showTotalMarks: boolean;
   showGrade: boolean;
+  showPercentage: boolean;
 }
 
 export default function CertificateGenerator() {
@@ -29,12 +29,12 @@ export default function CertificateGenerator() {
   const [selectedExam, setSelectedExam] = useState<string>("");
   const [openStudentSelect, setOpenStudentSelect] = useState(false);
   const [certificateOptions, setCertificateOptions] = useState<CertificateOptions>({
-    showPhoto: true,
     showAdmissionNo: true,
     showLogo: true,
     showSubjectMarks: true,
     showTotalMarks: true,
     showGrade: true,
+    showPercentage: true,
   });
 
   const { user } = useAuth();
@@ -144,12 +144,12 @@ export default function CertificateGenerator() {
       pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight);
       
       // Download the PDF
-      const fileName = `${selectedStudentData.name}_${selectedExamData.name}_Certificate.pdf`;
+      const fileName = `${selectedStudentData.name}_${selectedExamData.name}_ProgressCard.pdf`;
       pdf.save(fileName);
 
       toast({
         title: "Success",
-        description: "Certificate PDF has been downloaded successfully!",
+        description: "Progress Card PDF has been downloaded successfully!",
       });
     } catch (error) {
       console.error('PDF generation error:', error);
@@ -168,15 +168,15 @@ export default function CertificateGenerator() {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Certificate Generator</h2>
-        <p className="text-gray-600">Create and customize progress certificates</p>
+        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Progress Card Generator</h2>
+        <p className="text-gray-600">Create and customize progress cards for your students</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Certificate Editor */}
         <Card>
           <CardHeader>
-            <CardTitle>Certificate Options</CardTitle>
+            <CardTitle>Progress Card Options</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Student Selection */}
@@ -242,21 +242,10 @@ export default function CertificateGenerator() {
               </Select>
             </div>
 
-            {/* Certificate Fields */}
+            {/* Progress Card Fields */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Include in Certificate</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Include in Progress Card</label>
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="showPhoto"
-                    checked={certificateOptions.showPhoto}
-                    onCheckedChange={(checked) => 
-                      setCertificateOptions(prev => ({ ...prev, showPhoto: !!checked }))
-                    }
-                  />
-                  <label htmlFor="showPhoto" className="text-sm text-gray-700">Student Photo</label>
-                </div>
-                
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="showAdmissionNo"
@@ -298,7 +287,18 @@ export default function CertificateGenerator() {
                       setCertificateOptions(prev => ({ ...prev, showTotalMarks: !!checked }))
                     }
                   />
-                  <label htmlFor="showTotalMarks" className="text-sm text-gray-700">Total Marks & Percentage</label>
+                  <label htmlFor="showTotalMarks" className="text-sm text-gray-700">Total Marks</label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="showPercentage"
+                    checked={certificateOptions.showPercentage}
+                    onCheckedChange={(checked) => 
+                      setCertificateOptions(prev => ({ ...prev, showPercentage: !!checked }))
+                    }
+                  />
+                  <label htmlFor="showPercentage" className="text-sm text-gray-700">Percentage (%)</label>
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -330,7 +330,7 @@ export default function CertificateGenerator() {
               disabled={!selectedStudent || !selectedExam}
             >
               <Eye className="w-4 h-4 mr-2" />
-              Preview Certificate
+              Preview Progress Card
             </Button>
           </CardContent>
         </Card>
@@ -358,7 +358,7 @@ export default function CertificateGenerator() {
                 <div className="flex items-center justify-center h-full min-h-[500px]">
                   <div className="text-center text-gray-500">
                     <GraduationCap className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">Select a student and exam to preview certificate</p>
+                    <p className="text-lg">Select a student and exam to preview progress card</p>
                   </div>
                 </div>
               ) : studentMarks.length === 0 ? (
@@ -425,9 +425,11 @@ export default function CertificateGenerator() {
                                   <td className="py-2 px-4 text-gray-800">{mark.subject}</td>
                                   <td className="py-2 px-4 text-center font-medium text-gray-900">{mark.marks}</td>
                                   <td className="py-2 px-4 text-center text-gray-600">{selectedExamData?.maxMarks}</td>
-                                  <td className="py-2 px-4 text-center text-gray-700">
-                                    {((mark.marks / (selectedExamData?.maxMarks || 100)) * 100).toFixed(0)}%
-                                  </td>
+                                  {certificateOptions.showPercentage && (
+                                    <td className="py-2 px-4 text-center text-gray-700">
+                                      {((mark.marks / (selectedExamData?.maxMarks || 100)) * 100).toFixed(0)}%
+                                    </td>
+                                  )}
                                 </tr>
                               ))}
                               {certificateOptions.showTotalMarks && (
@@ -435,7 +437,9 @@ export default function CertificateGenerator() {
                                   <td className="py-3 px-4 text-gray-900">TOTAL</td>
                                   <td className="py-3 px-4 text-center text-gray-900">{total}</td>
                                   <td className="py-3 px-4 text-center text-gray-900">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * subjects.length : subjects.length * 100}</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{percentage}%</td>
+                                  {certificateOptions.showPercentage && (
+                                    <td className="py-3 px-4 text-center text-gray-900">{percentage}%</td>
+                                  )}
                                 </tr>
                               )}
                             </tbody>
