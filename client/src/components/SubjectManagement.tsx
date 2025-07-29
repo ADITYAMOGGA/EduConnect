@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, BookOpen, Edit2, Trash2, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, BookOpen, Edit2, Trash2, Loader2, ListPlus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,11 +25,14 @@ interface Subject {
 export default function SubjectManagement() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     code: "",
   });
+  const [bulkSubjects, setBulkSubjects] = useState("");
+  const [bulkSubjectsList, setBulkSubjectsList] = useState<Array<{name: string, code: string}>>([]);
 
   const { data: subjects = [], isLoading } = useQuery<Subject[]>({
     queryKey: ["/api/subjects"],
@@ -51,6 +56,30 @@ export default function SubjectManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to create subject",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: async (subjects: Array<{ name: string; code: string }>) => {
+      const res = await apiRequest("POST", "/api/subjects/bulk", { subjects });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      setIsBulkDialogOpen(false);
+      setBulkSubjects("");
+      setBulkSubjectsList([]);
+      toast({
+        title: "Subjects created",
+        description: data.message || "Subjects have been added successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create subjects",
         variant: "destructive",
       });
     },
@@ -109,6 +138,35 @@ export default function SubjectManagement() {
     }
   };
 
+  const parseBulkSubjects = (text: string) => {
+    const lines = text.trim().split('\n').filter(line => line.trim());
+    const parsed: Array<{name: string, code: string}> = [];
+    
+    lines.forEach((line, index) => {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        parsed.push({
+          name: parts[0],
+          code: parts[1]
+        });
+      }
+    });
+    
+    return parsed;
+  };
+
+  const handleBulkTextChange = (text: string) => {
+    setBulkSubjects(text);
+    setBulkSubjectsList(parseBulkSubjects(text));
+  };
+
+  const handleBulkSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bulkSubjectsList.length > 0) {
+      bulkCreateMutation.mutate(bulkSubjectsList);
+    }
+  };
+
   const handleEdit = (subject: Subject) => {
     setEditingSubject(subject);
     setFormData({ name: subject.name, code: subject.code });
@@ -154,13 +212,70 @@ export default function SubjectManagement() {
           <h2 className="text-2xl font-bold text-slate-800">Subject Management</h2>
           <p className="text-slate-600">Add and manage subjects for your school</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreateDialog} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Subject
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-3">
+          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50">
+                <ListPlus className="h-4 w-4 mr-2" />
+                Bulk Add
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ListPlus className="h-5 w-5 text-primary" />
+                  Bulk Add Subjects
+                </DialogTitle>
+                <DialogDescription>
+                  Add multiple subjects at once. Enter each subject on a new line with format: Subject Name, Code
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleBulkSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bulk-subjects">Subjects (one per line)</Label>
+                  <Textarea 
+                    id="bulk-subjects"
+                    placeholder="Mathematics, MATH01&#10;English, ENG01&#10;Science, SCI01&#10;Social Studies, SS01"
+                    value={bulkSubjects}
+                    onChange={(e) => handleBulkTextChange(e.target.value)}
+                    className="min-h-[120px]"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Format: Subject Name, Subject Code (one per line)
+                  </p>
+                </div>
+                
+                {bulkSubjectsList.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Preview ({bulkSubjectsList.length} subjects)</Label>
+                    <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                      {bulkSubjectsList.map((subject, index) => (
+                        <div key={index} className="flex items-center justify-between text-sm bg-muted/50 rounded px-2 py-1">
+                          <span>{subject.name}</span>
+                          <Badge variant="secondary">{subject.code}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <DialogFooter>
+                  <Button type="submit" disabled={bulkCreateMutation.isPending || bulkSubjectsList.length === 0}>
+                    {bulkCreateMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Create {bulkSubjectsList.length} Subjects
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreateDialog} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Subject
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -214,6 +329,7 @@ export default function SubjectManagement() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">

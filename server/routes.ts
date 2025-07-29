@@ -176,6 +176,37 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Bulk create subjects
+  app.post('/api/subjects/bulk', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { subjects } = req.body;
+      
+      if (!Array.isArray(subjects) || subjects.length === 0) {
+        return res.status(400).json({ message: "Invalid subjects data" });
+      }
+      
+      const createdSubjects = [];
+      for (const subjectItem of subjects) {
+        const subjectData = insertSubjectSchema.parse({
+          ...subjectItem,
+          userId,
+        });
+        
+        const subject = await storage.createSubject(subjectData);
+        createdSubjects.push(subject);
+      }
+      
+      res.json({ 
+        message: `Successfully created ${createdSubjects.length} subjects`, 
+        subjects: createdSubjects 
+      });
+    } catch (error) {
+      console.error("Error creating subjects:", error);
+      res.status(400).json({ message: "Failed to create subjects" });
+    }
+  });
+
   app.patch('/api/subjects/:id', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
