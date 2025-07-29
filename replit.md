@@ -72,8 +72,17 @@ Preferred communication style: Simple, everyday language.
 - Updated all subject-related queries to filter by exam association
 - Removed SubjectManagement import and component usage from dashboard
 
+✅ **Critical Bug Fixes and Feature Enhancements Completed (January 29, 2025):**
+- Fixed variable initialization error in MarksEntry component (moved exams query before subjects filtering)
+- Added bulk subject creation functionality to ExamSubjectManagement
+- Enhanced subject management with "Bulk Add" button for multiple subject creation
+- Implemented textarea-based bulk input with format support (Name,Code or just Name)
+- Auto-generates subject codes when not provided in bulk creation
+- Fixed subject filtering logic to work properly with exam-specific subjects
+- All subjects now properly linked to exams through naming convention
+
 🔄 **In Progress:**
-- Final testing of exam-specific subject workflow and marks entry integration
+- Final testing of bulk subject creation and marks entry workflow
 
 ## System Architecture
 

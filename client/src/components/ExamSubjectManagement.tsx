@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,6 +35,7 @@ interface Subject {
 export default function ExamSubjectManagement() {
   const { toast } = useToast();
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+  const [isBulkSubjectDialogOpen, setIsBulkSubjectDialogOpen] = useState(false);
   const [isExamDialogOpen, setIsExamDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<string>("");
   const [subjectFormData, setSubjectFormData] = useState({
@@ -41,6 +43,7 @@ export default function ExamSubjectManagement() {
     code: "",
     examId: "",
   });
+  const [bulkSubjects, setBulkSubjects] = useState("");
   const [examFormData, setExamFormData] = useState({
     name: "",
     class: "",
@@ -121,6 +124,30 @@ export default function ExamSubjectManagement() {
     },
   });
 
+  // Bulk Create Subjects Mutation
+  const bulkCreateSubjectsMutation = useMutation({
+    mutationFn: async (data: { subjects: Array<{ name: string; code: string }> }) => {
+      const res = await apiRequest("POST", "/api/subjects/bulk", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      setIsBulkSubjectDialogOpen(false);
+      setBulkSubjects("");
+      toast({
+        title: "Success",
+        description: "Subjects created successfully!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",  
+        description: error.message || "Failed to create subjects",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteSubjectMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/subjects/${id}`);
@@ -173,6 +200,36 @@ export default function ExamSubjectManagement() {
     });
   };
 
+  const handleBulkSubjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkSubjects.trim() || !selectedExam) {
+      toast({
+        title: "Error",
+        description: "Please enter subjects and select an exam",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Parse bulk subjects - each line should be "Name,Code" or just "Name"
+    const subjectLines = bulkSubjects.trim().split('\n').filter(line => line.trim());
+    const examData = exams.find(e => e.id === selectedExam);
+    const examPrefix = examData ? `${examData.name}-` : '';
+    
+    const subjects = subjectLines.map((line, index) => {
+      const parts = line.trim().split(',');
+      const name = parts[0]?.trim();
+      const code = parts[1]?.trim() || `${name.toUpperCase().slice(0, 3)}${index + 1}`;
+      
+      return {
+        name: name,
+        code: `${examPrefix}${code}`
+      };
+    });
+
+    bulkCreateSubjectsMutation.mutate({ subjects });
+  };
+
   const openCreateSubjectDialog = () => {
     if (!selectedExam) {
       toast({
@@ -184,6 +241,19 @@ export default function ExamSubjectManagement() {
     }
     setSubjectFormData({ name: "", code: "", examId: selectedExam });
     setIsSubjectDialogOpen(true);
+  };
+
+  const openBulkCreateDialog = () => {
+    if (!selectedExam) {
+      toast({
+        title: "Select an exam first",
+        description: "Please select an exam to add subjects to.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkSubjects("");
+    setIsBulkSubjectDialogOpen(true);
   };
 
   return (
@@ -240,6 +310,15 @@ export default function ExamSubjectManagement() {
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Subject
+            </Button>
+            <Button
+              onClick={openBulkCreateDialog}
+              disabled={!selectedExam}
+              variant="outline"
+              className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Bulk Add
             </Button>
           </div>
         </CardContent>
@@ -486,6 +565,65 @@ export default function ExamSubjectManagement() {
                   <>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Subject
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Create Subjects Dialog */}
+      <Dialog open={isBulkSubjectDialogOpen} onOpenChange={setIsBulkSubjectDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Bulk Add Subjects
+            </DialogTitle>
+            <DialogDescription>
+              Add multiple subjects for {exams.find(e => e.id === selectedExam)?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBulkSubjectSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-subjects">Subjects (one per line)</Label>
+              <Textarea
+                id="bulk-subjects"
+                placeholder={`Enter subjects like this:
+Mathematics,MATH01
+Science,SCI01
+Social Studies,SS01
+English
+Hindi`}
+                value={bulkSubjects}
+                onChange={(e) => setBulkSubjects(e.target.value)}
+                rows={8}
+                className="resize-none"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Format: "Subject Name,Code" or just "Subject Name" (code will be auto-generated)
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsBulkSubjectDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={bulkCreateSubjectsMutation.isPending}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+              >
+                {bulkCreateSubjectsMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add All Subjects
                   </>
                 )}
               </Button>
