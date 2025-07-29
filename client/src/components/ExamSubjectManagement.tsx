@@ -270,6 +270,28 @@ export default function ExamSubjectManagement() {
     setIsBulkSubjectDialogOpen(true);
   };
 
+  const handleEditSubject = (subject: Subject) => {
+    setEditingSubject(subject);
+    const examData = exams.find(e => e.id === selectedExam);
+    const codeWithoutPrefix = subject.code.replace(`${examData?.name}-`, '');
+    setSubjectFormData({
+      name: subject.name,
+      code: codeWithoutPrefix,
+      examId: selectedExam,
+    });
+    setIsSubjectDialogOpen(true);
+  };
+
+  const handleEditExam = (exam: Exam) => {
+    setEditingExam(exam);
+    setExamFormData({
+      name: exam.name,
+      class: exam.class,
+      maxMarks: exam.maxMarks,
+    });
+    setIsExamDialogOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -303,7 +325,20 @@ export default function ExamSubjectManagement() {
                 <SelectContent>
                   {exams.map((exam) => (
                     <SelectItem key={exam.id} value={exam.id}>
-                      {exam.name} - Class {exam.class}
+                      <div className="flex items-center justify-between w-full">
+                        <span>{exam.name} - Class {exam.class}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditExam(exam);
+                          }}
+                          className="ml-2 text-blue-600 hover:text-blue-700 p-1 h-6 w-6"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -420,19 +455,29 @@ export default function ExamSubjectManagement() {
                             {new Date(subject.createdAt).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteSubjectMutation.mutate(subject.id)}
-                              disabled={deleteSubjectMutation.isPending}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              {deleteSubjectMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
+                            <div className="flex items-center gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditSubject(subject)}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteSubjectMutation.mutate(subject.id)}
+                                disabled={deleteSubjectMutation.isPending}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                {deleteSubjectMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </TableCell>
                         </motion.tr>
                       ))}
@@ -451,10 +496,10 @@ export default function ExamSubjectManagement() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-primary" />
-              Create New Exam
+              {editingExam ? "Edit Exam" : "Create New Exam"}
             </DialogTitle>
             <DialogDescription>
-              Add a new examination to manage subjects for
+              {editingExam ? "Update examination details" : "Add a new examination to manage subjects for"}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleExamSubmit} className="space-y-4">
@@ -502,7 +547,11 @@ export default function ExamSubjectManagement() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsExamDialogOpen(false)}
+                onClick={() => {
+                  setIsExamDialogOpen(false);
+                  setEditingExam(null);
+                  setExamFormData({ name: "", class: "", maxMarks: 100 });
+                }}
               >
                 Cancel
               </Button>
@@ -519,7 +568,7 @@ export default function ExamSubjectManagement() {
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Exam
+                    {editingExam ? "Update Exam" : "Create Exam"}
                   </>
                 )}
               </Button>
@@ -534,10 +583,10 @@ export default function ExamSubjectManagement() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5 text-primary" />
-              Add New Subject
+              {editingSubject ? "Edit Subject" : "Add New Subject"}
             </DialogTitle>
             <DialogDescription>
-              Add a subject for {exams.find(e => e.id === selectedExam)?.name}
+              {editingSubject ? "Update subject details" : `Add a subject for ${exams.find(e => e.id === selectedExam)?.name}`}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubjectSubmit} className="space-y-4">
@@ -562,7 +611,11 @@ export default function ExamSubjectManagement() {
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsSubjectDialogOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsSubjectDialogOpen(false);
+                setEditingSubject(null);
+                setSubjectFormData({ name: "", code: "", examId: "" });
+              }}>
                 Cancel
               </Button>
               <Button 
@@ -578,7 +631,7 @@ export default function ExamSubjectManagement() {
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Subject
+                    {editingSubject ? "Update Subject" : "Add Subject"}
                   </>
                 )}
               </Button>

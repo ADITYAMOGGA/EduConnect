@@ -378,32 +378,45 @@ export default function CertificateGenerator() {
                           <GraduationCap className="text-white text-2xl" />
                         </div>
                       )}
-                      <h1 className="text-3xl font-bold text-gray-800 mb-2 tracking-wide">
-                        {(user as User)?.schoolName || (user as User)?.firstName + "'s School" || 'Academy of Excellence'}
+                      <h1 className="text-2xl font-bold text-gray-900 mb-1 uppercase">
+                        {(user as any)?.schoolName || "SCHOOL NAME"}
                       </h1>
-                      <div className="w-24 h-0.5 bg-gray-400 mx-auto mb-3"></div>
-                      <h2 className="text-xl font-semibold text-gray-700 mb-1">CERTIFICATE OF ACADEMIC ACHIEVEMENT</h2>
-                      <p className="text-gray-600 text-sm">Academic Year {new Date().getFullYear()}</p>
+                      <p className="text-sm text-gray-600 mb-3">Progress Report</p>
+                      <h2 className="text-lg font-bold text-gray-800 mb-4 uppercase border-2 border-gray-800 py-2 px-4 inline-block">
+                        {selectedExamData?.name}
+                      </h2>
                     </div>
 
-                    {/* Certificate Body */}
-                    <div className="text-center mb-6">
-                      <p className="text-lg text-gray-700 mb-4">This is to certify that</p>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-300 inline-block px-4">
-                        {selectedStudentData?.name}
-                      </h3>
-                      <div className="text-gray-600 mb-6">
+                    {/* Student Information Section */}
+                    <div className="mb-6">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-semibold">Student Name: </span>
+                          <span className="border-b border-dotted border-gray-400 inline-block min-w-32">
+                            {selectedStudentData?.name}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold">Class: </span>
+                          <span className="border-b border-dotted border-gray-400 inline-block min-w-16">
+                            {selectedStudentData?.class}
+                          </span>
+                        </div>
                         {certificateOptions.showAdmissionNo && (
-                          <p>Admission No: <span className="font-medium">{selectedStudentData?.admissionNo}</span></p>
+                          <div>
+                            <span className="font-semibold">Admission No: </span>
+                            <span className="border-b border-dotted border-gray-400 inline-block min-w-24">
+                              {selectedStudentData?.admissionNo}
+                            </span>
+                          </div>
                         )}
-                        <p>Class: <span className="font-medium">{selectedStudentData?.class}</span></p>
+                        <div>
+                          <span className="font-semibold">Academic Year: </span>
+                          <span className="border-b border-dotted border-gray-400 inline-block min-w-24">
+                            {new Date().getFullYear()}-{new Date().getFullYear() + 1}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-gray-700 mb-6">
-                        has successfully completed the examination requirements for
-                      </p>
-                      <h4 className="text-lg font-semibold text-gray-800 mb-6">
-                        {selectedExamData?.name}
-                      </h4>
                     </div>
 
                     {/* Clean Marks Table */}
