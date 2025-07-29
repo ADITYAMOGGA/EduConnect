@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,11 +39,14 @@ const examSchema = z.object({
 });
 
 type ExamFormData = z.infer<typeof examSchema>;
+type MarksFormData = any; // Dynamic type based on subjects
 
 export default function MarksEntry() {
   const [selectedExam, setSelectedExam] = useState<string>("");
   const [showNewExamInput, setShowNewExamInput] = useState(false);
   const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [openStudentSelect, setOpenStudentSelect] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -311,18 +317,48 @@ export default function MarksEntry() {
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
-              <Select onValueChange={(value) => form.setValue('studentId', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a student..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student: Student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} ({student.admissionNo})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openStudentSelect} onOpenChange={setOpenStudentSelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openStudentSelect}
+                    className="w-full justify-between h-10 px-3"
+                  >
+                    {selectedStudentId
+                      ? students.find((student) => student.id === selectedStudentId)?.name + 
+                        " (" + students.find((student) => student.id === selectedStudentId)?.admissionNo + ")"
+                      : "Select a student..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search students..." />
+                    <CommandEmpty>No student found.</CommandEmpty>
+                    <CommandGroup className="max-h-[200px] overflow-auto">
+                      {students.map((student) => (
+                        <CommandItem
+                          key={student.id}
+                          value={`${student.name} ${student.admissionNo}`}
+                          onSelect={() => {
+                            setSelectedStudentId(student.id);
+                            form.setValue('studentId', student.id);
+                            setOpenStudentSelect(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              selectedStudentId === student.id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          {student.name} ({student.admissionNo})
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div>

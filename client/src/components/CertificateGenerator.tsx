@@ -4,6 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, CloudUpload, GraduationCap } from "lucide-react";
@@ -24,6 +27,7 @@ interface CertificateOptions {
 export default function CertificateGenerator() {
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [selectedExam, setSelectedExam] = useState<string>("");
+  const [openStudentSelect, setOpenStudentSelect] = useState(false);
   const [certificateOptions, setCertificateOptions] = useState<CertificateOptions>({
     showPhoto: true,
     showAdmissionNo: true,
@@ -161,18 +165,47 @@ export default function CertificateGenerator() {
             {/* Student Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
-              <Select onValueChange={setSelectedStudent}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose student..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.map((student: Student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name} - Class {student.class}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openStudentSelect} onOpenChange={setOpenStudentSelect}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openStudentSelect}
+                    className="w-full justify-between h-10 px-3"
+                  >
+                    {selectedStudent
+                      ? students.find((student) => student.id === selectedStudent)?.name + 
+                        " - Class " + students.find((student) => student.id === selectedStudent)?.class
+                      : "Choose student..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search students..." />
+                    <CommandEmpty>No student found.</CommandEmpty>
+                    <CommandGroup className="max-h-[200px] overflow-auto">
+                      {students.map((student) => (
+                        <CommandItem
+                          key={student.id}
+                          value={`${student.name} Class ${student.class} ${student.admissionNo}`}
+                          onSelect={() => {
+                            setSelectedStudent(student.id);
+                            setOpenStudentSelect(false);
+                          }}
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              selectedStudent === student.id ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                          {student.name} - Class {student.class}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Exam Selection */}
