@@ -1,0 +1,18 @@
+Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+chunk-RPCDYKBN.js?v=066f08fe:521 Warning: Cannot update a component (`AuthPage`) while rendering a different component (`AuthPage`). To locate the bad setState() call inside `AuthPage`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+    at AuthPage (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/src/pages/auth-page.tsx:29:53)
+    at Route (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=066f08fe:323:16)
+    at Switch (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=066f08fe:379:17)
+    at Provider (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-M3NVYRND.js?v=066f08fe:48:15)
+    at TooltipProvider (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=066f08fe:59:5)
+    at AuthProvider (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://2ca3bcb3-328a-41a7-956a-e639a9b4b389-00-mhs77xu6z3fn.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=066f08fe:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=066f08fe:521Understand this error
+@radix-ui_react-dialog.js?v=066f08fe:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=066f08fe:337Understand this warning
+/api/students/import:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+@radix-ui_react-dialog.js?v=066f08fe:337 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ @radix-ui_react-dialog.js?v=066f08fe:337Understand this warning
+/api/students/import:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+/api/students/import:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error

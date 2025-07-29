@@ -158,7 +158,18 @@ export class SupabaseStorage {
       console.error('Error fetching students:', error);
       return [];
     }
-    return data || [];
+    
+    // Map snake_case to camelCase
+    return (data || []).map(student => ({
+      id: student.id,
+      name: student.name,
+      admissionNo: student.admission_no,
+      class: student.class,
+      email: student.email,
+      userId: student.user_id,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    }));
   }
 
   async getStudentsByClass(userId: string, studentClass: string): Promise<Student[]> {
@@ -172,7 +183,18 @@ export class SupabaseStorage {
       console.error('Error fetching students by class:', error);
       return [];
     }
-    return data || [];
+    
+    // Map snake_case to camelCase
+    return (data || []).map(student => ({
+      id: student.id,
+      name: student.name,
+      admissionNo: student.admission_no,
+      class: student.class,
+      email: student.email,
+      userId: student.user_id,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    }));
   }
 
   async getStudent(id: string, userId: string): Promise<Student | undefined> {
@@ -184,16 +206,40 @@ export class SupabaseStorage {
       .single();
     
     if (error) {
-      console.error('Error fetching student:', error);
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching student:', error);
+      }
       return undefined;
     }
-    return data;
+    
+    // Map snake_case to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      admissionNo: data.admission_no,
+      class: data.class,
+      email: data.email,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async createStudent(studentData: InsertStudent): Promise<Student> {
+    // Map camelCase to snake_case for database
+    const dbStudentData = {
+      name: studentData.name,
+      admission_no: studentData.admissionNo,
+      class: studentData.class,
+      email: studentData.email,
+      user_id: studentData.userId
+    };
+
+    console.log('Creating student with data:', dbStudentData);
+
     const { data, error } = await supabase
       .from('students')
-      .insert(studentData)
+      .insert(dbStudentData)
       .select()
       .single();
     
@@ -201,13 +247,31 @@ export class SupabaseStorage {
       console.error('Error creating student:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      admissionNo: data.admission_no,
+      class: data.class,
+      email: data.email,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async updateStudent(id: string, studentData: Partial<InsertStudent>, userId: string): Promise<Student> {
+    // Map camelCase to snake_case for database
+    const dbStudentData: any = {};
+    if (studentData.name !== undefined) dbStudentData.name = studentData.name;
+    if (studentData.admissionNo !== undefined) dbStudentData.admission_no = studentData.admissionNo;
+    if (studentData.class !== undefined) dbStudentData.class = studentData.class;
+    if (studentData.email !== undefined) dbStudentData.email = studentData.email;
+
     const { data, error } = await supabase
       .from('students')
-      .update(studentData)
+      .update(dbStudentData)
       .eq('id', id)
       .eq('user_id', userId)
       .select()
@@ -217,7 +281,18 @@ export class SupabaseStorage {
       console.error('Error updating student:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      admissionNo: data.admission_no,
+      class: data.class,
+      email: data.email,
+      userId: data.user_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async deleteStudent(id: string, userId: string): Promise<void> {
@@ -244,7 +319,16 @@ export class SupabaseStorage {
       console.error('Error fetching exams:', error);
       return [];
     }
-    return data || [];
+    
+    // Map snake_case to camelCase
+    return (data || []).map(exam => ({
+      id: exam.id,
+      name: exam.name,
+      class: exam.class,
+      maxMarks: exam.max_marks,
+      userId: exam.user_id,
+      createdAt: exam.created_at
+    }));
   }
 
   async getExam(id: string, userId: string): Promise<Exam | undefined> {
@@ -256,16 +340,35 @@ export class SupabaseStorage {
       .single();
     
     if (error) {
-      console.error('Error fetching exam:', error);
+      if (error.code !== 'PGRST116') {
+        console.error('Error fetching exam:', error);
+      }
       return undefined;
     }
-    return data;
+    
+    // Map snake_case to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      class: data.class,
+      maxMarks: data.max_marks,
+      userId: data.user_id,
+      createdAt: data.created_at
+    };
   }
 
   async createExam(examData: InsertExam): Promise<Exam> {
+    // Map camelCase to snake_case
+    const dbExamData = {
+      name: examData.name,
+      class: examData.class,
+      max_marks: examData.maxMarks,
+      user_id: examData.userId
+    };
+
     const { data, error } = await supabase
       .from('exams')
-      .insert(examData)
+      .insert(dbExamData)
       .select()
       .single();
     
@@ -273,7 +376,16 @@ export class SupabaseStorage {
       console.error('Error creating exam:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      class: data.class,
+      maxMarks: data.max_marks,
+      userId: data.user_id,
+      createdAt: data.created_at
+    };
   }
 
   // Subject operations
@@ -344,7 +456,18 @@ export class SupabaseStorage {
       console.error('Error fetching marks by exam:', error);
       return [];
     }
-    return data || [];
+    
+    // Map snake_case to camelCase
+    return (data || []).map(mark => ({
+      id: mark.id,
+      studentId: mark.student_id,
+      examId: mark.exam_id,
+      subject: mark.subject,
+      marks: mark.marks,
+      maxMarks: mark.max_marks,
+      createdAt: mark.created_at,
+      updatedAt: mark.updated_at
+    }));
   }
 
   async getMarksByStudentAndExam(studentId: string, examId: string): Promise<Mark[]> {
@@ -358,13 +481,33 @@ export class SupabaseStorage {
       console.error('Error fetching marks by student and exam:', error);
       return [];
     }
-    return data || [];
+    
+    // Map snake_case to camelCase
+    return (data || []).map(mark => ({
+      id: mark.id,
+      studentId: mark.student_id,
+      examId: mark.exam_id,
+      subject: mark.subject,
+      marks: mark.marks,
+      maxMarks: mark.max_marks,
+      createdAt: mark.created_at,
+      updatedAt: mark.updated_at
+    }));
   }
 
   async createMark(markData: InsertMark): Promise<Mark> {
+    // Map camelCase to snake_case
+    const dbMarkData = {
+      student_id: markData.studentId,
+      exam_id: markData.examId,
+      subject: markData.subject,
+      marks: markData.marks,
+      max_marks: markData.maxMarks
+    };
+
     const { data, error } = await supabase
       .from('marks')
-      .insert(markData)
+      .insert(dbMarkData)
       .select()
       .single();
     
@@ -372,13 +515,32 @@ export class SupabaseStorage {
       console.error('Error creating mark:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      studentId: data.student_id,
+      examId: data.exam_id,
+      subject: data.subject,
+      marks: data.marks,
+      maxMarks: data.max_marks,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async updateMark(id: string, markData: Partial<InsertMark>): Promise<Mark> {
+    // Map camelCase to snake_case
+    const dbMarkData: any = {};
+    if (markData.studentId !== undefined) dbMarkData.student_id = markData.studentId;
+    if (markData.examId !== undefined) dbMarkData.exam_id = markData.examId;
+    if (markData.subject !== undefined) dbMarkData.subject = markData.subject;
+    if (markData.marks !== undefined) dbMarkData.marks = markData.marks;
+    if (markData.maxMarks !== undefined) dbMarkData.max_marks = markData.maxMarks;
+
     const { data, error } = await supabase
       .from('marks')
-      .update(markData)
+      .update(dbMarkData)
       .eq('id', id)
       .select()
       .single();
@@ -387,7 +549,18 @@ export class SupabaseStorage {
       console.error('Error updating mark:', error);
       throw error;
     }
-    return data;
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      studentId: data.student_id,
+      examId: data.exam_id,
+      subject: data.subject,
+      marks: data.marks,
+      maxMarks: data.max_marks,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   }
 
   async deleteMark(id: string): Promise<void> {
