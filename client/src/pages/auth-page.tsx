@@ -86,17 +86,17 @@ export default function AuthPage() {
         ease: "linear",
       }}
     >
-      <Sparkles className="h-3 w-3 text-indigo-300/60" />
+      <Sparkles className="h-3 w-3 text-cyan-400/80" />
     </motion.div>
   ));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Complex animated background system */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Morphing background blobs */}
         <motion.div
-          className="absolute top-1/4 left-1/4 w-80 h-80 bg-gradient-to-r from-indigo-200/40 to-purple-200/40 rounded-full blur-3xl"
+          className="absolute top-1/4 left-1/4 w-80 h-80 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full blur-3xl"
           animate={{
             scale: [1, 1.5, 0.8, 1.2, 1],
             rotate: [0, 180, 360],
@@ -111,7 +111,7 @@ export default function AuthPage() {
           }}
         />
         <motion.div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-cyan-200/40 to-blue-200/40 rounded-full blur-3xl"
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl"
           animate={{
             scale: [1.2, 0.9, 1.4, 1],
             rotate: [360, 180, 0],
@@ -126,7 +126,7 @@ export default function AuthPage() {
           }}
         />
         <motion.div
-          className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-purple-200/30 to-pink-200/30 rounded-full blur-3xl"
+          className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-3xl"
           animate={{
             scale: [1, 1.3, 0.7, 1.1, 1],
             rotate: [0, -90, -180, -270, -360],
@@ -177,7 +177,7 @@ export default function AuthPage() {
               transition={{ delay: 0.2, duration: 0.8 }}
             >
               <motion.h1 
-                className="text-5xl lg:text-6xl font-bold text-gray-900 relative"
+                className="text-5xl lg:text-6xl font-bold text-white relative"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
               >
@@ -226,7 +226,7 @@ export default function AuthPage() {
                   ease: "easeInOut",
                 }}
               >
-                <Star className="h-6 w-6 text-indigo-400" />
+                <Star className="h-6 w-6 text-cyan-400" />
               </motion.div>
               <motion.div
                 className="absolute -bottom-2 -left-2"
@@ -241,12 +241,12 @@ export default function AuthPage() {
                   delay: 1,
                 }}
               >
-                <Sparkles className="h-4 w-4 text-cyan-400" />
+                <Sparkles className="h-4 w-4 text-purple-400" />
               </motion.div>
             </motion.div>
             
             <motion.p 
-              className="text-xl text-gray-600 max-w-lg"
+              className="text-xl text-gray-300 max-w-lg"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.8 }}
@@ -295,7 +295,7 @@ export default function AuthPage() {
                   }}
                 />
                 <motion.span 
-                  className="text-gray-700 group-hover:text-indigo-600 transition-colors"
+                  className="text-gray-300 group-hover:text-cyan-400 transition-colors"
                   whileHover={{ x: 5 }}
                 >
                   {feature}
@@ -321,7 +321,7 @@ export default function AuthPage() {
             transition={{ duration: 0.4 }}
             className="perspective-1000"
           >
-            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl relative overflow-hidden">
+            <Card className="bg-gray-900/80 backdrop-blur-xl border-0 shadow-xl relative overflow-hidden">
               {/* Animated border effect */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-cyan-500 to-purple-500 rounded-lg"
@@ -338,7 +338,7 @@ export default function AuthPage() {
                   padding: "2px",
                 }}
               >
-                <div className="w-full h-full bg-white/80 backdrop-blur-xl rounded-lg" />
+                <div className="w-full h-full bg-gray-900/80 backdrop-blur-xl rounded-lg" />
               </motion.div>
 
               <div className="relative z-10">
@@ -377,8 +377,8 @@ export default function AuthPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 }}
                     >
-                      <CardTitle className="text-2xl font-bold text-gray-900">Welcome</CardTitle>
-                      <CardDescription className="text-gray-600">
+                      <CardTitle className="text-2xl font-bold text-white">Welcome</CardTitle>
+                      <CardDescription className="text-gray-300">
                         Sign in to your account
                       </CardDescription>
                     </motion.div>
@@ -391,10 +391,10 @@ export default function AuthPage() {
                       whileHover={{ scale: 1.02 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1">
+                      <TabsList className="grid w-full grid-cols-2 bg-gray-800 p-1">
                         <TabsTrigger 
                           value="login" 
-                          className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                          className="data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-gray-300 transition-all duration-300"
                         >
                           <motion.span
                             whileHover={{ scale: 1.05 }}
@@ -405,7 +405,7 @@ export default function AuthPage() {
                         </TabsTrigger>
                         <TabsTrigger 
                           value="register" 
-                          className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300"
+                          className="data-[state=active]:bg-gray-700 data-[state=active]:shadow-sm data-[state=active]:text-white text-gray-300 transition-all duration-300"
                         >
                           <motion.span
                             whileHover={{ scale: 1.05 }}
@@ -432,7 +432,7 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.01 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="username" className="text-gray-700">Username</Label>
+                            <Label htmlFor="username" className="text-gray-300">Username</Label>
                             <motion.div
                               whileFocus={{ scale: 1.02, rotateX: 1 }}
                               transition={{ duration: 0.2 }}
@@ -441,7 +441,7 @@ export default function AuthPage() {
                                 id="username"
                                 value={loginForm.username}
                                 onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                                className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 transition-all duration-300"
+                                className="h-11 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500 transition-all duration-300"
                                 placeholder="Enter username"
                                 required
                               />
@@ -453,7 +453,7 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.01 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="password" className="text-gray-700">Password</Label>
+                            <Label htmlFor="password" className="text-gray-300">Password</Label>
                             <div className="relative">
                               <motion.div
                                 whileFocus={{ scale: 1.02, rotateX: 1 }}
@@ -464,7 +464,7 @@ export default function AuthPage() {
                                   type={showPassword ? "text" : "password"}
                                   value={loginForm.password}
                                   onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                                  className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 pr-10 transition-all duration-300"
+                                  className="h-11 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500 pr-10 transition-all duration-300"
                                   placeholder="Enter password"
                                   required
                                 />
@@ -477,7 +477,7 @@ export default function AuthPage() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-gray-200"
                                   onClick={() => setShowPassword(!showPassword)}
                                 >
                                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -550,12 +550,12 @@ export default function AuthPage() {
                               whileHover={{ scale: 1.02 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <Label htmlFor="firstName" className="text-gray-700">First Name</Label>
+                              <Label htmlFor="firstName" className="text-gray-300">First Name</Label>
                               <Input
                                 id="firstName"
                                 value={registerForm.firstName}
                                 onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                                className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500"
                                 placeholder="First name"
                                 required
                               />
@@ -565,12 +565,12 @@ export default function AuthPage() {
                               whileHover={{ scale: 1.02 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <Label htmlFor="lastName" className="text-gray-700">Last Name</Label>
+                              <Label htmlFor="lastName" className="text-gray-300">Last Name</Label>
                               <Input
                                 id="lastName"
                                 value={registerForm.lastName}
                                 onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                                className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500"
                                 placeholder="Last name"
                                 required
                               />
@@ -582,12 +582,12 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.02 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="regUsername" className="text-gray-700">Username</Label>
+                            <Label htmlFor="regUsername" className="text-gray-300">Username</Label>
                             <Input
                               id="regUsername"
                               value={registerForm.username}
                               onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
-                              className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                              className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500"
                               placeholder="Choose username"
                               required
                             />
@@ -598,13 +598,13 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.02 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="email" className="text-gray-700">Email</Label>
+                            <Label htmlFor="email" className="text-gray-300">Email</Label>
                             <Input
                               id="email"
                               type="email"
                               value={registerForm.email}
                               onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                              className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                              className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500"
                               placeholder="your.email@school.edu"
                               required
                             />
@@ -615,12 +615,12 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.02 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="schoolName" className="text-gray-700">School Name</Label>
+                            <Label htmlFor="schoolName" className="text-gray-300">School Name</Label>
                             <Input
                               id="schoolName"
                               value={registerForm.schoolName}
                               onChange={(e) => setRegisterForm({ ...registerForm, schoolName: e.target.value })}
-                              className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                              className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500"
                               placeholder="Your school name"
                               required
                             />
@@ -631,14 +631,14 @@ export default function AuthPage() {
                             whileHover={{ scale: 1.02 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <Label htmlFor="regPassword" className="text-gray-700">Password</Label>
+                            <Label htmlFor="regPassword" className="text-gray-300">Password</Label>
                             <div className="relative">
                               <Input
                                 id="regPassword"
                                 type={showRegPassword ? "text" : "password"}
                                 value={registerForm.password}
                                 onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                                className="h-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
+                                className="h-10 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-cyan-500 focus:ring-cyan-500 pr-10"
                                 placeholder="Create password"
                                 required
                               />
@@ -650,7 +650,7 @@ export default function AuthPage() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-gray-600"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-gray-200"
                                   onClick={() => setShowRegPassword(!showRegPassword)}
                                 >
                                   {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
