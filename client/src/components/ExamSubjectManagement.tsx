@@ -105,7 +105,14 @@ export default function ExamSubjectManagement() {
   const createSubjectMutation = useMutation({
     mutationFn: async (data: { name: string; code: string; examId?: string }) => {
       if (editingSubject) {
-        const res = await apiRequest("PATCH", `/api/subjects/${editingSubject.id}`, data);
+        // For editing, keep the original exam prefix structure
+        const examData = exams.find(e => e.id === data.examId);
+        const enhancedCode = examData ? `${examData.name}-${data.code}` : data.code;
+        
+        const res = await apiRequest("PATCH", `/api/subjects/${editingSubject.id}`, {
+          name: data.name,
+          code: enhancedCode,
+        });
         return await res.json();
       } else {
         // For new subjects, encode exam info in the subject code

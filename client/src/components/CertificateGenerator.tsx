@@ -22,6 +22,7 @@ interface CertificateOptions {
   showTotalMarks: boolean;
   showGrade: boolean;
   showPercentage: boolean;
+  logoUrl?: string;
 }
 
 export default function CertificateGenerator() {
@@ -35,6 +36,7 @@ export default function CertificateGenerator() {
     showTotalMarks: true,
     showGrade: true,
     showPercentage: true,
+    logoUrl: '',
   });
 
   const { user } = useAuth();
@@ -257,15 +259,39 @@ export default function CertificateGenerator() {
                   <label htmlFor="showAdmissionNo" className="text-sm text-gray-700">Admission Number</label>
                 </div>
                 
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="showLogo"
-                    checked={certificateOptions.showLogo}
-                    onCheckedChange={(checked) => 
-                      setCertificateOptions(prev => ({ ...prev, showLogo: !!checked }))
-                    }
-                  />
-                  <label htmlFor="showLogo" className="text-sm text-gray-700">School Logo</label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="showLogo"
+                      checked={certificateOptions.showLogo}
+                      onCheckedChange={(checked) => 
+                        setCertificateOptions(prev => ({ ...prev, showLogo: !!checked }))
+                      }
+                    />
+                    <label htmlFor="showLogo" className="text-sm text-gray-700">School Logo</label>
+                  </div>
+                  {certificateOptions.showLogo && (
+                    <div className="ml-6">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              setCertificateOptions(prev => ({ 
+                                ...prev, 
+                                logoUrl: event.target?.result as string 
+                              }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-2">
@@ -352,8 +378,8 @@ export default function CertificateGenerator() {
           </CardHeader>
           <CardContent>
             {/* Certificate Preview Area */}
-            <div className="overflow-auto max-h-[600px] border border-gray-200 rounded-lg">
-              <div ref={certificateRef} className="bg-white shadow-lg" style={{ width: '297mm', height: '210mm', minWidth: '800px' }}>
+            <div className="border border-gray-200 rounded-lg">
+              <div ref={certificateRef} className="bg-white shadow-lg mx-auto" style={{ width: '100%', maxWidth: '800px', aspectRatio: '297/210', transform: 'scale(0.8)', transformOrigin: 'top center' }}>
               {!selectedStudent || !selectedExam ? (
                 <div className="flex items-center justify-center h-full min-h-[500px]">
                   <div className="text-center text-gray-500">
@@ -374,8 +400,18 @@ export default function CertificateGenerator() {
                     {/* Certificate Header */}
                     <div className="text-center mb-8">
                       {certificateOptions.showLogo && (
-                        <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <GraduationCap className="text-white text-2xl" />
+                        <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                          {certificateOptions.logoUrl ? (
+                            <img 
+                              src={certificateOptions.logoUrl} 
+                              alt="School Logo" 
+                              className="w-16 h-16 object-contain rounded"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
+                              <GraduationCap className="text-white text-2xl" />
+                            </div>
+                          )}
                         </div>
                       )}
                       <h1 className="text-2xl font-bold text-gray-900 mb-1 uppercase">
@@ -388,31 +424,31 @@ export default function CertificateGenerator() {
                     </div>
 
                     {/* Student Information Section */}
-                    <div className="mb-6">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="font-semibold">Student Name: </span>
-                          <span className="border-b border-dotted border-gray-400 inline-block min-w-32">
+                    <div className="mb-8">
+                      <div className="grid grid-cols-2 gap-6 text-sm">
+                        <div className="flex items-center">
+                          <span className="font-semibold mr-2 min-w-fit">Student Name:</span>
+                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
                             {selectedStudentData?.name}
                           </span>
                         </div>
-                        <div>
-                          <span className="font-semibold">Class: </span>
-                          <span className="border-b border-dotted border-gray-400 inline-block min-w-16">
+                        <div className="flex items-center">
+                          <span className="font-semibold mr-2 min-w-fit">Class:</span>
+                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
                             {selectedStudentData?.class}
                           </span>
                         </div>
                         {certificateOptions.showAdmissionNo && (
-                          <div>
-                            <span className="font-semibold">Admission No: </span>
-                            <span className="border-b border-dotted border-gray-400 inline-block min-w-24">
+                          <div className="flex items-center">
+                            <span className="font-semibold mr-2 min-w-fit">Admission No:</span>
+                            <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
                               {selectedStudentData?.admissionNo}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <span className="font-semibold">Academic Year: </span>
-                          <span className="border-b border-dotted border-gray-400 inline-block min-w-24">
+                        <div className="flex items-center">
+                          <span className="font-semibold mr-2 min-w-fit">Academic Year:</span>
+                          <span className="border-b border-dotted border-gray-400 flex-1 pb-1 text-center">
                             {new Date().getFullYear()}-{new Date().getFullYear() + 1}
                           </span>
                         </div>
