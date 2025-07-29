@@ -213,7 +213,15 @@ export function registerRoutes(app: Express): Server {
       res.json(subject);
     } catch (error) {
       console.error("Error creating subject:", error);
-      res.status(400).json({ message: "Invalid subject data" });
+      if (error instanceof Error && error.name === 'ZodError') {
+        res.status(400).json({ 
+          message: "Invalid subject data", 
+          details: error.message,
+          validation: (error as any).errors 
+        });
+      } else {
+        res.status(400).json({ message: "Invalid subject data" });
+      }
     }
   });
 

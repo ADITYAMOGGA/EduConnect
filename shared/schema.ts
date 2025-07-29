@@ -64,7 +64,7 @@ export const exams = pgTable("exams", {
 export const subjects = pgTable("subjects", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 100 }).notNull(),
-  code: varchar("code", { length: 20 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull(), // Increased length for longer subject codes
   userId: varchar("user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
