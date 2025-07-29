@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, CloudUpload, GraduationCap } from "lucide-react";
-import type { Student, Exam, Mark, User } from "@shared/schema";
+import type { Student, Exam, Mark, User, Subject } from "@shared/schema";
 import { useAuth } from "@/hooks/useAuth";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -37,6 +37,11 @@ export default function CertificateGenerator() {
   const { toast } = useToast();
   const certificateRef = useRef<HTMLDivElement>(null);
 
+  // Fetch subjects
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ['/api/subjects'],
+  });
+
   // Fetch students
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ['/api/students'],
@@ -61,8 +66,8 @@ export default function CertificateGenerator() {
   };
 
   const calculatePercentage = (total: number) => {
-    if (!selectedExamData) return "0.0";
-    const maxTotal = selectedExamData.maxMarks * 6; // 6 subjects
+    if (!selectedExamData || subjects.length === 0) return "0.0";
+    const maxTotal = selectedExamData.maxMarks * subjects.length; // Dynamic subject count
     return ((total / maxTotal) * 100).toFixed(1);
   };
 
@@ -378,7 +383,7 @@ export default function CertificateGenerator() {
                                 <tr className="border-t-2 border-gray-400 font-bold">
                                   <td className="py-3 px-4 text-gray-900">TOTAL</td>
                                   <td className="py-3 px-4 text-center text-gray-900">{total}</td>
-                                  <td className="py-3 px-4 text-center text-gray-900">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * 6 : 600}</td>
+                                  <td className="py-3 px-4 text-center text-gray-900">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * subjects.length : subjects.length * 100}</td>
                                   <td className="py-3 px-4 text-center text-gray-900">{percentage}%</td>
                                 </tr>
                               )}

@@ -11,19 +11,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Save, Plus, Edit, Trash2 } from "lucide-react";
-import type { Student, Exam, Mark } from "@shared/schema";
+import type { Student, Exam, Mark, Subject } from "@shared/schema";
 import { z } from "zod";
 
-const createMarksSchema = (maxMarks: number = 100) => z.object({
-  studentId: z.string().min(1, "Please select a student"),
-  examId: z.string().min(1, "Please select an exam"),
-  english: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-  mathematics: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-  science: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-  socialStudies: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-  hindi: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-  computerScience: z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`),
-});
+const createMarksSchema = (subjects: Subject[], maxMarks: number = 100) => {
+  const schema: any = {
+    studentId: z.string().min(1, "Please select a student"),
+    examId: z.string().min(1, "Please select an exam"),
+  };
+  
+  // Dynamically add subject fields based on custom subjects
+  subjects.forEach((subject) => {
+    const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+    schema[fieldName] = z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`);
+  });
+  
+  return z.object(schema);
+};
 
 const examSchema = z.object({
   name: z.string().min(1, "Exam name is required"),
@@ -31,7 +35,6 @@ const examSchema = z.object({
   maxMarks: z.number().min(1, "Maximum marks must be at least 1"),
 });
 
-type MarksFormData = z.infer<ReturnType<typeof createMarksSchema>>;
 type ExamFormData = z.infer<typeof examSchema>;
 
 export default function MarksEntry() {
@@ -42,6 +45,11 @@ export default function MarksEntry() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch subjects
+  const { data: subjects = [] } = useQuery<Subject[]>({
+    queryKey: ['/api/subjects'],
+  });
+
   // Fetch exams first to get maxMarks for selected exam
   const { data: exams = [] } = useQuery<Exam[]>({
     queryKey: ['/api/exams'],
@@ -50,18 +58,24 @@ export default function MarksEntry() {
   const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
   const maxMarks = selectedExamData?.maxMarks || 100;
 
-  const form = useForm<MarksFormData>({
-    resolver: zodResolver(createMarksSchema(maxMarks)),
-    defaultValues: {
+  // Create dynamic default values based on subjects
+  const createDefaultValues = () => {
+    const defaults: any = {
       studentId: "",
       examId: "",
-      english: undefined,
-      mathematics: undefined,
-      science: undefined,
-      socialStudies: undefined,
-      hindi: undefined,
-      computerScience: undefined,
-    },
+    };
+    
+    subjects.forEach((subject) => {
+      const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+      defaults[fieldName] = undefined;
+    });
+    
+    return defaults;
+  };
+
+  const form = useForm({
+    resolver: subjects.length > 0 ? zodResolver(createMarksSchema(subjects, maxMarks)) : undefined,
+    defaultValues: createDefaultValues(),
   });
 
   const examForm = useForm<ExamFormData>({
@@ -120,21 +134,21 @@ export default function MarksEntry() {
 
   // Save marks mutation
   const saveMarksMutation = useMutation({
-    mutationFn: async (data: MarksFormData) => {
-      const subjects = [
-        { subject: 'English', marks: data.english },
-        { subject: 'Mathematics', marks: data.mathematics },
-        { subject: 'Science', marks: data.science },
-        { subject: 'Social Studies', marks: data.socialStudies },
-        { subject: 'Hindi', marks: data.hindi },
-        { subject: 'Computer Science', marks: data.computerScience },
-      ];
+    mutationFn: async (data: any) => {
+      // Build subject marks from custom subjects
+      const subjectMarks = subjects.map((subject) => {
+        const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+        return {
+          subject: subject.name,
+          marks: data[fieldName],
+        };
+      });
 
       if (editingStudent) {
         // Update existing marks
         const existingMarks = examMarks.filter(mark => mark.studentId === editingStudent);
         
-        for (const subjectData of subjects) {
+        for (const subjectData of subjectMarks) {
           const existingMark = existingMarks.find(mark => mark.subject === subjectData.subject);
           
           if (existingMark) {
@@ -156,7 +170,7 @@ export default function MarksEntry() {
         }
       } else {
         // Create new marks
-        for (const subjectData of subjects) {
+        for (const subjectData of subjectMarks) {
           await apiRequest('POST', '/api/marks', {
             studentId: data.studentId,
             examId: data.examId,
@@ -243,28 +257,19 @@ export default function MarksEntry() {
     setEditingStudent(studentId);
     
     // Pre-populate the form with existing marks
-    const marksMap: any = {};
-    marks.forEach(mark => {
-      switch(mark.subject) {
-        case 'English': marksMap.english = mark.marks; break;
-        case 'Mathematics': marksMap.mathematics = mark.marks; break;
-        case 'Science': marksMap.science = mark.marks; break;
-        case 'Social Studies': marksMap.socialStudies = mark.marks; break;
-        case 'Hindi': marksMap.hindi = mark.marks; break;
-        case 'Computer Science': marksMap.computerScience = mark.marks; break;
-      }
-    });
-    
-    form.reset({
+    const marksMap: any = {
       studentId: studentId,
       examId: selectedExam,
-      english: marksMap.english || 0,
-      mathematics: marksMap.mathematics || 0,
-      science: marksMap.science || 0,
-      socialStudies: marksMap.socialStudies || 0,
-      hindi: marksMap.hindi || 0,
-      computerScience: marksMap.computerScience || 0,
+    };
+    
+    // Build marks map from custom subjects
+    subjects.forEach((subject) => {
+      const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+      const existingMark = marks.find(mark => mark.subject === subject.name);
+      marksMap[fieldName] = existingMark ? existingMark.marks : 0;
     });
+    
+    form.reset(marksMap);
   };
 
   const handleDeleteStudent = (studentId: string) => {
@@ -464,130 +469,38 @@ export default function MarksEntry() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Dynamic subject fields based on custom subjects */}
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="english"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>English</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="mathematics"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mathematics</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="science"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Science</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="socialStudies"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Social Studies</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="hindi"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hindi</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="computerScience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Computer Science</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Enter marks" 
-                            {...field}
-                            value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {subjects.map((subject, index) => {
+                    const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
+                    return (
+                      <FormField
+                        key={subject.id}
+                        control={form.control}
+                        name={fieldName}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {subject.name}
+                              {subject.code && (
+                                <span className="text-xs text-gray-500 ml-1">({subject.code})</span>
+                              )}
+                            </FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="Enter marks" 
+                                {...field}
+                                value={field.value || ''}
+                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    );
+                  })}
                 </div>
 
                 <div className="flex space-x-2">
