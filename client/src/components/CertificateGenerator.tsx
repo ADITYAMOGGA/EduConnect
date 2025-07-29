@@ -294,44 +294,56 @@ export default function CertificateGenerator() {
           </CardHeader>
           <CardContent>
             {/* Certificate Preview Area */}
-            <div ref={certificateRef} className="border border-gray-200 rounded-lg p-8 bg-gradient-to-br from-blue-50 to-indigo-50 relative min-h-[600px]">
+            <div ref={certificateRef} className="border-4 border-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-12 bg-white relative min-h-[800px] shadow-2xl" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderImage: 'linear-gradient(45deg, #667eea, #764ba2) 1'
+            }}>
               {!selectedStudent || !selectedExam ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-gray-500">
-                    <GraduationCap className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>Select a student and exam to preview certificate</p>
+                  <div className="text-center text-white">
+                    <GraduationCap className="w-20 h-20 mx-auto mb-6 opacity-80" />
+                    <p className="text-xl">Select a student and exam to preview certificate</p>
                   </div>
                 </div>
               ) : studentMarks.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-gray-500">
-                    <p>No marks found for this student and exam</p>
+                  <div className="text-center text-white">
+                    <p className="text-xl">No marks found for this student and exam</p>
                   </div>
                 </div>
               ) : (
-                <>
-                  {/* Certificate Header */}
-                  <div className="text-center mb-8">
-                    {certificateOptions.showLogo && (
-                      <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <GraduationCap className="text-white text-2xl" />
-                      </div>
-                    )}
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                      {(user as User)?.schoolName || 'MARKSEET PRO'}
-                    </h2>
-                    <p className="text-gray-600">Academic Progress Certificate</p>
-                  </div>
+                <div className="bg-white rounded-xl p-10 shadow-inner relative overflow-hidden">
+                  {/* Premium Background Pattern */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 opacity-60"></div>
+                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500"></div>
+                  <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-blue-500 to-purple-500"></div>
+                  
+                  <div className="relative z-10">
+                    {/* Certificate Header */}
+                    <div className="text-center mb-10 border-b-2 border-purple-200 pb-6">
+                      {certificateOptions.showLogo && (
+                        <div className="w-20 h-20 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                          <GraduationCap className="text-white text-3xl" />
+                        </div>
+                      )}
+                      <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent mb-3">
+                        {(user as User)?.schoolName || 'Elite Academy'}
+                      </h1>
+                      <div className="w-32 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 mx-auto mb-4 rounded-full"></div>
+                      <h2 className="text-2xl font-semibold text-gray-700 mb-2">ACADEMIC EXCELLENCE CERTIFICATE</h2>
+                      <p className="text-lg text-gray-600 italic">This is to certify that</p>
+                    </div>
 
-                  {/* Certificate Content */}
-                  <div className="space-y-6">
-                    <div className="text-center">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-4">This is to certify that</h3>
-                      <div className="border-b-2 border-primary-500 inline-block pb-2 mb-4">
-                        <span className="text-2xl font-bold text-primary-600">
+                    {/* Student Info */}
+                    <div className="text-center mb-8">
+                      <div className="border-b-2 border-purple-300 inline-block pb-2 mb-4">
+                        <span className="text-3xl font-bold text-purple-800">
                           {selectedStudentData?.name}
                         </span>
                       </div>
+                      <p className="text-gray-700 text-lg mb-4">
+                        has successfully completed the academic requirements for
+                      </p>
                       <p className="text-gray-600">
                         {certificateOptions.showAdmissionNo && (
                           <>Admission No: <span className="font-medium">{selectedStudentData?.admissionNo}</span> | </>
@@ -340,34 +352,79 @@ export default function CertificateGenerator() {
                       </p>
                     </div>
 
-                    {/* Marks Table */}
+                    {/* Premium Marks Table */}
                     {certificateOptions.showSubjectMarks && (
-                      <div className="bg-white rounded-lg shadow-sm p-4">
-                        <h4 className="font-semibold text-gray-800 mb-3">
-                          {selectedExamData?.name} Results
+                      <div className="bg-gradient-to-br from-gray-50 to-purple-50 rounded-lg border-2 border-purple-200 p-6 mb-8">
+                        <h4 className="text-xl font-bold text-center text-purple-800 mb-6">
+                          {selectedExamData?.name} - Academic Performance
                         </h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          {studentMarks.map((mark) => (
-                            <div key={mark.id} className="flex justify-between">
-                              <span>{mark.subject}:</span>
-                              <span className="font-medium">{mark.marks}/{selectedExamData?.maxMarks}</span>
-                            </div>
-                          ))}
+                        
+                        {/* Tabular Marks Display */}
+                        <div className="overflow-hidden rounded-lg shadow-lg">
+                          <table className="w-full bg-white">
+                            <thead className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                              <tr>
+                                <th className="px-6 py-4 text-left font-semibold">Subject</th>
+                                <th className="px-6 py-4 text-center font-semibold">Marks Obtained</th>
+                                <th className="px-6 py-4 text-center font-semibold">Max Marks</th>
+                                <th className="px-6 py-4 text-center font-semibold">Percentage</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {studentMarks.map((mark, index) => (
+                                <tr key={mark.id} className={`${index % 2 === 0 ? 'bg-purple-50' : 'bg-white'} border-b border-purple-100`}>
+                                  <td className="px-6 py-4 font-medium text-gray-900">{mark.subject}</td>
+                                  <td className="px-6 py-4 text-center font-bold text-purple-700">{mark.marks}</td>
+                                  <td className="px-6 py-4 text-center text-gray-600">{selectedExamData?.maxMarks}</td>
+                                  <td className="px-6 py-4 text-center font-medium text-indigo-600">
+                                    {((mark.marks / (selectedExamData?.maxMarks || 100)) * 100).toFixed(1)}%
+                                  </td>
+                                </tr>
+                              ))}
+                              {/* Total Row */}
+                              {certificateOptions.showTotalMarks && (
+                                <tr className="bg-gradient-to-r from-purple-100 to-indigo-100 border-t-2 border-purple-300">
+                                  <td className="px-6 py-4 font-bold text-purple-900">TOTAL</td>
+                                  <td className="px-6 py-4 text-center font-bold text-purple-900 text-lg">{total}</td>
+                                  <td className="px-6 py-4 text-center font-bold text-purple-900 text-lg">{selectedExamData?.maxMarks ? selectedExamData.maxMarks * 6 : 600}</td>
+                                  <td className="px-6 py-4 text-center font-bold text-purple-900 text-lg">{percentage}%</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
                         </div>
-                        {certificateOptions.showTotalMarks && (
-                          <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between font-semibold">
-                            <span>Total: {total}/{selectedExamData?.maxMarks ? selectedExamData.maxMarks * 6 : 600}</span>
-                            <span>Percentage: {percentage}%</span>
-                            {certificateOptions.showGrade && (
-                              <span className="text-success-600">Grade: {grade}</span>
-                            )}
+
+                        {/* Grade Display */}
+                        {certificateOptions.showGrade && (
+                          <div className="mt-6 text-center">
+                            <div className="inline-block bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-full shadow-lg">
+                              <span className="text-sm font-medium">Overall Grade</span>
+                              <div className="text-3xl font-bold mt-1">{grade}</div>
+                            </div>
                           </div>
                         )}
                       </div>
                     )}
 
-                    <div className="text-center text-sm text-gray-600">
-                      <p>Date of Issue: <span className="font-medium">{new Date().toLocaleDateString()}</span></p>
+                    {/* Certificate Footer */}
+                    <div className="text-center space-y-4">
+                      <p className="text-lg text-gray-700 italic">
+                        In recognition of academic excellence and dedication to learning.
+                      </p>
+                      <div className="flex justify-between items-end mt-12">
+                        <div className="text-center">
+                          <div className="w-32 h-px bg-gray-400 mb-2"></div>
+                          <p className="text-sm text-gray-600">Principal's Signature</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600">Date of Issue</p>
+                          <p className="font-semibold text-gray-800">{new Date().toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="w-32 h-px bg-gray-400 mb-2"></div>
+                          <p className="text-sm text-gray-600">School Seal</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -375,7 +432,7 @@ export default function CertificateGenerator() {
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
                     <GraduationCap className="text-9xl text-gray-800" />
                   </div>
-                </>
+                </div>
               )}
             </div>
           </CardContent>
