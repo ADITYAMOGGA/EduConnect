@@ -51,10 +51,19 @@ export default function MarksEntry() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch subjects
-  const { data: subjects = [] } = useQuery<Subject[]>({
+  // Fetch all subjects (exam-specific subjects)
+  const { data: allSubjects = [] } = useQuery<Subject[]>({
     queryKey: ['/api/subjects'],
   });
+
+  // Filter subjects by selected exam
+  const subjects = selectedExam 
+    ? allSubjects.filter(subject => {
+        // Filter subjects based on the selected exam
+        const selectedExamData = exams.find(e => e.id === selectedExam);
+        return selectedExamData && subject.code.includes(selectedExamData.name);
+      })
+    : [];
 
   // Fetch exams first to get maxMarks for selected exam
   const { data: exams = [] } = useQuery<Exam[]>({
