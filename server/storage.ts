@@ -28,6 +28,7 @@ export interface IStorage {
   deleteSubject(id: string, userId: string): Promise<void>;
   
   // Marks operations
+  getAllMarks(userId: string): Promise<Mark[]>;
   getMarksByStudentAndExam(studentId: string, examId: string): Promise<Mark[]>;
   getMarksByExam(examId: string): Promise<Mark[]>;
   createMark(mark: InsertMark): Promise<Mark>;

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertStudentSchema, insertExamSchema, insertMarkSchema, insertSubjectSchema } from "@shared/schema";
+import { aiService } from "./ai-service";
 import multer from "multer";
 import Papa from "papaparse";
 
@@ -559,6 +560,41 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error exporting complete data:", error);
       res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // AI Chat routes
+  app.post('/api/ai/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const { message } = req.body;
+      const userId = req.user.id;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const response = await aiService.chatWithStudentData(message, userId);
+      res.json({ response });
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      res.status(500).json({ message: "Failed to process AI request" });
+    }
+  });
+
+  app.post('/api/ai/student-insights', isAuthenticated, async (req: any, res) => {
+    try {
+      const { studentId } = req.body;
+      const userId = req.user.id;
+      
+      if (!studentId) {
+        return res.status(400).json({ message: "Student ID is required" });
+      }
+      
+      const insights = await aiService.generateStudentInsights(studentId, userId);
+      res.json({ insights });
+    } catch (error) {
+      console.error("Error generating student insights:", error);
+      res.status(500).json({ message: "Failed to generate student insights" });
     }
   });
 

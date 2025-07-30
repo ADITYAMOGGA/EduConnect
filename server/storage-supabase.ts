@@ -435,6 +435,49 @@ export class SupabaseStorage {
 
 
   // Marks operations
+  async getAllMarks(userId: string): Promise<Mark[]> {
+    const { data, error } = await supabase
+      .from('marks')
+      .select(`
+        *,
+        students!inner (
+          id,
+          name,
+          admission_no,
+          class,
+          email,
+          user_id
+        )
+      `)
+      .eq('students.user_id', userId);
+    
+    if (error) {
+      console.error('Error fetching all marks:', error);
+      return [];
+    }
+    
+    // Map snake_case to camelCase including student data
+    return (data || []).map(mark => ({
+      id: mark.id,
+      studentId: mark.student_id,
+      examId: mark.exam_id,
+      subject: mark.subject,
+      subjectId: mark.subject_id,
+      marks: mark.marks,
+      maxMarks: mark.max_marks,
+      grade: mark.grade,
+      createdAt: mark.created_at,
+      updatedAt: mark.updated_at,
+      student: mark.students ? {
+        id: mark.students.id,
+        name: mark.students.name,
+        admissionNumber: mark.students.admission_no,
+        class: mark.students.class,
+        email: mark.students.email
+      } : undefined
+    }));
+  }
+
   async getMarksByExam(examId: string): Promise<Mark[]> {
     const { data, error } = await supabase
       .from('marks')
@@ -580,42 +623,7 @@ export class SupabaseStorage {
     }
   }
 
-  async getAllMarks(userId: string): Promise<Mark[]> {
-    const { data, error } = await supabase
-      .from('marks')
-      .select(`
-        *,
-        students!inner(user_id)
-      `)
-      .eq('students.user_id', userId);
-    
-    if (error) {
-      console.error('Error fetching all marks:', error);
-      return [];
-    }
-    
-    // Get subject names separately to avoid relationship issues
-    const { data: subjects } = await supabase
-      .from('subjects')
-      .select('id, name')
-      .eq('user_id', userId);
-    
-    const subjectMap = new Map((subjects || []).map(s => [s.id, s.name]));
-    
-    // Map snake_case to camelCase
-    return (data || []).map(mark => ({
-      id: mark.id,
-      studentId: mark.student_id,
-      examId: mark.exam_id,
-      subjectId: mark.subject_id,
-      marks: mark.marks,
-      maxMarks: mark.max_marks,
-      grade: mark.grade,
-      subject: subjectMap.get(mark.subject_id) || 'Unknown Subject',
-      createdAt: mark.created_at,
-      updatedAt: mark.updated_at
-    }));
-  }
+
 
   // Subject operations
   async getSubjects(userId: string): Promise<Subject[]> {

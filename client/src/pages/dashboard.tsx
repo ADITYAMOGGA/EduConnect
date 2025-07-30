@@ -23,6 +23,7 @@ import SettingsComponent from "@/components/Settings";
 import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import { AIChatButton } from '@/components/AIChat';
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -190,6 +191,9 @@ export default function Dashboard() {
           </Tabs>
         </Card>
       </div>
+      
+      {/* AI Chat Button */}
+      <AIChatButton />
     </div>
   );
 }
