@@ -24,6 +24,26 @@ export class AIService {
       const marks = await storage.getAllMarks(userId);
       const subjects = await storage.getSubjects(userId);
 
+      // Create enriched marks data with student and subject names
+      const enrichedMarks = marks.slice(0, 100).map((mark: any) => {
+        const student = students.find(s => s.id === mark.studentId);
+        const exam = exams.find(e => e.id === mark.examId);
+        const subject = subjects.find(s => s.id === mark.subjectId);
+        
+        return {
+          studentId: mark.studentId,
+          studentName: student?.name || 'Unknown Student',
+          admissionNo: student?.admissionNo || 'N/A',
+          class: student?.class || 'N/A',
+          examId: mark.examId,
+          examName: exam?.name || 'Unknown Exam',
+          subjectId: mark.subjectId,
+          subjectName: subject?.name || mark.subject || 'Unknown Subject',
+          marks: mark.marks,
+          grade: mark.grade
+        };
+      });
+
       // Filter data for the user's school (if schoolName is available)
       const schoolData = {
         schoolName: user.schoolName || 'Your School',
@@ -33,7 +53,7 @@ export class AIService {
         subjectsCount: subjects.length,
         students: students.slice(0, 50), // Limit to avoid token limits
         exams: exams.slice(0, 20),
-        recentMarks: marks.slice(0, 100),
+        enrichedMarks: enrichedMarks,
         subjects: subjects.slice(0, 20)
       };
 
@@ -64,17 +84,16 @@ Available Subjects: ${JSON.stringify(schoolData.subjects.map(s => ({
   code: s.code
 })))}
 
-Recent Marks Data: ${JSON.stringify(schoolData.recentMarks.map((m: any) => ({
-  studentId: m.studentId,
-  examId: m.examId,
-  subjectId: m.subjectId,
-  marks: m.marks,
-  grade: m.grade
-})))}
+Recent Marks Data with Student Names: ${JSON.stringify(schoolData.enrichedMarks)}
 
 Please provide helpful, accurate responses about the school data. Be friendly and professional.
-If asked about specific students or performance, use the actual data provided.
-If you need more specific information that's not in the context, politely ask for clarification.
+
+IMPORTANT INSTRUCTIONS:
+- You have complete student information including names, classes, admission numbers, and their marks data
+- When asked about a specific student like "Vinay Gajjala", look through the enriched marks data which contains studentName field
+- The enriched marks data shows student names, not just IDs, so you can directly answer questions about specific students
+- Provide detailed analysis of student performance, class comparisons, and insights
+- If a student has no marks data, say so clearly rather than asking for student IDs
 
 User Question: ${message}
 `;
