@@ -580,6 +580,36 @@ export class SupabaseStorage {
     }
   }
 
+  async getAllMarks(userId: string): Promise<Mark[]> {
+    const { data, error } = await supabase
+      .from('marks')
+      .select(`
+        *,
+        students!inner(user_id),
+        subjects(name),
+        exams(name)
+      `)
+      .eq('students.user_id', userId);
+    
+    if (error) {
+      console.error('Error fetching all marks:', error);
+      return [];
+    }
+    
+    // Map snake_case to camelCase
+    return (data || []).map(mark => ({
+      id: mark.id,
+      studentId: mark.student_id,
+      examId: mark.exam_id,
+      subjectId: mark.subject_id,
+      marks: mark.marks,
+      maxMarks: mark.max_marks,
+      grade: mark.grade,
+      subject: mark.subjects?.name || '',
+      createdAt: mark.created_at
+    }));
+  }
+
   // Subject operations
   async getSubjects(userId: string): Promise<Subject[]> {
     const { data, error } = await supabase

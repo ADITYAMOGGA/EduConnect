@@ -22,6 +22,7 @@ import CertificateGenerator from "@/components/CertificateGenerator";
 import SettingsComponent from "@/components/Settings";
 import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -134,7 +135,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl border-purple-200 dark:border-purple-700">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-800 dark:to-indigo-800">
+            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-800 dark:to-indigo-800">
               <TabsTrigger value="students" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 text-slate-600 dark:text-slate-300">
                 <Users className="h-4 w-4 mr-2" />
                 Students
@@ -142,6 +143,12 @@ export default function Dashboard() {
               <TabsTrigger value="subjects" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 text-slate-600 dark:text-slate-300">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Subject Management
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300 text-slate-600 dark:text-slate-300">
+                <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analytics
               </TabsTrigger>
               <TabsTrigger value="marks" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300 text-slate-600 dark:text-slate-300">
                 <FileText className="h-4 w-4 mr-2" />
@@ -163,6 +170,10 @@ export default function Dashboard() {
             
             <TabsContent value="subjects" className="space-y-4">
               <ExamSubjectManagement />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-4">
+              <AnalyticsDashboard />
             </TabsContent>
             
             <TabsContent value="marks" className="space-y-4">

@@ -417,6 +417,17 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Marks routes
+  app.get('/api/marks', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const marks = await storage.getAllMarks(userId);
+      res.json(marks);
+    } catch (error) {
+      console.error("Error fetching all marks:", error);
+      res.status(500).json({ message: "Failed to fetch marks" });
+    }
+  });
+
   app.get('/api/marks/:examId', isAuthenticated, async (req: any, res) => {
     try {
       const { examId } = req.params;
