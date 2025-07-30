@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/lib/theme-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -47,8 +48,8 @@ interface SettingsPageProps {
 export default function SettingsPage({ onBack }: SettingsPageProps) {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
@@ -119,21 +120,15 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
   };
 
   const handleThemeToggle = () => {
-    setIsDarkMode(!isDarkMode);
-    // Apply theme to document
-    if (!isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    toggleTheme();
     toast({
       title: "Theme Updated",
-      description: `Switched to ${!isDarkMode ? 'dark' : 'light'} mode`,
+      description: `Switched to ${theme === 'light' ? 'dark' : 'light'} mode`,
     });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-indigo-900 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div
@@ -146,7 +141,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
               onClick={onBack}
               variant="ghost"
               size="sm"
-              className="text-slate-600 hover:text-slate-900"
+              className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
@@ -155,7 +150,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                 Settings
               </h1>
-              <p className="text-slate-600">Manage your account and preferences</p>
+              <p className="text-slate-600 dark:text-slate-300">Manage your account and preferences</p>
             </div>
           </div>
         </motion.div>
@@ -168,10 +163,10 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
             transition={{ delay: 0.1 }}
             className="lg:col-span-2"
           >
-            <Card className="shadow-xl bg-white/90 backdrop-blur-sm">
+            <Card className="shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200 dark:border-slate-700">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5 text-purple-600" />
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
+                  <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   <span>Profile Information</span>
                 </CardTitle>
               </CardHeader>
@@ -257,21 +252,21 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
             className="space-y-6"
           >
             {/* Theme Settings */}
-            <Card className="shadow-xl bg-white/90 backdrop-blur-sm">
+            <Card className="shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200 dark:border-slate-700">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  {isDarkMode ? <Moon className="h-5 w-5 text-indigo-600" /> : <Sun className="h-5 w-5 text-yellow-600" />}
+                <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
+                  {theme === 'dark' ? <Moon className="h-5 w-5 text-indigo-400" /> : <Sun className="h-5 w-5 text-yellow-600" />}
                   <span>Appearance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Dark Mode</p>
-                    <p className="text-sm text-gray-500">Toggle dark theme</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">Dark Mode</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Toggle dark theme</p>
                   </div>
                   <Switch
-                    checked={isDarkMode}
+                    checked={theme === 'dark'}
                     onCheckedChange={handleThemeToggle}
                   />
                 </div>

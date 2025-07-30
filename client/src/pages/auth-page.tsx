@@ -42,11 +42,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 flex items-center justify-center p-4">
       {/* Simple animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-200/30 rounded-full blur-3xl"
+          className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-200/30 dark:bg-indigo-600/20 rounded-full blur-3xl"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3],
@@ -58,7 +58,7 @@ export default function AuthPage() {
           }}
         />
         <motion.div
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl"
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-200/30 dark:bg-cyan-600/20 rounded-full blur-3xl"
           animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.4, 0.2, 0.4],
@@ -81,7 +81,7 @@ export default function AuthPage() {
         >
           <div className="space-y-4">
             <motion.h1 
-              className="text-5xl lg:text-6xl font-bold text-gray-900"
+              className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
@@ -91,7 +91,7 @@ export default function AuthPage() {
             </motion.h1>
             
             <motion.p 
-              className="text-xl text-gray-600 max-w-lg"
+              className="text-xl text-gray-600 dark:text-gray-300 max-w-lg"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
@@ -121,7 +121,7 @@ export default function AuthPage() {
                 transition={{ delay: 0.8 + index * 0.1 }}
               >
                 <div className="w-2 h-2 bg-indigo-500 rounded-full" />
-                <span className="text-gray-700">{feature}</span>
+                <span className="text-gray-700 dark:text-gray-200">{feature}</span>
               </motion.div>
             ))}
           </motion.div>
@@ -138,7 +138,7 @@ export default function AuthPage() {
             whileHover={{ y: -5 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="bg-white/70 backdrop-blur-xl border-0 shadow-xl">
+            <Card className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border-0 shadow-xl dark:shadow-2xl">
               <CardHeader className="text-center space-y-4">
                 <motion.div
                   className="w-16 h-16 mx-auto bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-2xl flex items-center justify-center"
@@ -150,8 +150,8 @@ export default function AuthPage() {
                 </motion.div>
                 
                 <div>
-                  <CardTitle className="text-2xl font-bold text-gray-900">Welcome</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">Welcome</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
                     Sign in to your account
                   </CardDescription>
                 </div>
@@ -159,11 +159,11 @@ export default function AuthPage() {
 
               <CardContent className="space-y-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-                    <TabsTrigger value="login" className="data-[state=active]:bg-white">
+                  <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-slate-700">
+                    <TabsTrigger value="login" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-600 text-gray-700 dark:text-gray-200">
                       Sign In
                     </TabsTrigger>
-                    <TabsTrigger value="register" className="data-[state=active]:bg-white">
+                    <TabsTrigger value="register" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-600 text-gray-700 dark:text-gray-200">
                       Register
                     </TabsTrigger>
                   </TabsList>
@@ -179,26 +179,26 @@ export default function AuthPage() {
                         transition={{ duration: 0.3 }}
                       >
                         <div className="space-y-2">
-                          <Label htmlFor="username" className="text-gray-700">Username</Label>
+                          <Label htmlFor="username" className="text-gray-700 dark:text-gray-200">Username</Label>
                           <Input
                             id="username"
                             value={loginForm.username}
                             onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                            className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                            className="h-11 border-gray-200 dark:border-slate-600 focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
                             placeholder="Enter username"
                             required
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="password" className="text-gray-700">Password</Label>
+                          <Label htmlFor="password" className="text-gray-700 dark:text-gray-200">Password</Label>
                           <div className="relative">
                             <Input
                               id="password"
                               type={showPassword ? "text" : "password"}
                               value={loginForm.password}
                               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                              className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500 pr-10"
+                              className="h-11 border-gray-200 dark:border-slate-600 focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 pr-10"
                               placeholder="Enter password"
                               required
                             />

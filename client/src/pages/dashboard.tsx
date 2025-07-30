@@ -54,9 +54,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-indigo-900">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-purple-100">
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg border-b border-purple-100 dark:border-purple-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -67,7 +67,7 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                   MARKSEET PRO
                 </h1>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-600 dark:text-slate-300">
                   {user.schoolName || 'School Management System'}
                 </p>
               </div>
@@ -78,38 +78,38 @@ export default function Dashboard() {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
-                    className="flex items-center space-x-3 hover:bg-purple-50 p-3 rounded-lg transition-colors"
+                    className="flex items-center space-x-3 hover:bg-purple-50 dark:hover:bg-purple-900/50 p-3 rounded-lg transition-colors"
                   >
                     <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
                       <School className="text-white text-sm" />
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-slate-700">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                         {user.firstName} {user.lastName}
                       </p>
-                      <p className="text-xs text-slate-500">@{user.username}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">@{user.username}</p>
                     </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                    <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border border-gray-200">
+                <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700">
                   <DropdownMenuItem 
                     onClick={() => setShowFullPageSettings(true)}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                   >
                     <Settings className="h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => window.open('/support', '_blank')}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                   >
                     <Code className="h-4 w-4" />
                     <span>Devs</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => window.open('/support', '_blank')}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
                   >
                     <HelpCircle className="h-4 w-4" />
                     <span>Support</span>
@@ -118,7 +118,7 @@ export default function Dashboard() {
                   <DropdownMenuItem 
                     onClick={handleLogout}
                     disabled={logoutMutation.isPending}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 text-red-600"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
@@ -132,26 +132,26 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-purple-200">
+        <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl border-purple-200 dark:border-purple-700">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100">
-              <TabsTrigger value="students" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
+            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-800 dark:to-indigo-800">
+              <TabsTrigger value="students" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 text-slate-600 dark:text-slate-300">
                 <Users className="h-4 w-4 mr-2" />
                 Students
               </TabsTrigger>
-              <TabsTrigger value="subjects" className="data-[state=active]:bg-white data-[state=active]:text-blue-700">
+              <TabsTrigger value="subjects" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300 text-slate-600 dark:text-slate-300">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Subject Management
               </TabsTrigger>
-              <TabsTrigger value="marks" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700">
+              <TabsTrigger value="marks" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300 text-slate-600 dark:text-slate-300">
                 <FileText className="h-4 w-4 mr-2" />
                 Marks Entry
               </TabsTrigger>
-              <TabsTrigger value="certificates" className="data-[state=active]:bg-white data-[state=active]:text-pink-700">
+              <TabsTrigger value="certificates" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-pink-700 dark:data-[state=active]:text-pink-300 text-slate-600 dark:text-slate-300">
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Progress Cards
               </TabsTrigger>
-              <TabsTrigger value="settings" className="data-[state=active]:bg-white data-[state=active]:text-slate-700">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-700 dark:data-[state=active]:text-slate-300 text-slate-600 dark:text-slate-300">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
