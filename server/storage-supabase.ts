@@ -585,9 +585,7 @@ export class SupabaseStorage {
       .from('marks')
       .select(`
         *,
-        students!inner(user_id),
-        subjects(name),
-        exams(name)
+        students!inner(user_id)
       `)
       .eq('students.user_id', userId);
     
@@ -595,6 +593,14 @@ export class SupabaseStorage {
       console.error('Error fetching all marks:', error);
       return [];
     }
+    
+    // Get subject names separately to avoid relationship issues
+    const { data: subjects } = await supabase
+      .from('subjects')
+      .select('id, name')
+      .eq('user_id', userId);
+    
+    const subjectMap = new Map((subjects || []).map(s => [s.id, s.name]));
     
     // Map snake_case to camelCase
     return (data || []).map(mark => ({
@@ -605,8 +611,9 @@ export class SupabaseStorage {
       marks: mark.marks,
       maxMarks: mark.max_marks,
       grade: mark.grade,
-      subject: mark.subjects?.name || '',
-      createdAt: mark.created_at
+      subject: subjectMap.get(mark.subject_id) || 'Unknown Subject',
+      createdAt: mark.created_at,
+      updatedAt: mark.updated_at
     }));
   }
 
