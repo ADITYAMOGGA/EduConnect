@@ -1,223 +1,216 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Save, Plus, Edit, Trash2, Award } from "lucide-react";
-import type { Student, Exam, Mark, Subject } from "@shared/schema";
-import { z } from "zod";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Award, 
+  Users, 
+  Calculator, 
+  Save, 
+  Edit3, 
+  Check, 
+  X, 
+  TrendingUp,
+  FileSpreadsheet,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
 
-const createMarksSchema = (subjects: Subject[], maxMarks: number = 100) => {
-  const schema: any = {
-    studentId: z.string().min(1, "Please select a student"),
-    examId: z.string().min(1, "Please select an exam"),
-  };
-  
-  // Dynamically add subject fields based on custom subjects
-  subjects.forEach((subject) => {
-    const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-    schema[fieldName] = z.number().min(0).max(maxMarks, `Maximum marks allowed is ${maxMarks}`);
-  });
-  
-  return z.object(schema);
+type Student = {
+  id: string;
+  name: string;
+  admissionNumber: string;
+  class: string;
+  email?: string;
 };
 
-const examSchema = z.object({
-  name: z.string().min(1, "Exam name is required"),
-  class: z.string().min(1, "Please select a class"),
-  maxMarks: z.number().min(1, "Maximum marks must be at least 1"),
-});
+type Subject = {
+  id: string;
+  name: string;
+  code: string;
+  maxMarks: number;
+};
 
-type ExamFormData = z.infer<typeof examSchema>;
-type MarksFormData = any; // Dynamic type based on subjects
+type Exam = {
+  id: string;
+  name: string;
+  date: string;
+  maxMarks: number;
+};
+
+type Mark = {
+  id: string;
+  studentId: string;
+  examId: string;
+  subject: string;
+  marks: number;
+  maxMarks: number;
+  student?: Student;
+};
+
+type StudentMarksRow = {
+  student: Student;
+  marks: { [subject: string]: number };
+  total: number;
+  percentage: number;
+  grade: string;
+  isEditing: boolean;
+};
 
 export default function MarksEntry() {
   const [selectedExam, setSelectedExam] = useState<string>("");
-  const [showNewExamInput, setShowNewExamInput] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<string | null>(null);
-  const [openStudentSelect, setOpenStudentSelect] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState("");
-  
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
+  const [marksData, setMarksData] = useState<{ [studentId: string]: { [subject: string]: number } }>({});
+  const [savingRows, setSavingRows] = useState<Set<string>>(new Set());
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch exams first to get maxMarks for selected exam
+  // Fetch data
   const { data: exams = [] } = useQuery<Exam[]>({
     queryKey: ['/api/exams'],
   });
 
-  // Fetch all subjects (exam-specific subjects)
-  const { data: allSubjects = [] } = useQuery<Subject[]>({
-    queryKey: ['/api/subjects'],
-  });
-
-  // Filter subjects by selected exam
-  const subjects = selectedExam 
-    ? allSubjects.filter(subject => {
-        // Filter subjects based on the selected exam
-        const selectedExamData = exams.find(e => e.id === selectedExam);
-        return selectedExamData && subject.code.includes(selectedExamData.name);
-      })
-    : [];
-
-  const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
-  const maxMarks = selectedExamData?.maxMarks || 100;
-
-  // Create dynamic default values based on subjects
-  const createDefaultValues = () => {
-    const defaults: any = {
-      studentId: "",
-      examId: "",
-    };
-    
-    subjects.forEach((subject) => {
-      const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-      defaults[fieldName] = undefined;
-    });
-    
-    return defaults;
-  };
-
-  const form = useForm({
-    resolver: subjects.length > 0 ? zodResolver(createMarksSchema(subjects, maxMarks)) : undefined,
-    defaultValues: createDefaultValues(),
-  });
-
-  const examForm = useForm<ExamFormData>({
-    resolver: zodResolver(examSchema),
-    defaultValues: {
-      name: "",
-      class: "",
-      maxMarks: 100,
-    },
-  });
-
-  // Fetch students
   const { data: students = [] } = useQuery<Student[]>({
     queryKey: ['/api/students'],
   });
 
-  // Fetch marks for selected exam
-  const { data: examMarks = [] } = useQuery<Mark[]>({
+  const { data: allSubjects = [] } = useQuery<Subject[]>({
+    queryKey: ['/api/subjects'],
+  });
+
+  const { data: existingMarks = [] } = useQuery<Mark[]>({
     queryKey: ['/api/marks', selectedExam],
     enabled: !!selectedExam,
   });
 
-  // Create exam mutation
-  const createExamMutation = useMutation({
-    mutationFn: async (data: ExamFormData) => {
-      await apiRequest('POST', '/api/exams', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/exams'] });
-      examForm.reset();
-      setShowNewExamInput(false);
-      toast({
-        title: "Success",
-        description: "Exam created successfully",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
+  // Filter data based on selections
+  const selectedExamData = exams.find(e => e.id === selectedExam);
+  
+  const subjects = useMemo(() => {
+    if (!selectedExam || !selectedExamData) return [];
+    return allSubjects.filter(subject => 
+      subject.code.includes(selectedExamData.name)
+    );
+  }, [selectedExam, selectedExamData, allSubjects]);
+
+  const filteredStudents = useMemo(() => {
+    if (!selectedClass) return students;
+    return students.filter(student => student.class === selectedClass);
+  }, [students, selectedClass]);
+
+  const classes = useMemo(() => {
+    const classSet = new Set(students.map(s => s.class));
+    return Array.from(classSet).sort();
+  }, [students]);
+
+  // Initialize marks data when exam or students change
+  useEffect(() => {
+    if (selectedExam && filteredStudents.length > 0 && subjects.length > 0) {
+      const newMarksData: { [studentId: string]: { [subject: string]: number } } = {};
+      
+      filteredStudents.forEach(student => {
+        newMarksData[student.id] = {};
+        subjects.forEach(subject => {
+          const existingMark = existingMarks.find(
+            mark => mark.studentId === student.id && mark.subject === subject.name
+          );
+          newMarksData[student.id][subject.name] = existingMark?.marks || 0;
         });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to create exam",
-        variant: "destructive",
       });
-    },
-  });
+      
+      setMarksData(newMarksData);
+    }
+  }, [selectedExam, filteredStudents, subjects, existingMarks]);
+
+  // Calculate student rows with totals and grades
+  const studentRows: StudentMarksRow[] = useMemo(() => {
+    return filteredStudents.map(student => {
+      const studentMarks = marksData[student.id] || {};
+      const total = Object.values(studentMarks).reduce((sum, mark) => sum + (mark || 0), 0);
+      const maxTotal = subjects.reduce((sum, subject) => sum + subject.maxMarks, 0);
+      const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+      
+      const getGrade = (percentage: number) => {
+        if (percentage >= 90) return 'A+';
+        if (percentage >= 80) return 'A';
+        if (percentage >= 70) return 'B+';
+        if (percentage >= 60) return 'B';
+        if (percentage >= 50) return 'C';
+        return 'F';
+      };
+
+      return {
+        student,
+        marks: studentMarks,
+        total,
+        percentage,
+        grade: getGrade(percentage),
+        isEditing: editingRows.has(student.id)
+      };
+    });
+  }, [filteredStudents, marksData, subjects, editingRows]);
 
   // Save marks mutation
   const saveMarksMutation = useMutation({
-    mutationFn: async (data: any) => {
-      // Build subject marks from custom subjects
-      const subjectMarks = subjects.map((subject) => {
-        const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-        return {
-          subject: subject.name,
-          marks: data[fieldName],
-        };
-      });
+    mutationFn: async ({ studentId, studentMarks }: { studentId: string; studentMarks: { [subject: string]: number } }) => {
+      for (const [subjectName, marks] of Object.entries(studentMarks)) {
+        const subject = subjects.find(s => s.name === subjectName);
+        if (!subject) continue;
 
-      if (editingStudent) {
-        // Update existing marks
-        const existingMarks = examMarks.filter(mark => mark.studentId === editingStudent);
-        
-        for (const subjectData of subjectMarks) {
-          const existingMark = existingMarks.find(mark => mark.subject === subjectData.subject);
-          
-          if (existingMark) {
-            // Update existing mark
-            await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
-              marks: subjectData.marks,
-              maxMarks: maxMarks,
-            });
-          } else {
-            // Create new mark if it doesn't exist
-            await apiRequest('POST', '/api/marks', {
-              studentId: data.studentId,
-              examId: data.examId,
-              subject: subjectData.subject,
-              marks: subjectData.marks,
-              maxMarks: maxMarks,
-            });
-          }
-        }
-      } else {
-        // Create new marks
-        for (const subjectData of subjectMarks) {
+        const existingMark = existingMarks.find(
+          mark => mark.studentId === studentId && mark.subject === subjectName
+        );
+
+        if (existingMark) {
+          await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
+            marks: marks,
+            maxMarks: subject.maxMarks,
+          });
+        } else {
           await apiRequest('POST', '/api/marks', {
-            studentId: data.studentId,
-            examId: data.examId,
-            subject: subjectData.subject,
-            marks: subjectData.marks,
-            maxMarks: maxMarks,
+            studentId,
+            examId: selectedExam,
+            subject: subjectName,
+            marks: marks,
+            maxMarks: subject.maxMarks,
           });
         }
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/marks'] });
-      form.reset();
-      setEditingStudent(null);
+    onSuccess: (_, { studentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+      setEditingRows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
+      setSavingRows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
       toast({
         title: "Success",
-        description: editingStudent ? "Marks updated successfully" : "Marks saved successfully",
+        description: "Marks saved successfully",
       });
     },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized", 
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
+    onError: (error, { studentId }) => {
+      setSavingRows(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
       toast({
         title: "Error",
         description: "Failed to save marks",
@@ -226,515 +219,378 @@ export default function MarksEntry() {
     },
   });
 
-  // Delete student marks mutation
-  const deleteStudentMarksMutation = useMutation({
-    mutationFn: async (studentId: string) => {
-      const studentMarks = examMarks.filter(mark => mark.studentId === studentId);
-      for (const mark of studentMarks) {
-        await apiRequest('DELETE', `/api/marks/${mark.id}`);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/marks'] });
-      toast({
-        title: "Success",
-        description: "Student marks deleted successfully",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to delete marks",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCreateExam = (data: ExamFormData) => {
-    createExamMutation.mutate(data);
+  const handleEditRow = (studentId: string) => {
+    setEditingRows(prev => new Set(prev).add(studentId));
   };
 
-  const onSubmit = (data: MarksFormData) => {
-    saveMarksMutation.mutate(data);
-  };
-
-  const handleEditStudent = (studentId: string, marks: Mark[]) => {
-    setEditingStudent(studentId);
-    
-    // Pre-populate the form with existing marks
-    const marksMap: any = {
-      studentId: studentId,
-      examId: selectedExam,
-    };
-    
-    // Build marks map from custom subjects
-    subjects.forEach((subject) => {
-      const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-      const existingMark = marks.find(mark => mark.subject === subject.name);
-      marksMap[fieldName] = existingMark ? existingMark.marks : 0;
+  const handleCancelEdit = (studentId: string) => {
+    setEditingRows(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(studentId);
+      return newSet;
     });
-    
-    form.reset(marksMap);
-  };
-
-  const handleDeleteStudent = (studentId: string) => {
-    if (confirm("Are you sure you want to delete all marks for this student?")) {
-      deleteStudentMarksMutation.mutate(studentId);
+    // Reset to original values
+    const student = filteredStudents.find(s => s.id === studentId);
+    if (student) {
+      const resetMarks: { [subject: string]: number } = {};
+      subjects.forEach(subject => {
+        const existingMark = existingMarks.find(
+          mark => mark.studentId === studentId && mark.subject === subject.name
+        );
+        resetMarks[subject.name] = existingMark?.marks || 0;
+      });
+      setMarksData(prev => ({
+        ...prev,
+        [studentId]: resetMarks
+      }));
     }
   };
 
-  const calculateTotal = (marks: any[]) => {
-    return marks.reduce((sum, mark) => sum + mark.marks, 0);
+  const handleSaveRow = (studentId: string) => {
+    setSavingRows(prev => new Set(prev).add(studentId));
+    const studentMarks = marksData[studentId] || {};
+    saveMarksMutation.mutate({ studentId, studentMarks });
   };
 
-  const calculatePercentage = (total: number, maxTotal: number) => {
-    return ((total / maxTotal) * 100).toFixed(1);
+  const handleMarksChange = (studentId: string, subject: string, value: string) => {
+    const marks = Math.max(0, Math.min(subjects.find(s => s.name === subject)?.maxMarks || 100, parseInt(value) || 0));
+    setMarksData(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [subject]: marks
+      }
+    }));
   };
 
-  const getGrade = (percentage: number) => {
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B+';
-    if (percentage >= 60) return 'B';
-    if (percentage >= 50) return 'C';
-    return 'F';
+  const getBadgeVariant = (grade: string) => {
+    switch (grade) {
+      case 'A+': return 'default';
+      case 'A': return 'secondary';
+      case 'B+': return 'outline';
+      case 'B': return 'outline';
+      case 'C': return 'outline';
+      default: return 'destructive';
+    }
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Marks Entry</h2>
-        <p className="text-gray-600">Enter and manage exam marks for students</p>
-      </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl flex items-center justify-center">
+            <FileSpreadsheet className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Marks Entry</h2>
+            <p className="text-gray-600">Excel-like interface for efficient marks management</p>
+          </div>
+        </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Student & Exam Selection */}
-        <Card>
+      {/* Selection Controls */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        <Card className="bg-gradient-to-r from-indigo-50 to-cyan-50 border-0 shadow-lg">
           <CardHeader>
-            <CardTitle>Select Student & Exam</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <Award className="h-5 w-5 text-indigo-600" />
+              <span>Select Exam & Class</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
-              <Popover open={openStudentSelect} onOpenChange={setOpenStudentSelect}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={openStudentSelect}
-                    className="w-full justify-between h-10 px-3"
-                  >
-                    {selectedStudentId
-                      ? students.find((student) => student.id === selectedStudentId)?.name + 
-                        " (" + students.find((student) => student.id === selectedStudentId)?.admissionNo + ")"
-                      : "Select a student..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search students..." />
-                    <CommandEmpty>No student found.</CommandEmpty>
-                    <CommandGroup className="max-h-[200px] overflow-auto">
-                      {students.map((student) => (
-                        <CommandItem
-                          key={student.id}
-                          value={`${student.name} ${student.admissionNo}`}
-                          onSelect={() => {
-                            setSelectedStudentId(student.id);
-                            form.setValue('studentId', student.id);
-                            setOpenStudentSelect(false);
-                          }}
-                        >
-                          <Check
-                            className={`mr-2 h-4 w-4 ${
-                              selectedStudentId === student.id ? "opacity-100" : "opacity-0"
-                            }`}
-                          />
-                          {student.name} ({student.admissionNo})
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Exam</label>
-              <div className="flex space-x-2">
-                <Select 
-                  onValueChange={(value) => {
-                    form.setValue('examId', value);
-                    setSelectedExam(value);
-                  }}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select exam..." />
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="exam-select">Exam</Label>
+                <Select value={selectedExam} onValueChange={setSelectedExam}>
+                  <SelectTrigger id="exam-select" className="bg-white border-gray-200">
+                    <SelectValue placeholder="Select an exam" />
                   </SelectTrigger>
                   <SelectContent>
-                    {exams.map((exam: Exam) => (
+                    {exams.map((exam) => (
                       <SelectItem key={exam.id} value={exam.id}>
-                        {exam.name} (Max: {exam.maxMarks} marks)
+                        {exam.name} - {new Date(exam.date).toLocaleDateString()}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  onClick={() => setShowNewExamInput(!showNewExamInput)}
-                  className="bg-primary-500 hover:bg-primary-600"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
               </div>
-              
-              {/* Show maximum marks info */}
-              {selectedExam && selectedExamData && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg"
-                >
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm font-medium text-purple-700">
-                      {selectedExamData.name} - Maximum {maxMarks} marks per subject
+
+              <div className="space-y-2">
+                <Label htmlFor="class-select">Class</Label>
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger id="class-select" className="bg-white border-gray-200">
+                    <SelectValue placeholder="Select a class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((className) => (
+                      <SelectItem key={className} value={className}>
+                        Class {className}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {selectedExam && selectedClass && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 pt-4 border-t border-gray-200"
+              >
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center space-x-1">
+                      <Users className="h-4 w-4" />
+                      <span>{filteredStudents.length} Students</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <Award className="h-4 w-4" />
+                      <span>{subjects.length} Subjects</span>
                     </span>
                   </div>
-                </motion.div>
-              )}
-              
-              {showNewExamInput && (
-                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <h4 className="font-medium text-gray-800 mb-3">Create New Exam</h4>
-                  <Form {...examForm}>
-                    <form onSubmit={examForm.handleSubmit(handleCreateExam)} className="space-y-3">
-                      <FormField
-                        control={examForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Exam Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Mid-Term Exam" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField
-                          control={examForm.control}
-                          name="class"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Class</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select class" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="1">Class 1</SelectItem>
-                                  <SelectItem value="2">Class 2</SelectItem>
-                                  <SelectItem value="3">Class 3</SelectItem>
-                                  <SelectItem value="4">Class 4</SelectItem>
-                                  <SelectItem value="5">Class 5</SelectItem>
-                                  <SelectItem value="6">Class 6</SelectItem>
-                                  <SelectItem value="7">Class 7</SelectItem>
-                                  <SelectItem value="8">Class 8</SelectItem>
-                                  <SelectItem value="9">Class 9</SelectItem>
-                                  <SelectItem value="10">Class 10</SelectItem>
-                                  <SelectItem value="11">Class 11</SelectItem>
-                                  <SelectItem value="12">Class 12</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={examForm.control}
-                          name="maxMarks"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Max Marks</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="100"
-                                  {...field}
-                                  onChange={(e) => field.onChange(Number(e.target.value))}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setShowNewExamInput(false)}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          disabled={createExamMutation.isPending}
-                          className="flex-1 bg-success-500 hover:bg-success-600"
-                        >
-                          {createExamMutation.isPending ? 'Creating...' : 'Create Exam'}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
+                  <Badge variant="outline" className="bg-white">
+                    Max Total: {subjects.reduce((sum, s) => sum + s.maxMarks, 0)} marks
+                  </Badge>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Marks Entry Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {editingStudent ? 'Edit Marks' : 'Enter Marks'}
-              {editingStudent && (
-                <span className="text-sm text-gray-600 ml-2">
-                  (Editing: {(() => {
-                    const studentData = examMarks.find(mark => mark.studentId === editingStudent);
-                    return studentData?.student?.name || `Student ${editingStudent.slice(0, 8)}`;
-                  })()})
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Dynamic subject fields based on custom subjects */}
-                {!selectedExam ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Select an exam to see subjects for marks entry</p>
-                  </div>
-                ) : subjects.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No subjects found for this exam</p>
-                    <p className="text-sm mt-2">Go to Subject Management to add subjects</p>
-                  </div>
-                ) : (
-                  <motion.div className="grid grid-cols-2 gap-4">
-                    <AnimatePresence>
-                      {subjects.map((subject, index) => {
-                        const fieldName = subject.name.toLowerCase().replace(/\s+/g, '');
-                        return (
-                          <motion.div
-                            key={subject.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ delay: index * 0.1, duration: 0.3 }}
-                          >
-                            <FormField
-                              control={form.control}
-                              name={fieldName}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-2">
-                                    <motion.span
-                                      initial={{ scale: 0.8 }}
-                                      animate={{ scale: 1 }}
-                                      transition={{ delay: index * 0.1 + 0.2 }}
-                                    >
-                                      {subject.name}
-                                    </motion.span>
-                                    {subject.code && (
-                                      <span className="text-xs text-gray-500">({subject.code.split('-').pop()})</span>
-                                    )}
-                                    <span className="text-xs text-purple-600 font-medium">
-                                      (Max: {maxMarks})
-                                    </span>
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder={`0-${maxMarks}`}
-                                      {...field}
-                                      value={field.value || ''}
-                                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                      className="border-purple-200 focus:border-purple-400 focus:ring-purple-200"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </motion.div>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
-
-                {selectedExam && subjects.length > 0 && (
-                  <motion.div 
-                    className="flex space-x-2"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: subjects.length * 0.1 + 0.3 }}
-                  >
-                    {editingStudent && (
-                      <Button 
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingStudent(null);
-                          form.reset();
-                        }}
-                        className="flex-1"
-                      >
-                        Cancel Edit
-                      </Button>
-                    )}
-                    <Button 
-                      type="submit" 
-                      className={`${editingStudent ? 'flex-1' : 'w-full'} bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700`}
-                      disabled={saveMarksMutation.isPending}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {saveMarksMutation.isPending 
-                        ? (editingStudent ? 'Updating...' : 'Saving...') 
-                        : (editingStudent ? 'Update Marks' : 'Save Marks')}
-                    </Button>
-                  </motion.div>
-                )}
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Marks Table */}
-      {selectedExam && (
-        <Card className="mt-8">
-          <CardHeader className="bg-gray-50">
-            <CardTitle>Recent Marks Entries</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {examMarks.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-600">No marks entered for this exam yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Percentage
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Grade
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {/* Group marks by student */}
-                    {Object.entries(
-                      examMarks.reduce((acc: any, mark: any) => {
-                        if (!acc[mark.studentId]) {
-                          acc[mark.studentId] = {
-                            student: mark.student,
-                            marks: [],
-                          };
-                        }
-                        acc[mark.studentId].marks.push(mark);
-                        return acc;
-                      }, {})
-                    ).map(([studentId, data]: [string, any]) => {
-                      const total = calculateTotal(data.marks);
-                      const selectedExamData = exams.find((e: Exam) => e.id === selectedExam);
-                      const maxTotal = selectedExamData ? selectedExamData.maxMarks * 6 : 600;
-                      const percentage = parseFloat(calculatePercentage(total, maxTotal));
-                      const grade = getGrade(percentage);
-                      
-                      return (
-                        <tr key={studentId} className="hover:bg-gray-50 transition-colors duration-200">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {data.student?.name || `Student ${studentId.slice(0, 8)}`}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {total}/{maxTotal}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {percentage}%
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              grade === 'A+' || grade === 'A' 
-                                ? 'bg-success-100 text-success-800'
-                                : grade === 'B+' || grade === 'B'
-                                ? 'bg-primary-100 text-primary-800'
-                                : 'bg-warning-100 text-warning-800'
-                            }`}>
-                              {grade}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button 
-                              onClick={() => handleEditStudent(studentId, data.marks)}
-                              className="text-primary-600 hover:text-primary-900 transition-colors duration-200"
-                              title="Edit marks"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteStudent(studentId)}
-                              className="text-red-600 hover:text-red-900 transition-colors duration-200"
-                              title="Delete marks"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              </motion.div>
             )}
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Marks Entry Table */}
+      {selectedExam && selectedClass && subjects.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="shadow-xl border-0">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2">
+                  <Calculator className="h-5 w-5 text-indigo-600" />
+                  <span>Marks Entry Sheet</span>
+                </CardTitle>
+                <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                  {selectedExamData?.name} - Class {selectedClass}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-900 sticky left-0 bg-gray-50 z-10 min-w-[200px]">
+                        Student
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 sticky left-[200px] bg-gray-50 z-10 min-w-[120px]">
+                        Roll No.
+                      </TableHead>
+                      {subjects.map((subject) => (
+                        <TableHead key={subject.id} className="text-center font-semibold text-gray-900 min-w-[100px]">
+                          <div>
+                            <div>{subject.name}</div>
+                            <div className="text-xs text-gray-500 font-normal">
+                              (Max: {subject.maxMarks})
+                            </div>
+                          </div>
+                        </TableHead>
+                      ))}
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                        Total
+                      </TableHead>
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                        %
+                      </TableHead>
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                        Grade
+                      </TableHead>
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[120px]">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <AnimatePresence>
+                      {studentRows.map((row, index) => (
+                        <motion.tr
+                          key={row.student.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className={`group hover:bg-gray-50 transition-colors ${
+                            row.isEditing ? 'bg-blue-50 border-blue-200' : ''
+                          }`}
+                        >
+                          <TableCell className="font-medium sticky left-0 bg-white group-hover:bg-gray-50 z-10">
+                            <div className="flex items-center space-x-2">
+                              {row.isEditing && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                              )}
+                              <div>
+                                <div className="font-medium">{row.student.name}</div>
+                                <div className="text-xs text-gray-500">{row.student.email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="sticky left-[200px] bg-white group-hover:bg-gray-50 z-10 font-mono">
+                            {row.student.admissionNumber}
+                          </TableCell>
+                          {subjects.map((subject) => (
+                            <TableCell key={subject.id} className="text-center p-2">
+                              {row.isEditing ? (
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={subject.maxMarks}
+                                  value={row.marks[subject.name] || 0}
+                                  onChange={(e) => handleMarksChange(row.student.id, subject.name, e.target.value)}
+                                  className="w-20 text-center border-blue-300 focus:border-blue-500"
+                                />
+                              ) : (
+                                <span className={`font-medium ${
+                                  (row.marks[subject.name] || 0) === 0 ? 'text-gray-400' : 'text-gray-900'
+                                }`}>
+                                  {row.marks[subject.name] || 0}
+                                </span>
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-center font-bold text-indigo-700">
+                            {row.total}
+                          </TableCell>
+                          <TableCell className="text-center font-medium">
+                            {row.percentage.toFixed(1)}%
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={getBadgeVariant(row.grade)} className="font-medium">
+                              {row.grade}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center space-x-1">
+                              {row.isEditing ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleSaveRow(row.student.id)}
+                                    disabled={savingRows.has(row.student.id)}
+                                    className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                                  >
+                                    {savingRows.has(row.student.id) ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Check className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCancelEdit(row.student.id)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditRow(row.student.id)}
+                                  className="h-8 w-8 p-0 hover:bg-indigo-50 hover:border-indigo-300"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* No Data States */}
+      {!selectedExam && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="text-center py-12">
+            <CardContent>
+              <Award className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Select an Exam</h3>
+              <p className="text-gray-500">Choose an exam to start entering marks</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {selectedExam && !selectedClass && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="text-center py-12">
+            <CardContent>
+              <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Class</h3>
+              <p className="text-gray-500">Choose a class to see students for marks entry</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {selectedExam && selectedClass && subjects.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="text-center py-12">
+            <CardContent>
+              <AlertCircle className="h-16 w-16 mx-auto mb-4 text-orange-300" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Subjects Found</h3>
+              <p className="text-gray-500">Add subjects for this exam in Subject Management</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {selectedExam && selectedClass && filteredStudents.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="text-center py-12">
+            <CardContent>
+              <Users className="h-16 w-16 mx-auto mb-4 text-orange-300" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
+              <p className="text-gray-500">No students found in Class {selectedClass}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </div>
   );
