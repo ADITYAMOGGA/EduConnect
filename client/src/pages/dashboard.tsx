@@ -22,6 +22,7 @@ import CertificateGenerator from "@/components/CertificateGenerator";
 import SettingsComponent from "@/components/Settings";
 import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -74,6 +75,7 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
