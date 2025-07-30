@@ -140,8 +140,8 @@ export default function MarksEntry() {
     return filteredStudents.map(student => {
       const studentMarks = marksData[student.id] || {};
       const total = Object.values(studentMarks).reduce((sum, mark) => sum + (mark || 0), 0);
-      // Use default 100 marks per subject if maxMarks is not defined
-      const maxTotal = subjects.reduce((sum, subject) => sum + (subject.maxMarks || 100), 0);
+      // Use exam's maxMarks for all subjects
+      const maxTotal = subjects.reduce((sum, subject) => sum + (selectedExamData?.maxMarks || 100), 0);
       const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
       
       const getGrade = (percentage: number) => {
@@ -178,7 +178,7 @@ export default function MarksEntry() {
         if (existingMark) {
           await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
             marks: marks,
-            maxMarks: subject.maxMarks,
+            maxMarks: selectedExamData?.maxMarks || 100,
           });
         } else {
           await apiRequest('POST', '/api/marks', {
@@ -186,7 +186,7 @@ export default function MarksEntry() {
             examId: selectedExam,
             subject: subjectName,
             marks: marks,
-            maxMarks: subject.maxMarks,
+            maxMarks: selectedExamData?.maxMarks || 100,
           });
         }
       }
@@ -256,8 +256,7 @@ export default function MarksEntry() {
   };
 
   const handleMarksChange = (studentId: string, subject: string, value: string) => {
-    const subjectData = subjects.find(s => s.name === subject);
-    const maxMarks = subjectData?.maxMarks || 100;
+    const maxMarks = selectedExamData?.maxMarks || 100;
     const marks = Math.max(0, Math.min(maxMarks, parseInt(value) || 0));
     setMarksData(prev => ({
       ...prev,
@@ -309,7 +308,7 @@ export default function MarksEntry() {
           if (existingMark) {
             await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
               marks: marks,
-              maxMarks: subject.maxMarks || 100,
+              maxMarks: selectedExamData?.maxMarks || 100,
             });
           } else {
             await apiRequest('POST', '/api/marks', {
@@ -317,7 +316,7 @@ export default function MarksEntry() {
               examId: selectedExam,
               subject: subjectName,
               marks: marks,
-              maxMarks: subject.maxMarks || 100,
+              maxMarks: selectedExamData?.maxMarks || 100,
             });
           }
         }
@@ -445,7 +444,7 @@ export default function MarksEntry() {
                     </span>
                   </div>
                   <Badge variant="outline" className="bg-white">
-                    Max Total: {subjects.reduce((sum, s) => sum + (s.maxMarks || 100), 0)} marks
+                    Max Total: {subjects.reduce((sum, s) => sum + (selectedExamData?.maxMarks || 100), 0)} marks
                   </Badge>
                 </div>
               </motion.div>
@@ -526,7 +525,7 @@ export default function MarksEntry() {
                           <div>
                             <div>{subject.name}</div>
                             <div className="text-xs text-gray-500 font-normal">
-                              (Max: {subject.maxMarks || 100})
+                              (Max: {selectedExamData?.maxMarks || 100})
                             </div>
                           </div>
                         </TableHead>
@@ -577,7 +576,7 @@ export default function MarksEntry() {
                                 <Input
                                   type="number"
                                   min="0"
-                                  max={subject.maxMarks || 100}
+                                  max={selectedExamData?.maxMarks || 100}
                                   value={row.marks[subject.name] || 0}
                                   onChange={(e) => handleMarksChange(row.student.id, subject.name, e.target.value)}
                                   className="w-20 text-center border-blue-300 focus:border-blue-500"
