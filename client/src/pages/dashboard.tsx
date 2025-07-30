@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { 
   GraduationCap, 
   Users, 
@@ -11,7 +12,9 @@ import {
   Settings, 
   LogOut,
   School,
-  HelpCircle
+  HelpCircle,
+  Code,
+  ChevronDown
 } from "lucide-react";
 import StudentManagement from "@/components/StudentManagement";
 import MarksEntry from "@/components/MarksEntry";
@@ -21,11 +24,16 @@ import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState("students");
 
   if (!user) return null;
 
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
   };
 
   return (
@@ -49,36 +57,57 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
-                  <School className="text-white text-sm" />
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-slate-700">
-                    {user.firstName} {user.lastName}
-                  </p>
-                  <p className="text-xs text-slate-500">@{user.username}</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => window.open('/support', '_blank')}
-                variant="ghost"
-                size="sm"
-                className="text-slate-600 hover:text-slate-900 hover:bg-purple-100"
-              >
-                <HelpCircle className="h-4 w-4 mr-2" />
-                Support
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="sm"
-                className="text-slate-600 hover:text-slate-900 hover:bg-purple-100"
-                disabled={logoutMutation.isPending}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="flex items-center space-x-3 hover:bg-purple-50 p-3 rounded-lg transition-colors"
+                  >
+                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <School className="text-white text-sm" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-slate-700">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      <p className="text-xs text-slate-500">@{user.username}</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border border-gray-200">
+                  <DropdownMenuItem 
+                    onClick={() => handleTabChange("settings")}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => window.open('/support', '_blank')}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                  >
+                    <Code className="h-4 w-4" />
+                    <span>Devs</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => window.open('/support', '_blank')}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Support</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-red-50 text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -87,7 +116,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-purple-200">
-          <Tabs defaultValue="students" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100">
               <TabsTrigger value="students" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
                 <Users className="h-4 w-4 mr-2" />
