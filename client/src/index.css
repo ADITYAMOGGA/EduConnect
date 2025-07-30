@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    /* Light theme colors */
+    /* Modern purple/indigo color scheme */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -31,28 +31,14 @@
     --chart-3: 242 67% 72%;
     --chart-4: 232 59% 79%;
     --chart-5: 222 51% 86%;
-    
-    /* Custom colors */
-    --primary-50: 207 89% 96%;
-    --primary-100: 207 89% 91%;
-    --primary-500: 207 90% 54%;
-    --primary-600: 208 79% 46%;
-    --primary-700: 209 100% 26%;
-    --success-50: 120 60% 95%;
-    --success-500: 123 38% 57%;
-    --success-600: 122 39% 49%;
-    --warning-50: 35 100% 95%;
-    --warning-500: 36 100% 50%;
-    --warning-600: 32 95% 44%;
   }
  
   .dark {
-    /* Dark theme colors */
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 8%;
+    --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    --popover: 240 10% 8%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 262 83% 58%;
     --primary-foreground: 210 40% 98%;
@@ -72,20 +58,79 @@
     --chart-3: 242 67% 72%;
     --chart-4: 232 59% 79%;
     --chart-5: 222 51% 86%;
-    
-    /* Custom dark colors */
-    --primary-50: 207 89% 10%;
-    --primary-100: 207 89% 15%;
-    --primary-500: 207 90% 54%;
-    --primary-600: 208 79% 46%;
-    --primary-700: 209 100% 26%;
-    --success-50: 120 60% 10%;
-    --success-500: 123 38% 57%;
-    --success-600: 122 39% 49%;
-    --warning-50: 35 100% 10%;
-    --warning-500: 36 100% 50%;
-    --warning-600: 32 95% 44%;
   }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(220, 14.3%, 4.1%);
+  --muted: hsl(210, 40%, 98%);
+  --muted-foreground: hsl(215, 16%, 46.9%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(220, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(220, 14.3%, 4.1%);
+  --border: hsl(214, 32%, 91%);
+  --input: hsl(214, 32%, 91%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(210, 40%, 98%);
+  --secondary-foreground: hsl(222, 9.8%, 10%);
+  --accent: hsl(210, 40%, 98%);
+  --accent-foreground: hsl(222, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(207, 90%, 54%);
+  --radius: 0.5rem;
+  
+  /* Custom primary colors matching design */
+  --primary-50: hsl(207, 89%, 96%);
+  --primary-100: hsl(207, 89%, 91%);
+  --primary-500: hsl(207, 90%, 54%);
+  --primary-600: hsl(208, 79%, 46%);
+  --primary-700: hsl(209, 100%, 26%);
+  
+  /* Success colors */
+  --success-50: hsl(120, 60%, 95%);
+  --success-500: hsl(123, 38%, 57%);
+  --success-600: hsl(122, 39%, 49%);
+  
+  /* Warning colors */
+  --warning-50: hsl(35, 100%, 95%);
+  --warning-500: hsl(36, 100%, 50%);
+  --warning-600: hsl(32, 95%, 44%);
+}
+
+.dark {
+  --background: hsl(220, 14.3%, 4.1%);
+  --foreground: hsl(210, 40%, 98%);
+  --muted: hsl(220, 14.3%, 14.1%);
+  --muted-foreground: hsl(215, 16%, 46.9%);
+  --popover: hsl(220, 14.3%, 4.1%);
+  --popover-foreground: hsl(210, 40%, 98%);
+  --card: hsl(220, 14.3%, 4.1%);
+  --card-foreground: hsl(210, 40%, 98%);
+  --border: hsl(220, 14.3%, 14.1%);
+  --input: hsl(220, 14.3%, 14.1%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(220, 14.3%, 14.1%);
+  --secondary-foreground: hsl(210, 40%, 98%);
+  --accent: hsl(220, 14.3%, 14.1%);
+  --accent-foreground: hsl(210, 40%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(210, 40%, 98%);
+  --ring: hsl(207, 90%, 54%);
 }
 
 @layer base {
@@ -96,16 +141,6 @@
   body {
     @apply font-inter antialiased bg-background text-foreground;
     font-family: 'Inter', sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-  
-  /* Ensure all text elements inherit proper colors */
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-foreground;
-  }
-  
-  p {
-    @apply text-foreground;
   }
 }
 

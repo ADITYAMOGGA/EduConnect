@@ -5,7 +5,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/lib/theme-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -48,7 +47,6 @@ interface SettingsPageProps {
 export default function SettingsPage({ onBack }: SettingsPageProps) {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
-  const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
@@ -119,13 +117,7 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
     deleteAccountMutation.mutate();
   };
 
-  const handleThemeToggle = () => {
-    toggleTheme();
-    toast({
-      title: "Theme Updated",
-      description: `Switched to ${theme === 'light' ? 'dark' : 'light'} mode`,
-    });
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50 dark:from-slate-900 dark:via-purple-900 dark:to-indigo-900 p-6">
@@ -251,24 +243,20 @@ export default function SettingsPage({ onBack }: SettingsPageProps) {
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Theme Settings */}
+            {/* Appearance Settings */}
             <Card className="shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200 dark:border-slate-700">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-slate-900 dark:text-slate-100">
-                  {theme === 'dark' ? <Moon className="h-5 w-5 text-indigo-400" /> : <Sun className="h-5 w-5 text-yellow-600" />}
+                  <Settings className="h-5 w-5 text-indigo-400" />
                   <span>Appearance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-900 dark:text-slate-100">Dark Mode</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Toggle dark theme</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-100">Theme Settings</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Appearance preferences coming soon</p>
                   </div>
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={handleThemeToggle}
-                  />
                 </div>
               </CardContent>
             </Card>
