@@ -47,19 +47,25 @@ export function registerRoutes(app: Express): Server {
   app.patch('/api/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { schoolName, firstName, lastName } = req.body;
+      const { schoolName, firstName, lastName, username } = req.body;
       
       const updatedUser = await storage.upsertUser({
         id: userId,
         email: req.user.email,
         firstName: firstName || req.user.firstName,
         lastName: lastName || req.user.lastName,
-        username: req.user.username,
+        username: username || req.user.username,
         password: req.user.password,
         profileImageUrl: req.user.profileImageUrl,
-        schoolName,
+        schoolName: schoolName || req.user.schoolName,
         schoolLogoUrl: req.user.schoolLogoUrl,
       });
+      
+      // Update the session with new user data
+      req.user.firstName = updatedUser.firstName;
+      req.user.lastName = updatedUser.lastName;
+      req.user.username = updatedUser.username;
+      req.user.schoolName = updatedUser.schoolName;
       
       res.json({
         id: updatedUser.id,
@@ -68,6 +74,7 @@ export function registerRoutes(app: Express): Server {
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         schoolName: updatedUser.schoolName,
+        profileImageUrl: updatedUser.profileImageUrl,
       });
     } catch (error) {
       console.error("Error updating user:", error);

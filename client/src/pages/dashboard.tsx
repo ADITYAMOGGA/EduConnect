@@ -20,11 +20,13 @@ import StudentManagement from "@/components/StudentManagement";
 import MarksEntry from "@/components/MarksEntry";
 import CertificateGenerator from "@/components/CertificateGenerator";
 import SettingsComponent from "@/components/Settings";
+import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("students");
+  const [showFullPageSettings, setShowFullPageSettings] = useState(false);
 
   if (!user) return null;
 
@@ -33,8 +35,23 @@ export default function Dashboard() {
   };
 
   const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
+    if (tab === "settings") {
+      setShowFullPageSettings(true);
+    } else {
+      setActiveTab(tab);
+      setShowFullPageSettings(false);
+    }
   };
+
+  const handleBackFromSettings = () => {
+    setShowFullPageSettings(false);
+    setActiveTab("students");
+  };
+
+  // Show full-page settings if enabled
+  if (showFullPageSettings) {
+    return <SettingsPage onBack={handleBackFromSettings} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-indigo-50">
@@ -77,7 +94,7 @@ export default function Dashboard() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border border-gray-200">
                   <DropdownMenuItem 
-                    onClick={() => handleTabChange("settings")}
+                    onClick={() => setShowFullPageSettings(true)}
                     className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50"
                   >
                     <Settings className="h-4 w-4" />
@@ -116,7 +133,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-purple-200">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-purple-100 to-indigo-100">
               <TabsTrigger value="students" className="data-[state=active]:bg-white data-[state=active]:text-purple-700">
                 <Users className="h-4 w-4 mr-2" />
