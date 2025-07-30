@@ -388,49 +388,7 @@ export class SupabaseStorage {
     };
   }
 
-  async updateExam(id: string, examData: Partial<InsertExam>, userId: string): Promise<Exam> {
-    // Map camelCase to snake_case only for provided fields
-    const dbExamData: any = {};
-    if (examData.name !== undefined) dbExamData.name = examData.name;
-    if (examData.class !== undefined) dbExamData.class = examData.class;
-    if (examData.maxMarks !== undefined) dbExamData.max_marks = examData.maxMarks;
 
-    const { data, error } = await supabase
-      .from('exams')
-      .update(dbExamData)
-      .eq('id', id)
-      .eq('user_id', userId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating exam:', error);
-      throw error;
-    }
-    
-    // Map snake_case back to camelCase
-    return {
-      id: data.id,
-      name: data.name,
-      class: data.class,
-      maxMarks: data.max_marks,
-      userId: data.user_id,
-      createdAt: data.created_at
-    };
-  }
-
-  async deleteExam(id: string, userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('exams')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
-    
-    if (error) {
-      console.error('Error deleting exam:', error);
-      throw error;
-    }
-  }
 
 
 
@@ -762,6 +720,73 @@ export class SupabaseStorage {
     
     if (error) {
       console.error('Error deleting subject:', error);
+      throw error;
+    }
+  }
+
+  async updateExam(id: string, examData: Partial<InsertExam>, userId: string): Promise<Exam> {
+    // Map camelCase to snake_case
+    const dbExamData: any = {};
+    if (examData.name !== undefined) dbExamData.name = examData.name;
+    if (examData.class !== undefined) dbExamData.class = examData.class;
+    if (examData.maxMarks !== undefined) dbExamData.max_marks = examData.maxMarks;
+
+    const { data, error } = await supabase
+      .from('exams')
+      .update(dbExamData)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating exam:', error);
+      throw error;
+    }
+    
+    // Map snake_case back to camelCase
+    return {
+      id: data.id,
+      name: data.name,
+      class: data.class,
+      maxMarks: data.max_marks,
+      userId: data.user_id,
+      createdAt: data.created_at
+    };
+  }
+
+  async deleteExam(id: string, userId: string): Promise<void> {
+    // First delete all related marks
+    await supabase
+      .from('marks')
+      .delete()
+      .eq('exam_id', id);
+
+    // Then delete all related subjects that contain the exam name in their code
+    const examToDelete = await supabase
+      .from('exams')
+      .select('name')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (examToDelete.data) {
+      await supabase
+        .from('subjects')
+        .delete()
+        .eq('user_id', userId)
+        .like('code', `${examToDelete.data.name}-%`);
+    }
+
+    // Finally delete the exam
+    const { error } = await supabase
+      .from('exams')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Error deleting exam:', error);
       throw error;
     }
   }

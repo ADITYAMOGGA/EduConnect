@@ -102,6 +102,30 @@ export default function ExamSubjectManagement() {
     },
   });
 
+  // Delete Exam Mutation
+  const deleteExamMutation = useMutation({
+    mutationFn: async (examId: string) => {
+      const res = await apiRequest("DELETE", `/api/exams/${examId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subjects"] });
+      setSelectedExam(""); // Clear selection if deleted exam was selected
+      toast({
+        title: "Exam deleted",
+        description: "Exam and all its subjects have been removed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete exam",
+        variant: "destructive",
+      });
+    },
+  });
+
   const createSubjectMutation = useMutation({
     mutationFn: async (data: { name: string; code: string; examId?: string }) => {
       if (editingSubject) {
@@ -332,20 +356,7 @@ export default function ExamSubjectManagement() {
                 <SelectContent>
                   {exams.map((exam) => (
                     <SelectItem key={exam.id} value={exam.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{exam.name} - Class {exam.class}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditExam(exam);
-                          }}
-                          className="ml-2 text-blue-600 hover:text-blue-700 p-1 h-6 w-6"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      {exam.name} - Class {exam.class}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -379,6 +390,63 @@ export default function ExamSubjectManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Exam Management List */}
+      {selectedExam && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Selected Exam Details
+            </CardTitle>
+            <CardDescription>
+              Edit or delete the currently selected examination
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const currentExam = exams.find(e => e.id === selectedExam);
+              return currentExam ? (
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+                  <div>
+                    <h3 className="font-semibold text-lg text-purple-800">{currentExam.name}</h3>
+                    <p className="text-purple-600">Class {currentExam.class} • Max Marks: {currentExam.maxMarks}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditExam(currentExam)}
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete "${currentExam.name}"? This will also delete all associated subjects.`)) {
+                          deleteExamMutation.mutate(currentExam.id);
+                        }
+                      }}
+                      disabled={deleteExamMutation.isPending}
+                      className="border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      {deleteExamMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      )}
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Subject List */}
       <AnimatePresence mode="wait">

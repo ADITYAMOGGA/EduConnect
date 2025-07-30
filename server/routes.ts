@@ -417,6 +417,33 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.patch('/api/exams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const examData = req.body;
+      
+      const exam = await storage.updateExam(id, examData, userId);
+      res.json(exam);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      res.status(500).json({ message: "Failed to update exam" });
+    }
+  });
+
+  app.delete('/api/exams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      
+      await storage.deleteExam(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      res.status(500).json({ message: "Failed to delete exam" });
+    }
+  });
+
   // Marks routes
   app.get('/api/marks', isAuthenticated, async (req: any, res) => {
     try {
