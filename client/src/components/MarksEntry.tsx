@@ -37,7 +37,7 @@ type Subject = {
   id: string;
   name: string;
   code: string;
-  maxMarks: number;
+  maxMarks?: number;
 };
 
 type Exam = {
@@ -72,6 +72,8 @@ export default function MarksEntry() {
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   const [marksData, setMarksData] = useState<{ [studentId: string]: { [subject: string]: number } }>({});
   const [savingRows, setSavingRows] = useState<Set<string>>(new Set());
+  const [bulkEditMode, setBulkEditMode] = useState<boolean>(false);
+  const [bulkSaving, setBulkSaving] = useState<boolean>(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -138,7 +140,8 @@ export default function MarksEntry() {
     return filteredStudents.map(student => {
       const studentMarks = marksData[student.id] || {};
       const total = Object.values(studentMarks).reduce((sum, mark) => sum + (mark || 0), 0);
-      const maxTotal = subjects.reduce((sum, subject) => sum + subject.maxMarks, 0);
+      // Use default 100 marks per subject if maxMarks is not defined
+      const maxTotal = subjects.reduce((sum, subject) => sum + (subject.maxMarks || 100), 0);
       const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
       
       const getGrade = (percentage: number) => {
@@ -253,7 +256,9 @@ export default function MarksEntry() {
   };
 
   const handleMarksChange = (studentId: string, subject: string, value: string) => {
-    const marks = Math.max(0, Math.min(subjects.find(s => s.name === subject)?.maxMarks || 100, parseInt(value) || 0));
+    const subjectData = subjects.find(s => s.name === subject);
+    const maxMarks = subjectData?.maxMarks || 100;
+    const marks = Math.max(0, Math.min(maxMarks, parseInt(value) || 0));
     setMarksData(prev => ({
       ...prev,
       [studentId]: {
@@ -261,6 +266,86 @@ export default function MarksEntry() {
         [subject]: marks
       }
     }));
+  };
+
+  // Bulk edit functions
+  const handleEditAll = () => {
+    setBulkEditMode(true);
+    const allStudentIds = new Set(filteredStudents.map(s => s.id));
+    setEditingRows(allStudentIds);
+  };
+
+  const handleCancelAll = () => {
+    setBulkEditMode(false);
+    setEditingRows(new Set());
+    // Reset all marks to original values
+    const resetData: { [studentId: string]: { [subject: string]: number } } = {};
+    filteredStudents.forEach(student => {
+      resetData[student.id] = {};
+      subjects.forEach(subject => {
+        const existingMark = existingMarks.find(
+          mark => mark.studentId === student.id && mark.subject === subject.name
+        );
+        resetData[student.id][subject.name] = existingMark?.marks || 0;
+      });
+    });
+    setMarksData(resetData);
+  };
+
+  // Bulk save mutation
+  const saveAllMarksMutation = useMutation({
+    mutationFn: async () => {
+      setBulkSaving(true);
+      const promises = filteredStudents.map(async (student) => {
+        const studentMarks = marksData[student.id] || {};
+        for (const [subjectName, marks] of Object.entries(studentMarks)) {
+          const subject = subjects.find(s => s.name === subjectName);
+          if (!subject) continue;
+
+          const existingMark = existingMarks.find(
+            mark => mark.studentId === student.id && mark.subject === subjectName
+          );
+
+          if (existingMark) {
+            await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
+              marks: marks,
+              maxMarks: subject.maxMarks || 100,
+            });
+          } else {
+            await apiRequest('POST', '/api/marks', {
+              studentId: student.id,
+              examId: selectedExam,
+              subject: subjectName,
+              marks: marks,
+              maxMarks: subject.maxMarks || 100,
+            });
+          }
+        }
+      });
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      setBulkSaving(false);
+      setBulkEditMode(false);
+      setEditingRows(new Set());
+      queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+      toast({
+        title: "Success",
+        description: `All marks saved successfully for ${filteredStudents.length} students`,
+      });
+    },
+    onError: () => {
+      setBulkSaving(false);
+      toast({
+        title: "Error",
+        description: "Failed to save marks for all students",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveAll = () => {
+    saveAllMarksMutation.mutate();
   };
 
   const getBadgeVariant = (grade: string) => {
@@ -360,7 +445,7 @@ export default function MarksEntry() {
                     </span>
                   </div>
                   <Badge variant="outline" className="bg-white">
-                    Max Total: {subjects.reduce((sum, s) => sum + s.maxMarks, 0)} marks
+                    Max Total: {subjects.reduce((sum, s) => sum + (s.maxMarks || 100), 0)} marks
                   </Badge>
                 </div>
               </motion.div>
@@ -383,42 +468,79 @@ export default function MarksEntry() {
                   <Calculator className="h-5 w-5 text-indigo-600" />
                   <span>Marks Entry Sheet</span>
                 </CardTitle>
-                <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
-                  {selectedExamData?.name} - Class {selectedClass}
-                </Badge>
+                <div className="flex items-center space-x-3">
+                  {/* Bulk Edit Controls */}
+                  {!bulkEditMode ? (
+                    <Button
+                      onClick={handleEditAll}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                      size="sm"
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit All
+                    </Button>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        onClick={handleSaveAll}
+                        disabled={bulkSaving}
+                        className="bg-green-600 hover:bg-green-700"
+                        size="sm"
+                      >
+                        {bulkSaving ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-2" />
+                        )}
+                        Save All
+                      </Button>
+                      <Button
+                        onClick={handleCancelAll}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
+                    {selectedExamData?.name} - Class {selectedClass}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="border-collapse border border-gray-300">
                   <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold text-gray-900 sticky left-0 bg-gray-50 z-10 min-w-[200px]">
+                    <TableRow className="bg-gray-50 border-b-2 border-gray-300">
+                      <TableHead className="font-semibold text-gray-900 sticky left-0 bg-gray-50 z-10 min-w-[200px] border border-gray-300">
                         Student
                       </TableHead>
-                      <TableHead className="font-semibold text-gray-900 sticky left-[200px] bg-gray-50 z-10 min-w-[120px]">
+                      <TableHead className="font-semibold text-gray-900 sticky left-[200px] bg-gray-50 z-10 min-w-[120px] border border-gray-300">
                         Roll No.
                       </TableHead>
                       {subjects.map((subject) => (
-                        <TableHead key={subject.id} className="text-center font-semibold text-gray-900 min-w-[100px]">
+                        <TableHead key={subject.id} className="text-center font-semibold text-gray-900 min-w-[120px] border border-gray-300">
                           <div>
                             <div>{subject.name}</div>
                             <div className="text-xs text-gray-500 font-normal">
-                              (Max: {subject.maxMarks})
+                              (Max: {subject.maxMarks || 100})
                             </div>
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px] border border-gray-300">
                         Total
                       </TableHead>
-                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px] border border-gray-300">
                         %
                       </TableHead>
-                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px]">
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[80px] border border-gray-300">
                         Grade
                       </TableHead>
-                      <TableHead className="text-center font-semibold text-gray-900 min-w-[120px]">
+                      <TableHead className="text-center font-semibold text-gray-900 min-w-[120px] border border-gray-300">
                         Actions
                       </TableHead>
                     </TableRow>
@@ -431,11 +553,11 @@ export default function MarksEntry() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className={`group hover:bg-gray-50 transition-colors ${
+                          className={`group hover:bg-gray-50 transition-colors border-b border-gray-300 ${
                             row.isEditing ? 'bg-blue-50 border-blue-200' : ''
                           }`}
                         >
-                          <TableCell className="font-medium sticky left-0 bg-white group-hover:bg-gray-50 z-10">
+                          <TableCell className="font-medium sticky left-0 bg-white group-hover:bg-gray-50 z-10 border border-gray-300">
                             <div className="flex items-center space-x-2">
                               {row.isEditing && (
                                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -446,16 +568,16 @@ export default function MarksEntry() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell className="sticky left-[200px] bg-white group-hover:bg-gray-50 z-10 font-mono">
+                          <TableCell className="sticky left-[200px] bg-white group-hover:bg-gray-50 z-10 font-mono border border-gray-300">
                             {row.student.admissionNumber}
                           </TableCell>
                           {subjects.map((subject) => (
-                            <TableCell key={subject.id} className="text-center p-2">
+                            <TableCell key={subject.id} className="text-center p-2 border border-gray-300">
                               {row.isEditing ? (
                                 <Input
                                   type="number"
                                   min="0"
-                                  max={subject.maxMarks}
+                                  max={subject.maxMarks || 100}
                                   value={row.marks[subject.name] || 0}
                                   onChange={(e) => handleMarksChange(row.student.id, subject.name, e.target.value)}
                                   className="w-20 text-center border-blue-300 focus:border-blue-500"
@@ -469,20 +591,22 @@ export default function MarksEntry() {
                               )}
                             </TableCell>
                           ))}
-                          <TableCell className="text-center font-bold text-indigo-700">
+                          <TableCell className="text-center font-bold text-indigo-700 border border-gray-300">
                             {row.total}
                           </TableCell>
-                          <TableCell className="text-center font-medium">
+                          <TableCell className="text-center font-medium border border-gray-300">
                             {row.percentage.toFixed(1)}%
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center border border-gray-300">
                             <Badge variant={getBadgeVariant(row.grade)} className="font-medium">
                               {row.grade}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center border border-gray-300">
                             <div className="flex items-center justify-center space-x-1">
-                              {row.isEditing ? (
+                              {bulkEditMode ? (
+                                <span className="text-xs text-gray-500">Bulk Edit</span>
+                              ) : row.isEditing ? (
                                 <>
                                   <Button
                                     size="sm"

@@ -72,8 +72,10 @@ export default function CertificateGenerator() {
   };
 
   const calculatePercentage = (total: number) => {
-    if (!selectedExamData || subjects.length === 0) return "0.0";
-    const maxTotal = selectedExamData.maxMarks * subjects.length; // Dynamic subject count
+    if (studentMarks.length === 0) return "0.0";
+    // Calculate max total from actual marks data which includes per-subject max marks
+    const maxTotal = studentMarks.reduce((sum, mark) => sum + mark.maxMarks, 0);
+    if (maxTotal === 0) return "0.0";
     return ((total / maxTotal) * 100).toFixed(1);
   };
 
@@ -469,7 +471,7 @@ export default function CertificateGenerator() {
                           <tbody>
                             {studentMarks.map((mark, index) => {
                               const subject = subjects.find(s => s.id === mark.subject);
-                              const percentage = (mark.marks / selectedExamData!.maxMarks) * 100;
+                              const percentage = (mark.marks / mark.maxMarks) * 100;
                               const markGrade = getGrade(percentage);
                               return (
                                 <tr key={mark.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
@@ -480,7 +482,7 @@ export default function CertificateGenerator() {
                                     {mark.marks}
                                   </td>
                                   <td className="border border-black p-2 text-center text-black text-sm">
-                                    {selectedExamData?.maxMarks || 100}
+                                    {mark.maxMarks}
                                   </td>
                                   <td className="border border-black p-2 text-center font-semibold text-black text-sm">
                                     {markGrade}
