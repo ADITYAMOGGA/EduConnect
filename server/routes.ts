@@ -444,6 +444,115 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Bulk marks import route
+  app.post('/api/marks/bulk-import', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { marks } = req.body;
+      
+      if (!marks || !Array.isArray(marks)) {
+        return res.status(400).json({ message: "Invalid marks data" });
+      }
+
+      const results = [];
+      for (const markData of marks) {
+        try {
+          // Find student by name and admission number
+          const students = await storage.getStudents(userId);
+          const student = students.find(s => 
+            s.name.toLowerCase() === markData.studentName.toLowerCase() ||
+            s.admissionNo === markData.admissionNo
+          );
+
+          if (!student) {
+            console.warn(`Student not found: ${markData.studentName}`);
+            continue;
+          }
+
+          // Find or create exam
+          const exams = await storage.getExams(userId);
+          let exam = exams.find(e => e.name.toLowerCase() === markData.examName.toLowerCase());
+          
+          if (!exam) {
+            // Create exam if it doesn't exist
+            exam = await storage.createExam({
+              name: markData.examName,
+              class: student.class,
+              maxMarks: markData.maxMarks || 100,
+              userId
+            });
+          }
+
+          // Create mark entry
+          const mark = await storage.createMark({
+            studentId: student.id,
+            examId: exam.id,
+            subject: markData.subject,
+            marks: markData.marks,
+            maxMarks: markData.maxMarks || 100
+          });
+
+          results.push(mark);
+        } catch (error) {
+          console.error('Error processing mark:', error);
+        }
+      }
+
+      res.json({ imported: results.length, marks: results });
+    } catch (error) {
+      console.error("Error importing marks:", error);
+      res.status(500).json({ message: "Failed to import marks" });
+    }
+  });
+
+  // Bulk certificate generation route
+  app.post('/api/certificates/bulk/:examId/:studentClass', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { examId, studentClass } = req.params;
+      
+      // Get students in the class
+      const students = await storage.getStudentsByClass(userId, studentClass);
+      
+      // Get exam details
+      const exams = await storage.getExams(userId);
+      const exam = exams.find(e => e.id === examId);
+      
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+
+      const certificates = [];
+      
+      for (const student of students) {
+        // Get marks for this student and exam
+        const marks = await storage.getMarksByStudentAndExam(student.id, examId);
+        
+        if (marks.length > 0) {
+          const totalMarks = marks.reduce((sum, mark) => sum + mark.marks, 0);
+          const totalMaxMarks = marks.reduce((sum, mark) => sum + mark.maxMarks, 0);
+          const percentage = totalMaxMarks > 0 ? Math.round((totalMarks / totalMaxMarks) * 100) : 0;
+
+          certificates.push({
+            studentName: student.name,
+            admissionNo: student.admissionNo,
+            class: student.class,
+            examName: exam.name,
+            marks: marks,
+            totalMarks,
+            totalMaxMarks,
+            percentage
+          });
+        }
+      }
+
+      res.json({ certificates });
+    } catch (error) {
+      console.error("Error generating bulk certificates:", error);
+      res.status(500).json({ message: "Failed to generate certificates" });
+    }
+  });
+
   // Marks routes
   app.get('/api/marks', isAuthenticated, async (req: any, res) => {
     try {

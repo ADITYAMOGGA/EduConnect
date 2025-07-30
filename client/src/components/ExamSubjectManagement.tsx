@@ -13,6 +13,7 @@ import { Plus, BookOpen, Edit2, Trash2, Loader2, GraduationCap } from "lucide-re
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface Exam {
   id: string;
@@ -50,6 +51,14 @@ export default function ExamSubjectManagement() {
     name: "",
     class: "",
     maxMarks: 100,
+  });
+  
+  // Confirmation dialog states
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    description: "",
+    onConfirm: () => {}
   });
 
   // Fetch exams
@@ -426,9 +435,15 @@ export default function ExamSubjectManagement() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (window.confirm(`Are you sure you want to delete "${currentExam.name}"? This will also delete all associated subjects.`)) {
-                          deleteExamMutation.mutate(currentExam.id);
-                        }
+                        setConfirmDialog({
+                          open: true,
+                          title: "Delete Exam",
+                          description: `Are you sure you want to delete "${currentExam.name}"? This will also delete all associated subjects.`,
+                          onConfirm: () => {
+                            deleteExamMutation.mutate(currentExam.id);
+                            setConfirmDialog({ ...confirmDialog, open: false });
+                          }
+                        });
                       }}
                       disabled={deleteExamMutation.isPending}
                       className="border-red-200 text-red-600 hover:bg-red-50"
@@ -542,7 +557,17 @@ export default function ExamSubjectManagement() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => deleteSubjectMutation.mutate(subject.id)}
+                                onClick={() => {
+                                  setConfirmDialog({
+                                    open: true,
+                                    title: "Delete Subject",
+                                    description: `Are you sure you want to delete "${subject.name}"?`,
+                                    onConfirm: () => {
+                                      deleteSubjectMutation.mutate(subject.id);
+                                      setConfirmDialog({ ...confirmDialog, open: false });
+                                    }
+                                  });
+                                }}
                                 disabled={deleteSubjectMutation.isPending}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
@@ -773,6 +798,18 @@ Hindi`}
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        variant="destructive"
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

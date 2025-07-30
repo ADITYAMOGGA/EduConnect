@@ -58,7 +58,7 @@ export class AIService {
       };
 
       const context = `
-You are an AI assistant for ${schoolData.schoolName}, a school management system called MARKSEET PRO. 
+You are an AI assistant for ${schoolData.schoolName}, a school management system called MARKSHEET PRO. 
 You help teachers and administrators with questions about students, marks, exams, and school data.
 
 Current School Data Summary:
