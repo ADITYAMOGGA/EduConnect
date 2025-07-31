@@ -1,10 +1,11 @@
--- MULTI-ORGANIZATION SCHOOL MANAGEMENT SYSTEM - SUPABASE SCHEMA
--- Created for Indian education system with role-based access
+-- MULTI-ORGANIZATION SCHOOL MANAGEMENT SYSTEM - COMPLETE SUPABASE SCHEMA
+-- Created for Indian education system with comprehensive role-based access
+-- Updated: January 31, 2025
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Enable Row Level Security
+-- Enable Row Level Security and set timezone
 ALTER DATABASE postgres SET timezone TO 'Asia/Kolkata';
 
 -- 1. ORGANIZATIONS TABLE (Schools)
@@ -170,32 +171,64 @@ CREATE INDEX idx_marks_student ON marks(student_id);
 CREATE INDEX idx_marks_exam ON marks(exam_id);
 CREATE INDEX idx_exams_org_class ON exams(org_id, class_level);
 
--- Insert sample data for testing
+-- Insert comprehensive sample data for testing
 
 -- Sample Platform Admin
 INSERT INTO admins (name, email, password_hash, role) VALUES 
-('Platform Admin', 'admin@marksheetpro.com', '$2b$10$dummy.hash.here', 'super_admin');
+('Platform Admin', 'admin@marksheetpro.com', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', 'super_admin');
 
--- Sample Organization
-INSERT INTO organizations (name, address, board_type, principal_name) VALUES 
-('Delhi Public School', 'Sector 45, Gurgaon, Haryana', 'CBSE', 'Dr. Rajesh Kumar');
+-- Sample Organizations
+INSERT INTO organizations (name, address, board_type, principal_name, phone, email) VALUES 
+('Delhi Public School', 'Sector 45, Gurgaon, Haryana', 'CBSE', 'Dr. Rajesh Kumar', '+91-124-4567890', 'info@dps.edu.in'),
+('St. Mary''s Convent', 'Civil Lines, Delhi', 'ICSE', 'Sister Margaret', '+91-11-2345678', 'admin@stmarys.edu.in'),
+('Government Senior Secondary School', 'Sector 12, Chandigarh', 'CBSE', 'Mr. Suresh Sharma', '+91-172-1234567', 'principal@gsss.edu.in');
 
--- Sample Org Admin (get org_id from above)
-INSERT INTO org_admins (org_id, name, email, password_hash, designation) 
-SELECT id, 'Dr. Rajesh Kumar', 'principal@dps.edu.in', '$2b$10$dummy.hash.here', 'Principal'
-FROM organizations WHERE name = 'Delhi Public School';
+-- Sample Org Admins
+INSERT INTO org_admins (org_id, name, email, password_hash, designation, phone) 
+SELECT id, 'Dr. Rajesh Kumar', 'principal@dps.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', 'Principal', '+91-9876543210'
+FROM organizations WHERE name = 'Delhi Public School'
+UNION ALL
+SELECT id, 'Sister Margaret', 'principal@stmarys.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', 'Principal', '+91-9876543211'
+FROM organizations WHERE name = 'St. Mary''s Convent';
 
--- Sample Subjects
+-- Sample Subjects for multiple classes
+WITH org_dps AS (SELECT id FROM organizations WHERE name = 'Delhi Public School' LIMIT 1)
 INSERT INTO subjects (org_id, name, code, class_level, max_marks) 
-SELECT id, 'Mathematics', 'MATH10', '10', 100 FROM organizations WHERE name = 'Delhi Public School'
+SELECT id, 'Mathematics', 'MATH09', '9', 100 FROM org_dps
+UNION ALL SELECT id, 'Science', 'SCI09', '9', 100 FROM org_dps
+UNION ALL SELECT id, 'English', 'ENG09', '9', 100 FROM org_dps
+UNION ALL SELECT id, 'Social Science', 'SS09', '9', 100 FROM org_dps
+UNION ALL SELECT id, 'Hindi', 'HIN09', '9', 100 FROM org_dps
+UNION ALL SELECT id, 'Mathematics', 'MATH10', '10', 100 FROM org_dps
+UNION ALL SELECT id, 'Science', 'SCI10', '10', 100 FROM org_dps
+UNION ALL SELECT id, 'English', 'ENG10', '10', 100 FROM org_dps
+UNION ALL SELECT id, 'Social Science', 'SS10', '10', 100 FROM org_dps
+UNION ALL SELECT id, 'Hindi', 'HIN10', '10', 100 FROM org_dps
+UNION ALL SELECT id, 'Computer Science', 'CS10', '10', 100 FROM org_dps;
+
+-- Sample Teachers
+WITH org_dps AS (SELECT id FROM organizations WHERE name = 'Delhi Public School' LIMIT 1)
+INSERT INTO teachers (org_id, name, email, password_hash, phone, qualification, experience_years, employee_id)
+SELECT id, 'Mrs. Priya Sharma', 'priya.sharma@dps.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', '+91-9876543212', 'M.Sc Mathematics, B.Ed', 8, 'EMP001' FROM org_dps
 UNION ALL
-SELECT id, 'Science', 'SCI10', '10', 100 FROM organizations WHERE name = 'Delhi Public School'
+SELECT id, 'Mr. Amit Singh', 'amit.singh@dps.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', '+91-9876543213', 'M.Sc Physics, B.Ed', 12, 'EMP002' FROM org_dps
 UNION ALL
-SELECT id, 'English', 'ENG10', '10', 100 FROM organizations WHERE name = 'Delhi Public School'
+SELECT id, 'Ms. Neha Gupta', 'neha.gupta@dps.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', '+91-9876543214', 'M.A English, B.Ed', 6, 'EMP003' FROM org_dps
 UNION ALL
-SELECT id, 'Social Science', 'SS10', '10', 100 FROM organizations WHERE name = 'Delhi Public School'
+SELECT id, 'Mr. Rajesh Verma', 'rajesh.verma@dps.edu.in', '$2b$10$EyH7zA6k1cUVAIZxUZT9ZO.g7rCKfvhKQNVLz6J2vNRgT0/1bY4qG', '+91-9876543215', 'M.A History, B.Ed', 10, 'EMP004' FROM org_dps;
+
+-- Sample Students
+WITH org_dps AS (SELECT id FROM organizations WHERE name = 'Delhi Public School' LIMIT 1)
+INSERT INTO students (org_id, name, admission_no, class_level, section, roll_no, date_of_birth, gender, father_name, mother_name, phone, address)
+SELECT id, 'Arjun Kumar', 'DPS2024001', '10', 'A', '01', '2009-05-15', 'Male', 'Mr. Sunil Kumar', 'Mrs. Meera Kumar', '+91-9876543216', 'H-123, Sector 21, Gurgaon' FROM org_dps
 UNION ALL
-SELECT id, 'Hindi', 'HIN10', '10', 100 FROM organizations WHERE name = 'Delhi Public School';
+SELECT id, 'Priya Patel', 'DPS2024002', '10', 'A', '02', '2009-08-22', 'Female', 'Mr. Kiran Patel', 'Mrs. Sunita Patel', '+91-9876543217', 'B-456, Sector 18, Gurgaon' FROM org_dps
+UNION ALL
+SELECT id, 'Rohit Sharma', 'DPS2024003', '10', 'A', '03', '2009-03-10', 'Male', 'Mr. Raj Sharma', 'Mrs. Kavita Sharma', '+91-9876543218', 'C-789, Sector 14, Gurgaon' FROM org_dps
+UNION ALL
+SELECT id, 'Ananya Singh', 'DPS2024004', '9', 'A', '01', '2010-07-18', 'Female', 'Mr. Vikram Singh', 'Mrs. Pooja Singh', '+91-9876543219', 'D-321, Sector 22, Gurgaon' FROM org_dps
+UNION ALL
+SELECT id, 'Karan Agarwal', 'DPS2024005', '9', 'A', '02', '2010-11-30', 'Male', 'Mr. Suresh Agarwal', 'Mrs. Deepa Agarwal', '+91-9876543220', 'E-654, Sector 17, Gurgaon' FROM org_dps;
 
 -- Enable Row Level Security on all tables
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;

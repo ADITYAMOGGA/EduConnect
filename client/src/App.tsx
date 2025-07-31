@@ -11,6 +11,7 @@ import OrgLogin from "@/pages/org-login";
 import TeacherLogin from "@/pages/teacher-login";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
+import OrgDashboard from "@/pages/org-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard-new";
 import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
@@ -29,7 +30,7 @@ function App() {
             
             {/* Protected dashboard routes */}
             <ProtectedRoute path="/admin" component={AdminDashboard} />
-            <ProtectedRoute path="/org-dashboard" component={Dashboard} />
+            <ProtectedRoute path="/org-dashboard" component={OrgDashboard} />
             <ProtectedRoute path="/teacher-dashboard" component={Dashboard} />
             <ProtectedRoute path="/support" component={Support} />
             
