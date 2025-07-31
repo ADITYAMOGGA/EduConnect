@@ -1,16 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { storage } from './storage';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY environment variable is required");
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Make AI service optional - only initialize if GEMINI_API_KEY is provided
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 export class AIService {
-  private model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  private model = genAI?.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   async chatWithStudentData(message: string, userId: string): Promise<string> {
+    if (!genAI || !this.model) {
+      return "AI features are currently unavailable. Please contact your system administrator to enable AI capabilities.";
+    }
+    
     try {
       // Get user's school data
       const user = await storage.getUser(userId);
@@ -109,6 +110,10 @@ User Question: ${message}
   }
 
   async generateStudentInsights(studentId: string, userId: string): Promise<string> {
+    if (!genAI || !this.model) {
+      return "AI features are currently unavailable. Please contact your system administrator to enable AI capabilities.";
+    }
+    
     try {
       const user = await storage.getUser(userId);
       if (!user) {
