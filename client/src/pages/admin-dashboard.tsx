@@ -23,16 +23,38 @@ import {
   Download,
   Upload,
   Code,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [newUser, setNewUser] = useState({
+    username: "",
+    password: "",
+    email: "",
+    firstName: "",
+    lastName: "",
+    schoolName: "",
+    role: "admin",
+    status: "active"
+  });
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   if (!user || user.role !== 'admin') {
     return (
@@ -65,6 +87,70 @@ export default function AdminDashboard() {
   const { data: systemHealth, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/admin/health'],
     enabled: user?.role === 'admin'
+  });
+
+  // Mutations for user management
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      const response = await apiRequest('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      setShowAddUser(false);
+      setNewUser({
+        username: "",
+        password: "",
+        email: "",
+        firstName: "",
+        lastName: "",
+        schoolName: "",
+        role: "admin",
+        status: "active"
+      });
+      toast({
+        title: "Success",
+        description: "Admin user created successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create user",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const response = await apiRequest(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      setEditingUser(null);
+      toast({
+        title: "Success",
+        description: "User updated successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user",
+        variant: "destructive"
+      });
+    }
   });
 
   return (
@@ -298,18 +384,74 @@ export default function AdminDashboard() {
                     <Users className="h-5 w-5 text-red-600" />
                     <span>User Management</span>
                   </span>
-                  <Button size="sm" className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600">
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+                    onClick={() => setShowAddUser(true)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add User
+                    Add Admin
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  User management interface will be implemented here.
-                  <br />
-                  Features: View all users, edit roles, manage permissions, suspend accounts.
-                </div>
+                {usersLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-16 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {allUsers?.filter(u => u.role !== 'admin').map((user) => (
+                      <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-medium text-lg">
+                              {user.firstName?.[0] || user.username[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {user.firstName} {user.lastName}
+                            </h3>
+                            <p className="text-sm text-gray-500">@{user.username}</p>
+                            <p className="text-sm text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-gray-900">{user.schoolName}</p>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
+                                {user.role}
+                              </Badge>
+                              <Badge variant={user.status === 'active' ? 'outline' : 'destructive'}>
+                                {user.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => setEditingUser(user)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {(!allUsers || allUsers.filter(u => u.role !== 'admin').length === 0) && (
+                      <div className="text-center py-8 text-slate-500">
+                        No regular users found. Only admin accounts exist.
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -323,11 +465,55 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  School management interface will be implemented here.
-                  <br />
-                  Features: View all schools, manage settings, monitor usage statistics.
-                </div>
+                {usersLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="h-12 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).map((schoolName, index) => {
+                      const schoolUsers = allUsers?.filter(u => u.schoolName === schoolName) || [];
+                      return (
+                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 transition-colors">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                              <School className="text-white h-6 w-6" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900">{schoolName}</h3>
+                              <p className="text-sm text-gray-500">
+                                {schoolUsers.length} user{schoolUsers.length !== 1 ? 's' : ''} registered
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">
+                                Active: {schoolUsers.filter(u => u.status === 'active').length}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Teachers: {schoolUsers.filter(u => u.role === 'teacher').length}
+                              </p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {(!allUsers || Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).length === 0) && (
+                      <div className="text-center py-8 text-slate-500">
+                        No schools found with registered users.
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -387,6 +573,183 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add Admin User Dialog */}
+      <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-red-600" />
+              <span>Create New Admin</span>
+            </DialogTitle>
+            <DialogDescription>
+              Add a new administrator account with full system access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={newUser.firstName}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                  placeholder="John"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={newUser.lastName}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={newUser.username}
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                placeholder="johndoe"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                placeholder="john@example.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                placeholder="Enter secure password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="schoolName">Organization</Label>
+              <Input
+                id="schoolName"
+                value={newUser.schoolName}
+                onChange={(e) => setNewUser({ ...newUser, schoolName: e.target.value })}
+                placeholder="Organization name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddUser(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => createUserMutation.mutate(newUser)}
+              disabled={createUserMutation.isPending}
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+            >
+              {createUserMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Shield className="h-4 w-4 mr-2" />
+              )}
+              Create Admin
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user information and permissions.
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="editRole">Role</Label>
+                <Select 
+                  value={editingUser.role} 
+                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="student">Student</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="editStatus">Status</Label>
+                <Select 
+                  value={editingUser.status} 
+                  onValueChange={(value) => setEditingUser({ ...editingUser, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (editingUser) {
+                  updateUserMutation.mutate({
+                    id: editingUser.id,
+                    updates: {
+                      role: editingUser.role,
+                      status: editingUser.status
+                    }
+                  });
+                }
+              }}
+              disabled={updateUserMutation.isPending}
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+            >
+              {updateUserMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Update User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -230,6 +230,8 @@ export class SupabaseStorage {
       schoolLogoUrl: data.school_logo_url,
       username: data.username,
       password: data.password,
+      role: data.role,
+      status: data.status,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };

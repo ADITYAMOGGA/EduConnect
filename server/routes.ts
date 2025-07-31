@@ -85,6 +85,19 @@ export function registerRoutes(app: Express): Server {
       const updatedUser = await storage.updateUser(id, updates);
       res.json(updatedUser);
     } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Admin routes - Update user
+  app.patch('/api/admin/users/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const updatedUser = await storage.updateUser(id, updates);
+      res.json(updatedUser);
+    } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
     }
@@ -204,7 +217,7 @@ export function registerRoutes(app: Express): Server {
         admin: { username: 'Navaneeth Reddy', role: 'admin' },
         student: { username: 'student_demo', role: 'student' }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error setting up admin accounts:", error);
       res.status(500).json({ message: "Failed to setup accounts", error: error.message });
     }
