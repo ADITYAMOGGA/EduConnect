@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import AddStudentModal from "@/components/AddStudentModal";
+import AddTeacherModal from "@/components/AddTeacherModal";
+import AddSubjectModal from "@/components/AddSubjectModal";
 
 interface Organization {
   id: string;
@@ -71,6 +74,9 @@ export default function OrgDashboard() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [showAddTeacher, setShowAddTeacher] = useState(false);
+  const [showAddSubject, setShowAddSubject] = useState(false);
 
   // Get organization data from localStorage
   const orgData = JSON.parse(localStorage.getItem("organizationData") || "{}");
@@ -78,26 +84,30 @@ export default function OrgDashboard() {
 
   // Fetch dashboard statistics
   const { data: stats } = useQuery({
-    queryKey: ["/api/org/stats"],
-    queryFn: () => apiRequest("/api/org/stats"),
+    queryKey: ["/api/org/stats", orgData.id],
+    queryFn: () => fetch(`/api/org/stats?orgId=${orgData.id}`).then(res => res.json()),
+    enabled: !!orgData.id,
   });
 
   // Fetch students
   const { data: students = [] } = useQuery({
-    queryKey: ["/api/org/students"],
-    queryFn: () => apiRequest("/api/org/students"),
+    queryKey: ["/api/org/students", orgData.id],
+    queryFn: () => fetch(`/api/org/students?orgId=${orgData.id}`).then(res => res.json()),
+    enabled: !!orgData.id,
   });
 
   // Fetch teachers
   const { data: teachers = [] } = useQuery({
-    queryKey: ["/api/org/teachers"],
-    queryFn: () => apiRequest("/api/org/teachers"),
+    queryKey: ["/api/org/teachers", orgData.id],
+    queryFn: () => fetch(`/api/org/teachers?orgId=${orgData.id}`).then(res => res.json()),
+    enabled: !!orgData.id,
   });
 
   // Fetch subjects
   const { data: subjects = [] } = useQuery({
-    queryKey: ["/api/org/subjects"],
-    queryFn: () => apiRequest("/api/org/subjects"),
+    queryKey: ["/api/org/subjects", orgData.id],
+    queryFn: () => fetch(`/api/org/subjects?orgId=${orgData.id}`).then(res => res.json()),
+    enabled: !!orgData.id,
   });
 
   const handleLogout = () => {
@@ -199,7 +209,7 @@ export default function OrgDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="text-3xl font-bold">{(stats as any)?.studentsCount || 0}</div>
+                      <div className="text-3xl font-bold">{stats?.totalStudents || 0}</div>
                       <Users className="w-8 h-8 opacity-80" />
                     </div>
                   </CardContent>
@@ -211,7 +221,7 @@ export default function OrgDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="text-3xl font-bold">{(stats as any)?.teachersCount || 0}</div>
+                      <div className="text-3xl font-bold">{stats?.totalTeachers || 0}</div>
                       <GraduationCap className="w-8 h-8 opacity-80" />
                     </div>
                   </CardContent>
@@ -223,7 +233,7 @@ export default function OrgDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="text-3xl font-bold">{(stats as any)?.subjectsCount || 0}</div>
+                      <div className="text-3xl font-bold">{stats?.totalSubjects || 0}</div>
                       <BookOpen className="w-8 h-8 opacity-80" />
                     </div>
                   </CardContent>
@@ -235,7 +245,7 @@ export default function OrgDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <div className="text-3xl font-bold">{(stats as any)?.examsCount || 0}</div>
+                      <div className="text-3xl font-bold">{stats?.totalExams || 0}</div>
                       <FileText className="w-8 h-8 opacity-80" />
                     </div>
                   </CardContent>
@@ -291,7 +301,7 @@ export default function OrgDashboard() {
                   <Upload className="w-4 h-4 mr-2" />
                   Import CSV
                 </Button>
-                <Button>
+                <Button onClick={() => setShowAddStudent(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Student
                 </Button>
@@ -356,7 +366,7 @@ export default function OrgDashboard() {
                   />
                 </div>
               </div>
-              <Button>
+              <Button onClick={() => setShowAddTeacher(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Teacher
               </Button>
@@ -420,7 +430,7 @@ export default function OrgDashboard() {
                   />
                 </div>
               </div>
-              <Button>
+              <Button onClick={() => setShowAddSubject(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Subject
               </Button>
@@ -522,6 +532,23 @@ export default function OrgDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modals */}
+      <AddStudentModal 
+        open={showAddStudent} 
+        onOpenChange={setShowAddStudent} 
+        orgId={orgData.id} 
+      />
+      <AddTeacherModal 
+        open={showAddTeacher} 
+        onOpenChange={setShowAddTeacher} 
+        orgId={orgData.id} 
+      />
+      <AddSubjectModal 
+        open={showAddSubject} 
+        onOpenChange={setShowAddSubject} 
+        orgId={orgData.id} 
+      />
     </div>
   );
 }

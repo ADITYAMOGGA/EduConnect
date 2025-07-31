@@ -561,4 +561,503 @@ router.post("/api/reset/admin", async (req, res) => {
   }
 });
 
+// ORGANIZATION ADMIN API ROUTES
+// ===============================
+
+// Students Management
+router.get("/api/org/students", async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching students:", error);
+      return res.status(500).json({ message: "Failed to fetch students" });
+    }
+
+    res.json(students);
+  } catch (error) {
+    console.error("Error in students route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/students", async (req, res) => {
+  try {
+    const { orgId, ...studentData } = req.body;
+    
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: student, error } = await supabase
+      .from("students")
+      .insert({
+        org_id: orgId,
+        ...studentData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating student:", error);
+      return res.status(500).json({ message: "Failed to create student" });
+    }
+
+    res.status(201).json(student);
+  } catch (error) {
+    console.error("Error creating student:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/students/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const { data: student, error } = await supabase
+      .from("students")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating student:", error);
+      return res.status(500).json({ message: "Failed to update student" });
+    }
+
+    res.json(student);
+  } catch (error) {
+    console.error("Error updating student:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/org/students/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from("students")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting student:", error);
+      return res.status(500).json({ message: "Failed to delete student" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting student:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Teachers Management
+router.get("/api/org/teachers", async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: teachers, error } = await supabase
+      .from("teachers")
+      .select(`
+        *,
+        teacher_subjects (
+          subjects (*)
+        )
+      `)
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching teachers:", error);
+      return res.status(500).json({ message: "Failed to fetch teachers" });
+    }
+
+    res.json(teachers);
+  } catch (error) {
+    console.error("Error in teachers route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/teachers", async (req, res) => {
+  try {
+    const { orgId, subjects = [], ...teacherData } = req.body;
+    
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    // Hash password if provided
+    if (teacherData.password) {
+      teacherData.password_hash = await hashPassword(teacherData.password);
+      delete teacherData.password;
+    }
+
+    const { data: teacher, error } = await supabase
+      .from("teachers")
+      .insert({
+        org_id: orgId,
+        ...teacherData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating teacher:", error);
+      return res.status(500).json({ message: "Failed to create teacher" });
+    }
+
+    // Assign subjects to teacher
+    if (subjects.length > 0) {
+      const subjectAssignments = subjects.map((subjectId: string) => ({
+        teacher_id: teacher.id,
+        subject_id: subjectId
+      }));
+
+      await supabase
+        .from("teacher_subjects")
+        .insert(subjectAssignments);
+    }
+
+    res.status(201).json(teacher);
+  } catch (error) {
+    console.error("Error creating teacher:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/teachers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subjects, ...updates } = req.body;
+
+    // Hash password if being updated
+    if (updates.password) {
+      updates.password_hash = await hashPassword(updates.password);
+      delete updates.password;
+    }
+
+    const { data: teacher, error } = await supabase
+      .from("teachers")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating teacher:", error);
+      return res.status(500).json({ message: "Failed to update teacher" });
+    }
+
+    // Update subject assignments if provided
+    if (subjects) {
+      // Delete existing assignments
+      await supabase
+        .from("teacher_subjects")
+        .delete()
+        .eq("teacher_id", id);
+
+      // Add new assignments
+      if (subjects.length > 0) {
+        const subjectAssignments = subjects.map((subjectId: string) => ({
+          teacher_id: id,
+          subject_id: subjectId
+        }));
+
+        await supabase
+          .from("teacher_subjects")
+          .insert(subjectAssignments);
+      }
+    }
+
+    res.json(teacher);
+  } catch (error) {
+    console.error("Error updating teacher:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/org/teachers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delete teacher subject assignments first
+    await supabase
+      .from("teacher_subjects")
+      .delete()
+      .eq("teacher_id", id);
+
+    // Delete teacher
+    const { error } = await supabase
+      .from("teachers")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting teacher:", error);
+      return res.status(500).json({ message: "Failed to delete teacher" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting teacher:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Subjects Management
+router.get("/api/org/subjects", async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: subjects, error } = await supabase
+      .from("subjects")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("class_level", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching subjects:", error);
+      return res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+
+    res.json(subjects);
+  } catch (error) {
+    console.error("Error in subjects route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/subjects", async (req, res) => {
+  try {
+    const { orgId, ...subjectData } = req.body;
+    
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: subject, error } = await supabase
+      .from("subjects")
+      .insert({
+        org_id: orgId,
+        ...subjectData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating subject:", error);
+      return res.status(500).json({ message: "Failed to create subject" });
+    }
+
+    res.status(201).json(subject);
+  } catch (error) {
+    console.error("Error creating subject:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/subjects/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const { data: subject, error } = await supabase
+      .from("subjects")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating subject:", error);
+      return res.status(500).json({ message: "Failed to update subject" });
+    }
+
+    res.json(subject);
+  } catch (error) {
+    console.error("Error updating subject:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/org/subjects/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from("subjects")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting subject:", error);
+      return res.status(500).json({ message: "Failed to delete subject" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting subject:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Exams Management
+router.get("/api/org/exams", async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: exams, error } = await supabase
+      .from("exams")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("exam_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching exams:", error);
+      return res.status(500).json({ message: "Failed to fetch exams" });
+    }
+
+    res.json(exams);
+  } catch (error) {
+    console.error("Error in exams route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/exams", async (req, res) => {
+  try {
+    const { orgId, ...examData } = req.body;
+    
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    const { data: exam, error } = await supabase
+      .from("exams")
+      .insert({
+        org_id: orgId,
+        ...examData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating exam:", error);
+      return res.status(500).json({ message: "Failed to create exam" });
+    }
+
+    res.status(201).json(exam);
+  } catch (error) {
+    console.error("Error creating exam:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Organization Dashboard Stats
+router.get("/api/org/stats", async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
+    }
+
+    // Get counts for dashboard
+    const [studentsResult, teachersResult, subjectsResult, examsResult] = await Promise.all([
+      supabase.from("students").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+      supabase.from("teachers").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+      supabase.from("subjects").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+      supabase.from("exams").select("id", { count: "exact", head: true }).eq("org_id", orgId)
+    ]);
+
+    res.json({
+      totalStudents: studentsResult.count || 0,
+      totalTeachers: teachersResult.count || 0,
+      totalSubjects: subjectsResult.count || 0,
+      totalExams: examsResult.count || 0
+    });
+  } catch (error) {
+    console.error("Error fetching org stats:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Remove demo credentials from reset endpoint
+router.post("/api/reset/admin", async (req, res) => {
+  try {
+    // Only allow in development environment
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: "Reset not allowed in production" });
+    }
+
+    // Delete all existing admins
+    await supabase.from("admins").delete().neq("id", "");
+
+    // Create new admin user
+    const defaultAdmin = {
+      username: "admin",
+      password: "admin123",
+      name: "System Administrator",
+      email: "admin@marksheetpro.com",
+      role: "admin",
+      status: "active"
+    };
+
+    const passwordHash = await hashPassword(defaultAdmin.password);
+
+    const { data: newAdmin, error } = await supabase
+      .from("admins")
+      .insert({
+        username: defaultAdmin.username,
+        password_hash: passwordHash,
+        name: defaultAdmin.name,
+        email: defaultAdmin.email,
+        role: defaultAdmin.role,
+        status: defaultAdmin.status
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating default admin:", error);
+      return res.status(500).json({ message: "Failed to create admin user" });
+    }
+
+    const { password_hash, ...adminData } = newAdmin;
+    res.json({ 
+      admin: adminData, 
+      message: "Admin user reset successfully",
+      credentials: {
+        username: defaultAdmin.username,
+        password: defaultAdmin.password
+      }
+    });
+  } catch (error) {
+    console.error("Reset admin error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
