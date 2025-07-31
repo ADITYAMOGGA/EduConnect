@@ -1,0 +1,99 @@
+# 🎯 SCHOOL MANAGEMENT SYSTEM - ORGANIZATION BASED (INDIA)
+
+## 🏢 SYSTEM STRUCTURE
+
+### Platform Roles:
+
+#### 1. ADMIN (Super Admin / Platform Owner)
+- Create, manage, and delete any school (organization)
+- Manage all Org.Admin accounts
+- Global access to all schools' data
+- Push platform-wide updates and analytics
+- Access all logs, suspend users, etc.
+
+#### 2. ORG.ADMIN (Organization Admin - School Head)
+- Register/manage teachers
+- Create/manage student records
+- Create/manage subjects
+- Assign teachers to subjects
+- Generate student progress cards
+- Access all academic data within their school
+
+#### 3. TEACHER
+- View only students of their assigned subjects
+- Enter/edit marks for their subjects
+- View performance reports
+- No access to other students or teachers
+
+---
+
+## 🌐 LOGIN ROUTES
+
+| Role       | Login URL       | Dashboard View                       |
+|------------|------------------|--------------------------------------|
+| Admin      | /admin/login     | Organization management              |
+| Org.Admin  | /org/login       | School-level student/teacher control |
+| Teacher    | /teacher/login   | Subject-level marks entry            |
+
+---
+
+## 🗃️ DATABASE DESIGN
+
+### Tables & Relations:
+
+- `organizations`:
+  - id, name, address, logo, etc.
+
+- `org_admins`:
+  - id, org_id (FK), name, email, password
+
+- `teachers`:
+  - id, org_id (FK), name, email, password, subject_ids[]
+
+- `students`:
+  - id, org_id (FK), name, class, admission_no, etc.
+
+- `subjects`:
+  - id, org_id (FK), name, assigned_teacher_id (FK)
+
+- `marks`:
+  - id, student_id (FK), subject_id (FK), marks, max_marks, term, exam_type
+
+- `admins`:
+  - id, name, email, password
+
+---
+
+## 🛠️ DEVELOPMENT PHASES
+
+### ✅ PHASE 1: Database & Auth Setup
+- Create DB schema with role-based permissions
+- Setup role-based auth (Admin, Org.Admin, Teacher)
+- Separate login flows
+
+### ✅ PHASE 2: Admin Panel
+- View/create/manage organizations
+- Add Org.Admin accounts
+- Monitor platform activity
+
+### ✅ PHASE 3: Org.Admin Panel
+- Add/edit teachers, students, and subjects
+- Assign subjects to teachers
+- Manage school details
+- Generate performance reports
+
+### ✅ PHASE 4: Teacher Panel
+- View assigned students
+- Enter marks
+- View subject performance
+
+### ✅ PHASE 5: PDF Progress Cards
+- Generate printable/downloadable cards per student
+- Include school name, logo, student details, marks table
+
+---
+
+## ✅ INDIA-SPECIFIC NOTES
+- Use IST timezone
+- CBSE/ICSE/State-compatible progress card format
+- Mobile-first responsive design

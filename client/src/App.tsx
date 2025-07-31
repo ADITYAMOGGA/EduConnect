@@ -5,6 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import RoleSelector from "@/pages/role-selector";
+import AdminLogin from "@/pages/admin-login";
+import OrgLogin from "@/pages/org-login";
+import TeacherLogin from "@/pages/teacher-login";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import AdminDashboard from "@/pages/admin-dashboard-new";
@@ -17,10 +21,21 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <Switch>
-            <ProtectedRoute path="/" component={Dashboard} />
+            {/* Role-based login routes */}
+            <Route path="/" component={RoleSelector} />
+            <Route path="/admin/login" component={AdminLogin} />
+            <Route path="/org/login" component={OrgLogin} />
+            <Route path="/teacher/login" component={TeacherLogin} />
+            
+            {/* Protected dashboard routes */}
             <ProtectedRoute path="/admin" component={AdminDashboard} />
+            <ProtectedRoute path="/org-dashboard" component={Dashboard} />
+            <ProtectedRoute path="/teacher-dashboard" component={Dashboard} />
             <ProtectedRoute path="/support" component={Support} />
+            
+            {/* Legacy auth route - redirect to role selector */}
             <Route path="/auth" component={AuthPage} />
+            
             <Route component={NotFound} />
           </Switch>
           <Toaster />
