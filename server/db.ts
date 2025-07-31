@@ -10,9 +10,20 @@ if (!process.env.SUPABASE_ANON_KEY) {
 }
 
 // Create Supabase client for database operations
+// Use service role key if available for admin operations, otherwise use anon key
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 export const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  supabaseKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: 'public'
+    }
+  }
 );
 
 console.log("Supabase client initialized successfully");
