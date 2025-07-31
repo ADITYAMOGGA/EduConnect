@@ -86,62 +86,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      const { username, password, email, firstName, lastName, schoolName } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await hashPassword(password);
-      const user = await storage.createUser({
-        username,
-        password: hashedPassword,
-        email: email || null,
-        firstName: firstName || null,
-        lastName: lastName || null,
-        schoolName: schoolName || null,
-        profileImageUrl: null,
-        schoolLogoUrl: null,
-      });
-
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json({
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          schoolName: user.schoolName,
-        });
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    const user = req.user!;
-    console.log("Login successful for user:", user.username, "Role:", user.role);
-    res.status(200).json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      schoolName: user.schoolName,
-      profileImageUrl: user.profileImageUrl,
-      role: user.role || 'teacher',
-      status: user.status || 'active',
-    });
-  });
+  // Disable old auth routes - using multi-org auth system instead
+  // app.post("/api/register", ... ) - REMOVED
+  // app.post("/api/login", ... ) - REMOVED
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {

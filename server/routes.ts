@@ -8,46 +8,25 @@ import authMultiRouter from "./auth-multi";
 import multer from "multer";
 import Papa from "papaparse";
 
-// Authentication middleware
+// Authentication middleware - Updated for multi-org system
 function isAuthenticated(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Unauthorized" });
+  // For now, disable the old session-based auth check
+  // Multi-org authentication will be handled by the specific route handlers
+  res.status(401).json({ message: "Please use role-specific login endpoints" });
 }
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export function registerRoutes(app: Express): Server {
-  // Setup authentication
+  // Setup session middleware only (remove old auth setup)
   setupAuth(app);
   
-  // Setup multi-auth routes
+  // Setup multi-auth routes (new authentication system)
   app.use(authMultiRouter);
 
-  // Get current user info - Optimized  
-  app.get('/api/user', isAuthenticated, async (req: any, res) => {
-    try {
-      // Return user info directly from session/request (already available from authentication)
-      const userInfo = {
-        id: req.user.id,
-        username: req.user.username,
-        email: req.user.email,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        schoolName: req.user.schoolName,
-        profileImageUrl: req.user.profileImageUrl,
-        role: req.user.role || 'teacher',
-        status: req.user.status || 'active',
-      };
-      
-      // Cache the response for 5 minutes to reduce database calls
-      res.set('Cache-Control', 'public, max-age=300');
-      res.json(userInfo);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
+  // Get current user info - Disabled for multi-org migration
+  app.get('/api/user', (req: any, res) => {
+    res.status(401).json({ message: "Please use role-specific authentication" });
   });
 
   // Admin-only middleware

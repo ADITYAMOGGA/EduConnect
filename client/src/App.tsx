@@ -37,7 +37,12 @@ function App() {
             <ProtectedRoute path="/support" component={Support} />
             
             {/* Legacy auth route - redirect to role selector */}
-            <Route path="/auth" component={AuthPage} />
+            <Route path="/auth">
+              {() => {
+                window.location.href = "/";
+                return null;
+              }}
+            </Route>
             
             <Route component={NotFound} />
           </Switch>
