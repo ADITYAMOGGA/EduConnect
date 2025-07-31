@@ -30,6 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import AddStudentModal from "@/components/AddStudentModal";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddSubjectModal from "@/components/AddSubjectModal";
+import CSVImportModal from "@/components/CSVImportModal";
+import SettingsModal from "@/components/SettingsModal";
 
 interface Organization {
   id: string;
@@ -77,6 +79,8 @@ export default function OrgDashboard() {
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showAddTeacher, setShowAddTeacher] = useState(false);
   const [showAddSubject, setShowAddSubject] = useState(false);
+  const [showCSVImport, setShowCSVImport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Get organization data from localStorage
   const orgData = JSON.parse(localStorage.getItem("organizationData") || "{}");
@@ -153,7 +157,7 @@ export default function OrgDashboard() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setShowSettings(true)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
@@ -297,7 +301,7 @@ export default function OrgDashboard() {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => setShowCSVImport(true)}>
                   <Upload className="w-4 h-4 mr-2" />
                   Import CSV
                 </Button>
@@ -548,6 +552,15 @@ export default function OrgDashboard() {
         open={showAddSubject} 
         onOpenChange={setShowAddSubject} 
         orgId={orgData.id} 
+      />
+      <CSVImportModal 
+        open={showCSVImport} 
+        onOpenChange={setShowCSVImport} 
+        orgId={orgData.id} 
+      />
+      <SettingsModal 
+        open={showSettings} 
+        onOpenChange={setShowSettings} 
       />
     </div>
   );

@@ -1,8 +1,12 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import { supabase } from "./db";
+import multer from "multer";
 
 const router = Router();
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Helper function to hash passwords
 const hashPassword = async (password: string) => {
@@ -86,6 +90,94 @@ router.get("/api/admin/stats", async (req, res) => {
   } catch (error) {
     console.error("Error fetching admin stats:", error);
     res.status(500).json({ message: "Failed to fetch statistics" });
+  }
+});
+
+// Get all schools/organizations for admin
+router.get("/api/admin/schools", async (req, res) => {
+  try {
+    const { data: schools, error } = await supabase
+      .from("organizations")
+      .select(`
+        *,
+        org_admins (
+          id,
+          name,
+          email,
+          status
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching schools:", error);
+      return res.status(500).json({ message: "Failed to fetch schools" });
+    }
+
+    res.json(schools);
+  } catch (error) {
+    console.error("Error in schools route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Create new school/organization
+router.post("/api/admin/schools", async (req, res) => {
+  try {
+    const { name, address, phone, email, website, board_affiliation } = req.body;
+    
+    if (!name || !email) {
+      return res.status(400).json({ message: "School name and email are required" });
+    }
+
+    const { data: school, error } = await supabase
+      .from("organizations")
+      .insert({
+        name,
+        address,
+        phone,
+        email,
+        website,
+        board_affiliation,
+        status: "active"
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating school:", error);
+      return res.status(500).json({ message: "Failed to create school" });
+    }
+
+    res.status(201).json(school);
+  } catch (error) {
+    console.error("Error creating school:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update school status
+router.patch("/api/admin/schools/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const { data: school, error } = await supabase
+      .from("organizations")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating school:", error);
+      return res.status(500).json({ message: "Failed to update school" });
+    }
+
+    res.json(school);
+  } catch (error) {
+    console.error("Error updating school:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -664,6 +756,83 @@ router.delete("/api/org/students/:id", async (req, res) => {
   }
 });
 
+// Import students from CSV
+router.post("/api/org/students/import", upload.single('file'), async (req, res) => {
+  try {
+    const { orgId } = req.body;
+    const file = req.file;
+
+    if (!file || !orgId) {
+      return res.status(400).json({ message: "File and organization ID are required" });
+    }
+
+    // Parse CSV file
+    const csvData = file.buffer.toString('utf8');
+    const lines = csvData.split('\n').filter(line => line.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    const requiredFields = ['name', 'admission_no', 'class_level'];
+    const missingFields = requiredFields.filter(field => !headers.includes(field));
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        message: `Missing required columns: ${missingFields.join(', ')}` 
+      });
+    }
+
+    let imported = 0;
+    let errors = 0;
+    const errorMessages = [];
+
+    // Process each row
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      
+      if (values.length < headers.length) continue;
+
+      const studentData: any = { org_id: orgId };
+      headers.forEach((header, index) => {
+        if (values[index]) {
+          studentData[header] = values[index];
+        }
+      });
+
+      // Validate required fields
+      if (!studentData.name || !studentData.admission_no || !studentData.class_level) {
+        errors++;
+        errorMessages.push(`Row ${i + 1}: Missing required fields`);
+        continue;
+      }
+
+      try {
+        const { error } = await supabase
+          .from("students")
+          .insert(studentData);
+
+        if (error) {
+          errors++;
+          errorMessages.push(`Row ${i + 1}: ${error.message}`);
+        } else {
+          imported++;
+        }
+      } catch (error) {
+        errors++;
+        errorMessages.push(`Row ${i + 1}: Database error`);
+      }
+    }
+
+    res.json({
+      imported,
+      errors,
+      errorMessages: errorMessages.slice(0, 10) // Limit error messages
+    });
+
+  } catch (error) {
+    console.error("Error importing students:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Teachers Management
 router.get("/api/org/teachers", async (req, res) => {
   try {
@@ -1000,6 +1169,77 @@ router.get("/api/org/stats", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching org stats:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Profile and organization update endpoints
+router.patch("/api/org/profile/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword, ...updates } = req.body;
+
+    // If password update is requested
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required" });
+      }
+
+      // Verify current password
+      const { data: orgAdmin } = await supabase
+        .from("org_admins")
+        .select("password_hash")
+        .eq("id", id)
+        .single();
+
+      if (!orgAdmin || !await verifyPassword(currentPassword, orgAdmin.password_hash)) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      updates.password_hash = await hashPassword(newPassword);
+    }
+
+    const { data: updatedAdmin, error } = await supabase
+      .from("org_admins")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating profile:", error);
+      return res.status(500).json({ message: "Failed to update profile" });
+    }
+
+    const { password_hash, ...adminData } = updatedAdmin;
+    res.json(adminData);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/organization/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const { data: updatedOrg, error } = await supabase
+      .from("organizations")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating organization:", error);
+      return res.status(500).json({ message: "Failed to update organization" });
+    }
+
+    res.json(updatedOrg);
+  } catch (error) {
+    console.error("Error updating organization:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

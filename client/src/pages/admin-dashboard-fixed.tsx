@@ -79,6 +79,17 @@ export default function AdminDashboard() {
     enabled: !!admin
   });
 
+  // Query for schools
+  const { data: allSchools, isLoading: schoolsLoading } = useQuery({
+    queryKey: ['/api/admin/schools'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/schools', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch schools');
+      return response.json();
+    },
+    enabled: !!admin
+  });
+
   const { data: systemHealth, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/admin/health'],
     queryFn: async () => {
@@ -533,17 +544,101 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              <h2 className="text-3xl font-bold text-slate-800 mb-6">School Management</h2>
-              <Card className="bg-white/80 backdrop-blur-sm border-red-200/50">
-                <CardContent className="p-8 text-center">
-                  <School className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-slate-800 mb-2">School Management</h3>
-                  <p className="text-slate-600 mb-4">View and manage all schools in the platform</p>
-                  <Button className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700">
-                    View All Schools
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-slate-800">School Management</h2>
+                <Button
+                  onClick={() => setShowAddUser(true)}
+                  className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add School
+                </Button>
+              </div>
+
+              {schoolsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[...Array(4)].map((_, i) => (
+                    <Card key={i} className="bg-white/80 backdrop-blur-sm border-red-200/50">
+                      <CardContent className="p-6">
+                        <div className="animate-pulse space-y-3">
+                          <div className="h-6 bg-slate-200 rounded"></div>
+                          <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                          <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : allSchools && allSchools.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {allSchools.map((school: any, index: number) => (
+                    <motion.div
+                      key={school.id}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.4, delay: index * 0.1 }}
+                    >
+                      <Card className="bg-white/80 backdrop-blur-sm border-red-200/50 hover:bg-white/90 transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center">
+                                  <School className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="font-semibold text-slate-800">{school.name}</h3>
+                                  <p className="text-sm text-slate-600">{school.email}</p>
+                                </div>
+                              </div>
+                              <Badge 
+                                variant={school.status === 'active' ? 'default' : 'secondary'}
+                                className={school.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                              >
+                                {school.status}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-2 text-sm text-slate-600">
+                              {school.address && <p><span className="font-medium">Address:</span> {school.address}</p>}
+                              {school.phone && <p><span className="font-medium">Phone:</span> {school.phone}</p>}
+                              {school.board_affiliation && <p><span className="font-medium">Board:</span> {school.board_affiliation}</p>}
+                              {school.org_admins && school.org_admins.length > 0 && (
+                                <p><span className="font-medium">Admin:</span> {school.org_admins[0].name}</p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-2 pt-4 border-t border-slate-200">
+                              <Button variant="outline" size="sm" className="flex-1">
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </Button>
+                              <Button variant="outline" size="sm" className="px-3">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-white/80 backdrop-blur-sm border-red-200/50">
+                  <CardContent className="p-8 text-center">
+                    <School className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-slate-800 mb-2">No Schools Yet</h3>
+                    <p className="text-slate-600 mb-4">Schools will appear here once they are registered</p>
+                    <Button 
+                      onClick={() => setShowAddUser(true)}
+                      className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add First School
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </motion.div>
           </TabsContent>
 
