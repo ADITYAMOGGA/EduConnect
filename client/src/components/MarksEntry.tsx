@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
+import { BulkMarksImportModal } from "./BulkMarksImportModal";
 
 type Student = {
   id: string;
@@ -74,6 +75,7 @@ export default function MarksEntry() {
   const [savingRows, setSavingRows] = useState<Set<string>>(new Set());
   const [bulkEditMode, setBulkEditMode] = useState<boolean>(false);
   const [bulkSaving, setBulkSaving] = useState<boolean>(false);
+  const [showBulkImport, setShowBulkImport] = useState<boolean>(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -468,6 +470,16 @@ export default function MarksEntry() {
                   <span>Marks Entry Sheet</span>
                 </CardTitle>
                 <div className="flex items-center space-x-3">
+                  {/* Bulk Import Button */}
+                  <Button
+                    onClick={() => setShowBulkImport(true)}
+                    variant="outline"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Bulk Import
+                  </Button>
+                  
                   {/* Bulk Edit Controls */}
                   {!bulkEditMode ? (
                     <Button
@@ -715,6 +727,25 @@ export default function MarksEntry() {
           </Card>
         </motion.div>
       )}
+
+      {/* Bulk Import Modal */}
+      <AnimatePresence>
+        {showBulkImport && selectedExam && selectedClass && selectedExamData && (
+          <BulkMarksImportModal
+            examId={selectedExam}
+            examName={selectedExamData.name}
+            studentClass={selectedClass}
+            onClose={() => setShowBulkImport(false)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+              toast({
+                title: "Import Complete",
+                description: "Marks have been imported successfully.",
+              });
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

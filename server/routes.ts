@@ -492,6 +492,53 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Single mark import for bulk import modal
+  app.post('/api/marks/bulk-import-single', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { examId, studentName, subject, marks, maxMarks } = req.body;
+      
+      // Find student by name
+      const students = await storage.getStudents(userId);
+      const student = students.find(s => 
+        s.name.toLowerCase().trim() === studentName.toLowerCase().trim()
+      );
+      
+      if (!student) {
+        return res.status(404).json({ message: `Student not found: ${studentName}` });
+      }
+      
+      // Check if mark already exists
+      const existingMarks = await storage.getMarksByExam(examId);
+      const existingMark = existingMarks.find(
+        m => m.studentId === student.id && m.subject === subject
+      );
+      
+      let result;
+      if (existingMark) {
+        // Update existing mark
+        result = await storage.updateMark(existingMark.id, {
+          marks: marks,
+          maxMarks: maxMarks || 100
+        });
+      } else {
+        // Create new mark
+        result = await storage.createMark({
+          studentId: student.id,
+          examId: examId,
+          subject: subject,
+          marks: marks,
+          maxMarks: maxMarks || 100
+        });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error importing single mark:", error);
+      res.status(500).json({ message: "Failed to import mark" });
+    }
+  });
+
   // Marks routes
   app.get('/api/marks', isAuthenticated, async (req: any, res) => {
     try {
