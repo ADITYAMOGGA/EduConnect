@@ -24,14 +24,13 @@ import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import { AIChatButton } from '@/components/AIChat';
-import { BulkMarksImport } from "@/components/BulkMarksImport";
 import { BulkProgressCards } from "@/components/BulkProgressCards";
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("students");
   const [showFullPageSettings, setShowFullPageSettings] = useState(false);
-  const [showBulkMarksImport, setShowBulkMarksImport] = useState(false);
+
   const [showBulkProgressCards, setShowBulkProgressCards] = useState(false);
 
   if (!user) return null;
@@ -182,18 +181,7 @@ export default function Dashboard() {
             </TabsContent>
             
             <TabsContent value="marks" className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-slate-700">Marks Management</h3>
-                  <Button
-                    onClick={() => setShowBulkMarksImport(true)}
-                    className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-                  >
-                    Import Marks from CSV
-                  </Button>
-                </div>
-                <MarksEntry />
-              </div>
+              <MarksEntry />
             </TabsContent>
             
             <TabsContent value="certificates" className="space-y-4">
@@ -222,15 +210,7 @@ export default function Dashboard() {
       {/* AI Chat Button */}
       <AIChatButton />
 
-      {/* Bulk Import/Export Modals */}
-      {showBulkMarksImport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <BulkMarksImport onClose={() => setShowBulkMarksImport(false)} />
-          </div>
-        </div>
-      )}
-
+      {/* Bulk Export Modal */}
       {showBulkProgressCards && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
