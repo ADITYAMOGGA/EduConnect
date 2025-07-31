@@ -13,7 +13,7 @@ import TeacherLogin from "@/pages/teacher-login";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import OrgDashboard from "@/pages/org-dashboard";
-import AdminDashboard from "@/pages/admin-dashboard-new";
+import AdminDashboard from "@/pages/admin-dashboard-fixed";
 import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
 
