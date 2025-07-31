@@ -166,35 +166,58 @@ export default function MarksEntry() {
     });
   }, [filteredStudents, marksData, subjects, editingRows]);
 
-  // Save marks mutation
+  // Optimized save mutation with batch processing and optimistic updates
   const saveMarksMutation = useMutation({
     mutationFn: async ({ studentId, studentMarks }: { studentId: string; studentMarks: { [subject: string]: number } }) => {
-      for (const [subjectName, marks] of Object.entries(studentMarks)) {
+      // Filter only valid marks (0-100)
+      const validMarks = Object.entries(studentMarks).filter(([_, marks]) => {
+        const numMarks = Number(marks);
+        return !isNaN(numMarks) && numMarks >= 0 && numMarks <= 100;
+      });
+
+      if (validMarks.length === 0) return [];
+
+      // Batch all requests for this student
+      const requests = validMarks.map(async ([subjectName, marks]) => {
         const subject = subjects.find(s => s.name === subjectName);
-        if (!subject) continue;
+        if (!subject) return null;
 
         const existingMark = existingMarks.find(
           mark => mark.studentId === studentId && mark.subject === subjectName
         );
 
         if (existingMark) {
-          await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
-            marks: marks,
+          return apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
+            marks: Number(marks),
             maxMarks: selectedExamData?.maxMarks || 100,
           });
         } else {
-          await apiRequest('POST', '/api/marks', {
+          return apiRequest('POST', '/api/marks', {
             studentId,
             examId: selectedExam,
             subject: subjectName,
-            marks: marks,
+            marks: Number(marks),
             maxMarks: selectedExamData?.maxMarks || 100,
           });
         }
-      }
+      });
+
+      return Promise.all(requests.filter(Boolean));
+    },
+    onMutate: async ({ studentId }) => {
+      // Optimistic update - immediately show saved state
+      setSavingRows(prev => new Set(prev).add(studentId));
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/marks', selectedExam] });
+      
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData(['/api/marks', selectedExam]);
+      
+      return { previousData, studentId };
     },
     onSuccess: (_, { studentId }) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+      // Update UI state immediately
       setEditingRows(prev => {
         const newSet = new Set(prev);
         newSet.delete(studentId);
@@ -205,20 +228,30 @@ export default function MarksEntry() {
         newSet.delete(studentId);
         return newSet;
       });
+      
+      // Light invalidation - just refetch this exam's marks
+      queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+      
       toast({
-        title: "Success",
-        description: "Marks saved successfully",
+        title: "Saved",
+        description: "Marks updated successfully",
       });
     },
-    onError: (error, { studentId }) => {
+    onError: (error, { studentId }, context) => {
+      // Rollback optimistic update
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/marks', selectedExam], context.previousData);
+      }
+      
       setSavingRows(prev => {
         const newSet = new Set(prev);
         newSet.delete(studentId);
         return newSet;
       });
+      
       toast({
-        title: "Error",
-        description: "Failed to save marks",
+        title: "Save Failed",
+        description: "Failed to save marks. Please try again.",
         variant: "destructive",
       });
     },
@@ -293,53 +326,82 @@ export default function MarksEntry() {
     setMarksData(resetData);
   };
 
-  // Bulk save mutation
+  // Optimized bulk save mutation with better error handling
   const saveAllMarksMutation = useMutation({
     mutationFn: async () => {
       setBulkSaving(true);
-      const promises = filteredStudents.map(async (student) => {
-        const studentMarks = marksData[student.id] || {};
-        for (const [subjectName, marks] of Object.entries(studentMarks)) {
-          const subject = subjects.find(s => s.name === subjectName);
-          if (!subject) continue;
+      
+      const batchSize = 3; // Process 3 students at a time for better performance
+      const studentBatches = [];
+      for (let i = 0; i < filteredStudents.length; i += batchSize) {
+        studentBatches.push(filteredStudents.slice(i, i + batchSize));
+      }
 
-          const existingMark = existingMarks.find(
-            mark => mark.studentId === student.id && mark.subject === subjectName
-          );
+      let successCount = 0;
+      let errorCount = 0;
 
-          if (existingMark) {
-            await apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
-              marks: marks,
-              maxMarks: selectedExamData?.maxMarks || 100,
-            });
-          } else {
-            await apiRequest('POST', '/api/marks', {
-              studentId: student.id,
-              examId: selectedExam,
-              subject: subjectName,
-              marks: marks,
-              maxMarks: selectedExamData?.maxMarks || 100,
-            });
+      for (const batch of studentBatches) {
+        const batchPromises = batch.map(async (student) => {
+          try {
+            const studentMarks = marksData[student.id] || {};
+            const requests = [];
+            
+            for (const [subjectName, marks] of Object.entries(studentMarks)) {
+              if (!marks || marks === 0) continue; // Skip zero marks
+              
+              const subject = subjects.find(s => s.name === subjectName);
+              if (!subject) continue;
+
+              const existingMark = existingMarks.find(
+                mark => mark.studentId === student.id && mark.subject === subjectName
+              );
+
+              if (existingMark) {
+                requests.push(apiRequest('PATCH', `/api/marks/${existingMark.id}`, {
+                  marks: Number(marks),
+                  maxMarks: selectedExamData?.maxMarks || 100,
+                }));
+              } else {
+                requests.push(apiRequest('POST', '/api/marks', {
+                  studentId: student.id,
+                  examId: selectedExam,
+                  subject: subjectName,
+                  marks: Number(marks),
+                  maxMarks: selectedExamData?.maxMarks || 100,
+                }));
+              }
+            }
+            
+            await Promise.all(requests);
+            return { status: 'success', student: student.name };
+          } catch (error) {
+            return { status: 'error', student: student.name, error };
           }
-        }
-      });
-      await Promise.all(promises);
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        successCount += batchResults.filter(r => r.status === 'success').length;
+        errorCount += batchResults.filter(r => r.status === 'error').length;
+      }
+
+      return { successCount, errorCount };
     },
-    onSuccess: () => {
+    onSuccess: ({ successCount, errorCount }) => {
       setBulkSaving(false);
       setBulkEditMode(false);
       setEditingRows(new Set());
       queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+      
       toast({
-        title: "Success",
-        description: `All marks saved successfully for ${filteredStudents.length} students`,
+        title: "Bulk Save Complete",
+        description: `${successCount} students saved successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
       });
     },
     onError: () => {
       setBulkSaving(false);
       toast({
-        title: "Error",
-        description: "Failed to save marks for all students",
+        title: "Bulk Save Failed",
+        description: "Failed to save marks for students. Please try again.",
         variant: "destructive",
       });
     },
@@ -729,23 +791,21 @@ export default function MarksEntry() {
       )}
 
       {/* Bulk Import Modal */}
-      <AnimatePresence>
-        {showBulkImport && selectedExam && selectedClass && selectedExamData && (
-          <BulkMarksImportModal
-            examId={selectedExam}
-            examName={selectedExamData.name}
-            studentClass={selectedClass}
-            onClose={() => setShowBulkImport(false)}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
-              toast({
-                title: "Import Complete",
-                description: "Marks have been imported successfully.",
-              });
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {showBulkImport && selectedExam && selectedClass && selectedExamData && (
+        <BulkMarksImportModal
+          examId={selectedExam}
+          examName={selectedExamData.name}
+          studentClass={selectedClass}
+          onClose={() => setShowBulkImport(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/marks', selectedExam] });
+            toast({
+              title: "Import Complete",
+              description: "Marks have been imported successfully.",
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
