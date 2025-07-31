@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import RoleSelector from "@/pages/role-selector";
 import AdminLogin from "@/pages/admin-login";
 import OrgLogin from "@/pages/org-login";
+import OrgSignup from "@/pages/org-signup";
 import TeacherLogin from "@/pages/teacher-login";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
@@ -26,6 +27,7 @@ function App() {
             <Route path="/" component={RoleSelector} />
             <Route path="/admin/login" component={AdminLogin} />
             <Route path="/org/login" component={OrgLogin} />
+            <Route path="/org/signup" component={OrgSignup} />
             <Route path="/teacher/login" component={TeacherLogin} />
             
             {/* Protected dashboard routes */}

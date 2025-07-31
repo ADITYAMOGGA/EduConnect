@@ -28,8 +28,9 @@ CREATE TABLE organizations (
 -- 2. PLATFORM ADMINS TABLE (Super Admins)
 CREATE TABLE admins (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     role VARCHAR(20) DEFAULT 'admin', -- admin, super_admin
@@ -43,8 +44,9 @@ CREATE TABLE admins (
 CREATE TABLE org_admins (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    username VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     designation VARCHAR(100) DEFAULT 'Principal', -- Principal, Vice Principal, Admin
@@ -73,8 +75,9 @@ CREATE TABLE subjects (
 CREATE TABLE teachers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    username VARCHAR(100) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
     qualification VARCHAR(255),
@@ -171,8 +174,12 @@ CREATE INDEX idx_marks_student ON marks(student_id);
 CREATE INDEX idx_marks_exam ON marks(exam_id);
 CREATE INDEX idx_exams_org_class ON exams(org_id, class_level);
 
--- Database is now ready for production use
--- No sample data included - clean slate for real organizations and users
+-- Insert default platform admin (Username: navaneeth, Password: Knull@123)
+INSERT INTO admins (username, name, email, password_hash, role) VALUES 
+('navaneeth', 'Navaneeth Reddy', 'navaneeth@marksheetpro.com', '$2b$10$LAzGFbiAHJ43qJGDUDjOvecSOhUuYXiSyJvuqBPgh3cnhGIMXvVB.', 'super_admin');
+
+-- Organizations signup will be handled through the application
+-- No sample organizations included - clean slate for real schools
 
 -- Enable Row Level Security on all tables
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;

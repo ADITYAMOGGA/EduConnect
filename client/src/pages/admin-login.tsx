@@ -14,14 +14,21 @@ export default function AdminLogin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
 
   const loginMutation = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
-      apiRequest("/api/admin/login", {
+    mutationFn: async (data: { username: string; password: string }) => {
+      const response = await fetch("/api/admin/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+      return response.json();
+    },
     onSuccess: (data: any) => {
       localStorage.setItem("userRole", "admin");
       localStorage.setItem("adminData", JSON.stringify(data.admin));
@@ -131,15 +138,15 @@ export default function AdminLogin() {
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
-                    Email
+                  <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">
+                    Username
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    placeholder="admin@marksheetpro.com"
+                    id="username"
+                    type="text"
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                    placeholder="navaneeth"
                     required
                     className="border-red-200 focus:border-red-400 dark:border-red-800 dark:focus:border-red-600"
                   />

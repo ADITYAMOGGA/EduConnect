@@ -14,14 +14,21 @@ export default function OrgLogin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
 
   const loginMutation = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
-      apiRequest("/api/org/login", {
+    mutationFn: async (data: { username: string; password: string }) => {
+      const response = await fetch("/api/org/login", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+      return response.json();
+    },
     onSuccess: (data: any) => {
       localStorage.setItem("userRole", "org_admin");
       localStorage.setItem("orgAdminData", JSON.stringify(data.orgAdmin));
@@ -132,15 +139,15 @@ export default function OrgLogin() {
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
-                    Email
+                  <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">
+                    Username
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    placeholder="principal@school.edu.in"
+                    id="username"
+                    type="text"
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                    placeholder="principal_dps"
                     required
                     className="border-blue-200 focus:border-blue-400 dark:border-blue-800 dark:focus:border-blue-600"
                   />
@@ -184,6 +191,19 @@ export default function OrgLogin() {
                     "Access School Dashboard"
                   )}
                 </Button>
+
+                <div className="text-center mt-4">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => navigate("/org/signup")}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                    >
+                      Register your school
+                    </button>
+                  </p>
+                </div>
               </form>
             </CardContent>
           </Card>

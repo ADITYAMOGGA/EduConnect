@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertStudentSchema, insertExamSchema, insertMarkSchema, insertSubjectSchema } from "@shared/schema";
 import { aiService } from "./ai-service";
+import authMultiRouter from "./auth-multi";
 import multer from "multer";
 import Papa from "papaparse";
 
@@ -20,6 +21,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 export function registerRoutes(app: Express): Server {
   // Setup authentication
   setupAuth(app);
+  
+  // Setup multi-auth routes
+  app.use(authMultiRouter);
 
   // Get current user info - Optimized  
   app.get('/api/user', isAuthenticated, async (req: any, res) => {
