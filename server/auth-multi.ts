@@ -57,6 +57,195 @@ router.post("/api/admin/login", async (req, res) => {
   }
 });
 
+// ADMIN API ENDPOINTS
+
+// Get system statistics
+router.get("/api/admin/stats", async (req, res) => {
+  try {
+    // Get total users (admins + org_admins + teachers)
+    const { data: admins } = await supabase.from("admins").select("id");
+    const { data: orgAdmins } = await supabase.from("org_admins").select("id");
+    const { data: teachers } = await supabase.from("teachers").select("id");
+    
+    // Get total organizations
+    const { data: organizations } = await supabase.from("organizations").select("id");
+    
+    // Get total students
+    const { data: students } = await supabase.from("students").select("id");
+    
+    const stats = {
+      totalUsers: (admins?.length || 0) + (orgAdmins?.length || 0) + (teachers?.length || 0),
+      totalSchools: organizations?.length || 0,
+      totalStudents: students?.length || 0,
+      totalAdmins: admins?.length || 0,
+      totalOrgAdmins: orgAdmins?.length || 0,
+      totalTeachers: teachers?.length || 0
+    };
+    
+    res.json(stats);
+  } catch (error) {
+    console.error("Error fetching admin stats:", error);
+    res.status(500).json({ message: "Failed to fetch statistics" });
+  }
+});
+
+// Get system health
+router.get("/api/admin/health", async (req, res) => {
+  try {
+    // Test database connection
+    const { data, error } = await supabase.from("admins").select("id").limit(1);
+    
+    const health = {
+      database: error ? 'error' : 'connected',
+      timestamp: new Date().toISOString(),
+      status: 'operational'
+    };
+    
+    res.json(health);
+  } catch (error) {
+    console.error("Error checking system health:", error);
+    res.json({
+      database: 'error',
+      timestamp: new Date().toISOString(),
+      status: 'error'
+    });
+  }
+});
+
+// Get all users (admins only)
+router.get("/api/admin/users", async (req, res) => {
+  try {
+    // Get all admins
+    const { data: admins } = await supabase
+      .from("admins")
+      .select("id, username, name, email, role, status, created_at, last_login");
+    
+    // Get all org admins
+    const { data: orgAdmins } = await supabase
+      .from("org_admins")
+      .select("id, username, name, email, role, status, created_at, organization_id");
+    
+    // Get all teachers
+    const { data: teachers } = await supabase
+      .from("teachers")
+      .select("id, username, name, email, role, status, created_at, organization_id");
+    
+    // Combine all users with role information
+    const allUsers = [
+      ...(admins || []).map(user => ({ ...user, userType: 'admin' })),
+      ...(orgAdmins || []).map(user => ({ ...user, userType: 'org_admin' })),
+      ...(teachers || []).map(user => ({ ...user, userType: 'teacher' }))
+    ];
+    
+    res.json(allUsers);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
+});
+
+// Create new admin user
+router.post("/api/admin/users", async (req, res) => {
+  try {
+    const { username, password, email, firstName, lastName, role = 'admin', status = 'active' } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+    
+    // Check if username already exists
+    const { data: existingAdmin } = await supabase
+      .from("admins")
+      .select("id")
+      .eq("username", username)
+      .single();
+    
+    if (existingAdmin) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+    
+    // Hash password
+    const passwordHash = await hashPassword(password);
+    
+    // Create new admin
+    const { data: newAdmin, error } = await supabase
+      .from("admins")
+      .insert({
+        username,
+        password_hash: passwordHash,
+        name: `${firstName || ''} ${lastName || ''}`.trim(),
+        email,
+        role,
+        status
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating admin:", error);
+      return res.status(500).json({ message: "Failed to create admin user" });
+    }
+    
+    // Remove password from response
+    const { password_hash, ...adminData } = newAdmin;
+    res.json({ admin: adminData });
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update user status (hold/activate)
+router.patch("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    // Update admin user
+    const { data: updatedAdmin, error } = await supabase
+      .from("admins")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating admin:", error);
+      return res.status(500).json({ message: "Failed to update user" });
+    }
+    
+    // Remove password from response
+    const { password_hash, ...adminData } = updatedAdmin;
+    res.json({ admin: adminData });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Delete user
+router.delete("/api/admin/users/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Delete admin user
+    const { error } = await supabase
+      .from("admins")
+      .delete()
+      .eq("id", id);
+    
+    if (error) {
+      console.error("Error deleting admin:", error);
+      return res.status(500).json({ message: "Failed to delete user" });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // ORGANIZATION SIGNUP
 router.post("/api/org/signup", async (req, res) => {
   try {

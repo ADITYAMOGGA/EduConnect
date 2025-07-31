@@ -91,17 +91,32 @@ export default function AdminDashboard() {
   // Query for system statistics
   const { data: systemStats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/admin/stats'],
-    enabled: user?.role === 'admin'
+    queryFn: async () => {
+      const response = await fetch('/api/admin/stats', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
+    enabled: !!admin
   });
 
   const { data: allUsers, isLoading: usersLoading } = useQuery({
     queryKey: ['/api/admin/users'],
-    enabled: user?.role === 'admin'
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
+    enabled: !!admin
   });
 
   const { data: systemHealth, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/admin/health'],
-    enabled: user?.role === 'admin'
+    queryFn: async () => {
+      const response = await fetch('/api/admin/health', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch health');
+      return response.json();
+    },
+    enabled: !!admin
   });
 
   // Mutations for user management
@@ -173,73 +188,84 @@ export default function AdminDashboard() {
   });
 
   // Toggle user hold status
-  const toggleUserHold = (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'hold' ? 'active' : 'hold';
-    updateUserMutation.mutate({
-      id: userId,
-      updates: { status: newStatus }
-    });
-  };
+  const toggleUserHoldMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to update user status');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: "Success",
+        description: "User status updated successfully!"
+      });
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to delete user');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/stats'] });
+      toast({
+        title: "Success",
+        description: "User deleted successfully!"
+      });
+    }
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-pink-50 dark:from-slate-900 dark:via-red-900 dark:to-pink-900">
-      {/* Admin Header */}
-      <motion.div 
-        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg border-b border-red-100 dark:border-red-800"
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-100">
+      {/* Header */}
+      <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
+        className="bg-white/80 backdrop-blur-md border-b border-red-100 shadow-lg"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <motion.div 
-                className="w-12 h-12 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl flex items-center justify-center mr-4 shadow-lg"
-                whileHover={{ rotate: 5, scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Shield className="text-white text-xl" />
-              </motion.div>
-              <div>
-                <motion.h1 
-                  className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent"
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.5 }}
-                >
-                  ADMIN PANEL
-                </motion.h1>
-                <motion.p 
-                  className="text-sm text-slate-600 dark:text-slate-300"
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                >
-                  MARKSHEET PRO Administrative Control
-                </motion.p>
-              </div>
-            </div>
-
             <div className="flex items-center space-x-4">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="flex items-center space-x-3"
               >
-                <Badge variant="destructive" className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium animate-pulse">
-                  <Shield className="h-3 w-3 mr-1" />
-                  ADMINISTRATOR
-                </Badge>
+                <div className="h-10 w-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                    MARKSHEET PRO Admin
+                  </h1>
+                  <p className="text-sm text-gray-600">Platform Administration</p>
+                </div>
               </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{admin.name}</p>
+                <p className="text-xs text-gray-500">{admin.email}</p>
+              </div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
                   onClick={handleLogout}
-                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                  variant="outline"
+                  size="sm"
+                  className="border-red-200 text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -343,9 +369,9 @@ export default function AdminDashboard() {
                           </motion.p>
                         </div>
                         <motion.div 
-                          className={`p-3 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
+                          className={`p-3 rounded-full bg-gradient-to-r ${stat.color}`}
+                          whileHover={{ rotate: 360 }}
+                          transition={{ duration: 0.5 }}
                         >
                           <stat.icon className="h-6 w-6 text-white" />
                         </motion.div>
@@ -355,395 +381,258 @@ export default function AdminDashboard() {
                 </motion.div>
               ))}
             </motion.div>
+
+            {/* Recent Activity */}
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="h-5 w-5 text-red-500" />
+                    <span>System Overview</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <span className="text-sm font-medium">System Status</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">Operational</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Database className="h-5 w-5 text-blue-500" />
+                        <span className="text-sm font-medium">Database</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">Connected</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <School className="h-5 w-5 text-purple-500" />
+                        <span className="text-sm font-medium">Platform Version</span>
+                      </div>
+                      <Badge variant="secondary" className="bg-purple-100 text-purple-800">v2.0.0</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           {/* User Management Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <motion.span 
-                    className="flex items-center space-x-2"
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <Users className="h-5 w-5 text-red-600" />
-                    <span>User Management</span>
-                  </motion.span>
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Button 
-                      size="sm" 
-                      className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
-                      onClick={() => setShowAddUser(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Admin
-                    </Button>
-                  </motion.div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {usersLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <motion.div 
-                        key={i} 
-                        className="animate-pulse"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        <div className="h-20 bg-gray-200 rounded-lg"></div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <motion.div 
-                    className="space-y-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {allUsers?.filter((u: any) => u.role !== 'admin').map((user: any, index: number) => (
-                      <motion.div 
-                        key={user.id} 
-                        className="group relative overflow-hidden"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="relative flex items-center justify-between p-6 border rounded-lg bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border-red-100">
-                          <div className="flex items-center space-x-4">
-                            <motion.div 
-                              className="relative"
-                              whileHover={{ rotate: 5 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <div className="w-14 h-14 bg-gradient-to-br from-red-500 via-pink-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
-                                <span className="text-white font-bold text-lg">
-                                  {user.firstName?.[0] || user.username[0]}
-                                </span>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="flex justify-between items-center"
+            >
+              <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+              <Button
+                onClick={() => setShowAddUser(true)}
+                className="bg-gradient-to-r from-red-500 to-pink-500 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Admin User
+              </Button>
+            </motion.div>
+
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardContent className="p-6">
+                  {usersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {allUsers && allUsers.length > 0 ? (
+                        allUsers.map((user: any, index: number) => (
+                          <motion.div
+                            key={user.id}
+                            initial={{ x: -20, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: index * 0.1, duration: 0.3 }}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className="h-10 w-10 bg-gradient-to-r from-red-400 to-pink-400 rounded-full flex items-center justify-center text-white font-semibold">
+                                {user.name ? user.name.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase()}
                               </div>
-                              <motion.div 
-                                className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
-                                  user.status === 'active' ? 'bg-green-500' : 
-                                  user.status === 'hold' ? 'bg-yellow-500' : 'bg-red-500'
-                                }`}
-                                animate={{ scale: [1, 1.2, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                              />
-                            </motion.div>
-                            <div>
-                              <motion.h3 
-                                className="font-semibold text-gray-900 text-lg"
-                                whileHover={{ x: 5 }}
-                                transition={{ duration: 0.2 }}
+                              <div>
+                                <p className="font-medium text-gray-900">{user.name || user.username}</p>
+                                <p className="text-sm text-gray-500">{user.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                variant={user.status === 'active' ? 'secondary' : user.status === 'hold' ? 'outline' : 'destructive'}
+                                className={
+                                  user.status === 'active' ? 'bg-green-100 text-green-800' :
+                                  user.status === 'hold' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }
                               >
-                                {user.firstName} {user.lastName}
-                              </motion.h3>
-                              <p className="text-sm text-gray-600 font-medium">@{user.username}</p>
-                              <p className="text-sm text-gray-500">{user.email}</p>
+                                {user.status}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => toggleUserHoldMutation.mutate({ 
+                                  id: user.id, 
+                                  status: user.status === 'active' ? 'hold' : 'active' 
+                                })}
+                              >
+                                {user.status === 'active' ? 'Hold' : 'Activate'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingUser(user)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteUserMutation.mutate(user.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-6">
-                            <div className="text-right">
-                              <p className="text-sm font-semibold text-gray-900 mb-2">{user.schoolName}</p>
-                              <div className="flex items-center space-x-2">
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <Badge 
-                                    variant={user.role === 'admin' ? 'destructive' : 'outline'}
-                                    className="font-medium"
-                                  >
-                                    {user.role}
-                                  </Badge>
-                                </motion.div>
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <Badge 
-                                    variant={
-                                      user.status === 'active' ? 'outline' : 
-                                      user.status === 'hold' ? 'secondary' : 'destructive'
-                                    }
-                                    className={`font-medium ${
-                                      user.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                      user.status === 'hold' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                                      'bg-red-50 text-red-700 border-red-200'
-                                    }`}
-                                  >
-                                    {user.status === 'hold' ? 'ON HOLD' : user.status.toUpperCase()}
-                                  </Badge>
-                                </motion.div>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => setEditingUser(user)}
-                                  className="hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </motion.div>
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => toggleUserHold(user.id, user.status)}
-                                  className={`transition-colors duration-200 ${
-                                    user.status === 'hold' 
-                                      ? 'hover:bg-green-50 hover:border-green-300 text-green-600' 
-                                      : 'hover:bg-yellow-50 hover:border-yellow-300 text-yellow-600'
-                                  }`}
-                                >
-                                  {user.status === 'hold' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                                </Button>
-                              </motion.div>
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300 transition-colors duration-200"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </motion.div>
-                            </div>
-                          </div>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No users found
                         </div>
-                      </motion.div>
-                    ))}
-                    
-                    {(!allUsers || allUsers.filter((u: any) => u.role !== 'admin').length === 0) && (
-                      <motion.div 
-                        className="text-center py-8 text-slate-500"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        No regular users found. Only admin accounts exist.
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
-          {/* School Management Tab */}
+          {/* Schools Tab */}
           <TabsContent value="schools" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <School className="h-5 w-5 text-red-600" />
-                  <span>School Management</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {usersLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <motion.div 
-                        key={i} 
-                        className="animate-pulse"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        <div className="h-16 bg-gray-200 rounded-lg"></div>
-                      </motion.div>
-                    ))}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle>School Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <School className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">School management features coming soon...</p>
                   </div>
-                ) : (
-                  <motion.div 
-                    className="space-y-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {Array.from(new Set(allUsers?.map((u: any) => u.schoolName).filter(Boolean))).map((schoolName: any, index: number) => {
-                      const schoolUsers = allUsers?.filter((u: any) => u.schoolName === schoolName) || [];
-                      const activeUsers = schoolUsers.filter((u: any) => u.status === 'active').length;
-                      const onHoldUsers = schoolUsers.filter((u: any) => u.status === 'hold').length;
-                      const teachers = schoolUsers.filter((u: any) => u.role === 'teacher').length;
-                      
-                      return (
-                        <motion.div 
-                          key={index} 
-                          className="group relative overflow-hidden"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.15, duration: 0.4 }}
-                          whileHover={{ scale: 1.02 }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <div className="relative flex items-center justify-between p-6 border rounded-lg bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border-blue-100">
-                            <div className="flex items-center space-x-4">
-                              <motion.div 
-                                className="relative"
-                                whileHover={{ rotate: 10, scale: 1.1 }}
-                                transition={{ duration: 0.3 }}
-                              >
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <School className="text-white h-8 w-8" />
-                                </div>
-                                <motion.div 
-                                  className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                                  animate={{ scale: [1, 1.2, 1] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                  <span className="text-white text-xs font-bold">{schoolUsers.length}</span>
-                                </motion.div>
-                              </motion.div>
-                              <div>
-                                <motion.h3 
-                                  className="font-bold text-gray-900 text-xl"
-                                  whileHover={{ x: 5 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  {schoolName}
-                                </motion.h3>
-                                <p className="text-sm text-gray-600 font-medium">
-                                  {schoolUsers.length} user{schoolUsers.length !== 1 ? 's' : ''} registered
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-6">
-                              <div className="grid grid-cols-3 gap-4 text-center">
-                                <motion.div 
-                                  className="bg-green-50 rounded-lg p-3 border border-green-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-green-700">{activeUsers}</p>
-                                  <p className="text-xs text-green-600">Active</p>
-                                </motion.div>
-                                <motion.div 
-                                  className="bg-yellow-50 rounded-lg p-3 border border-yellow-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-yellow-700">{onHoldUsers}</p>
-                                  <p className="text-xs text-yellow-600">On Hold</p>
-                                </motion.div>
-                                <motion.div 
-                                  className="bg-blue-50 rounded-lg p-3 border border-blue-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-blue-700">{teachers}</p>
-                                  <p className="text-xs text-blue-600">Teachers</p>
-                                </motion.div>
-                              </div>
-                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </motion.div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                    
-                    {(!allUsers || Array.from(new Set(allUsers?.map((u: any) => u.schoolName).filter(Boolean))).length === 0) && (
-                      <motion.div 
-                        className="text-center py-8 text-slate-500"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        No schools found with registered users.
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           {/* Database Tab */}
           <TabsContent value="database" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="h-5 w-5 text-red-600" />
-                  <span>Database Administration</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <motion.div 
-                  className="text-center py-8 text-slate-500"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  Database administration tools will be implemented here.
-                  <br />
-                  Features: Backup management, data cleanup, performance monitoring.
-                </motion.div>
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle>Database Management</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Database className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Database management tools coming soon...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Settings className="h-5 w-5 text-red-600" />
-                  <span>System Settings</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <motion.div 
-                  className="text-center py-8 text-slate-500"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  System settings and configuration options will be implemented here.
-                  <br />
-                  Features: Global settings, security policies, system maintenance.
-                </motion.div>
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle>System Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Settings className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">System settings coming soon...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Add Admin User Dialog */}
+      {/* Add User Dialog */}
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="bg-white/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-red-600" />
-              <span>Create New Admin</span>
-            </DialogTitle>
+            <DialogTitle>Add New Admin User</DialogTitle>
             <DialogDescription>
-              Add a new administrator account with full system access.
+              Create a new administrator account for the platform.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  placeholder="Enter username"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Enter password"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="firstName">First Name</Label>
@@ -751,7 +640,7 @@ export default function AdminDashboard() {
                   id="firstName"
                   value={newUser.firstName}
                   onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
-                  placeholder="John"
+                  placeholder="Enter first name"
                 />
               </div>
               <div>
@@ -760,150 +649,48 @@ export default function AdminDashboard() {
                   id="lastName"
                   value={newUser.lastName}
                   onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                  placeholder="Doe"
+                  placeholder="Enter last name"
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={newUser.username}
-                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                placeholder="johndoe"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                placeholder="john@example.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                placeholder="Enter secure password"
-              />
-            </div>
-            <div>
-              <Label htmlFor="schoolName">Organization</Label>
-              <Input
-                id="schoolName"
-                value={newUser.schoolName}
-                onChange={(e) => setNewUser({ ...newUser, schoolName: e.target.value })}
-                placeholder="Organization name"
-              />
-            </div>
+            
             <div>
               <Label htmlFor="role">Role</Label>
-              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+              <Select
+                value={newUser.role}
+                onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddUser(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddUser(false)}
+            >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={() => createUserMutation.mutate(newUser)}
               disabled={createUserMutation.isPending}
-              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+              className="bg-gradient-to-r from-red-500 to-pink-500 text-white"
             >
               {createUserMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
               ) : (
-                <Shield className="h-4 w-4 mr-2" />
+                'Create User'
               )}
-              Create Admin
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update user information and permissions.
-            </DialogDescription>
-          </DialogHeader>
-          {editingUser && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="editRole">Role</Label>
-                <Select 
-                  value={editingUser.role} 
-                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="student">Student</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="editStatus">Status</Label>
-                <Select 
-                  value={editingUser.status} 
-                  onValueChange={(value) => setEditingUser({ ...editingUser, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="hold">On Hold</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => {
-                if (editingUser) {
-                  updateUserMutation.mutate({
-                    id: editingUser.id,
-                    updates: {
-                      role: editingUser.role,
-                      status: editingUser.status
-                    }
-                  });
-                }
-              }}
-              disabled={updateUserMutation.isPending}
-              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
-            >
-              {updateUserMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Update User
             </Button>
           </DialogFooter>
         </DialogContent>
