@@ -57,7 +57,7 @@ router.post("/api/admin/login", async (req, res) => {
   }
 });
 
-// ORGANIZATION SIGNUP - TEMPORARY FALLBACK APPROACH
+// ORGANIZATION SIGNUP
 router.post("/api/org/signup", async (req, res) => {
   try {
     const { 
@@ -85,12 +85,9 @@ router.post("/api/org/signup", async (req, res) => {
       });
     }
 
-    // For now, use the existing users table since RLS is blocking multi-org tables
-    // This is a temporary solution until database permissions are fixed
-    
-    // Check if username already exists in existing users table
+    // Check if username already exists
     const { data: existingUser } = await supabase
-      .from("users")
+      .from("org_admins")
       .select("username")
       .eq("username", adminUsername)
       .single();
@@ -102,38 +99,56 @@ router.post("/api/org/signup", async (req, res) => {
     // Hash password
     const passwordHash = await hashPassword(adminPassword);
 
-    // Create organization admin as a user with special role
-    const { data: newUser, error: userError } = await supabase
-      .from("users")
+    // Create organization
+    const { data: organization, error: orgError } = await supabase
+      .from("organizations")
       .insert({
-        username: adminUsername,
-        email: email || `${adminUsername}@${orgName.toLowerCase().replace(/\s+/g, '')}.edu`,
-        first_name: adminName.split(' ')[0] || adminName,
-        last_name: adminName.split(' ').slice(1).join(' ') || '',
-        school_name: orgName,
-        password: passwordHash,
-        role: 'org_admin',
-        status: 'active'
+        name: orgName,
+        address,
+        phone,
+        email,
+        board_type: boardType,
+        established_year: establishedYear,
+        website,
+        principal_name: principalName || adminName
       })
       .select()
       .single();
 
-    if (userError) {
-      console.error("User creation error:", userError);
-      return res.status(500).json({ message: "Failed to create organization admin account" });
+    if (orgError) {
+      console.error("Organization creation error:", orgError);
+      return res.status(500).json({ message: "Failed to create organization" });
+    }
+
+    // Create org admin
+    const { data: orgAdmin, error: adminError } = await supabase
+      .from("org_admins")
+      .insert({
+        org_id: organization.id,
+        username: adminUsername,
+        name: adminName,
+        email,
+        password_hash: passwordHash,
+        phone: adminPhone,
+        designation
+      })
+      .select()
+      .single();
+
+    if (adminError) {
+      console.error("Org admin creation error:", adminError);
+      // Cleanup: delete the organization if admin creation fails
+      await supabase.from("organizations").delete().eq("id", organization.id);
+      return res.status(500).json({ message: "Failed to create admin user" });
     }
 
     // Remove password from response
-    const { password, ...userData } = newUser;
+    const { password_hash, ...adminData } = orgAdmin;
 
     res.status(201).json({ 
-      user: userData,
-      organization: {
-        name: orgName,
-        board_type: boardType,
-        principal_name: principalName || adminName
-      },
-      message: "Organization admin account created successfully. Note: This is using a simplified setup until full multi-org schema is accessible." 
+      organization, 
+      orgAdmin: adminData,
+      message: "Organization and admin account created successfully" 
     });
   } catch (error) {
     console.error("Organization signup error:", error);
