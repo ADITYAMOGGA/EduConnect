@@ -118,6 +118,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     const user = req.user!;
+    console.log("Login successful for user:", user.username, "Role:", user.role);
     res.status(200).json({
       id: user.id,
       username: user.username,
@@ -125,6 +126,9 @@ export function setupAuth(app: Express) {
       firstName: user.firstName,
       lastName: user.lastName,
       schoolName: user.schoolName,
+      profileImageUrl: user.profileImageUrl,
+      role: user.role || 'teacher',
+      status: user.status || 'active',
     });
   });
 
@@ -147,6 +151,9 @@ export function setupAuth(app: Express) {
       firstName: user.firstName,
       lastName: user.lastName,
       schoolName: user.schoolName,
+      profileImageUrl: user.profileImageUrl,
+      role: user.role || 'teacher',
+      status: user.status || 'active',
     });
   });
 }

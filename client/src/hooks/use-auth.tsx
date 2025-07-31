@@ -47,8 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await fetch("/api/user", { credentials: "include" });
         if (res.status === 401) return null;
         if (!res.ok) throw new Error("Failed to fetch user");
-        return await res.json();
+        const userData = await res.json();
+        console.log("User data fetched:", userData);
+        return userData;
       } catch (error) {
+        console.error("Error fetching user:", error);
         return null;
       }
     },

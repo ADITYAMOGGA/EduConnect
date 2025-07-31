@@ -21,8 +21,8 @@ export function registerRoutes(app: Express): Server {
   // Setup authentication
   setupAuth(app);
 
-  // Get current user info - Optimized
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Get current user info - Optimized  
+  app.get('/api/user', isAuthenticated, async (req: any, res) => {
     try {
       // Return user info directly from session/request (already available from authentication)
       const userInfo = {
