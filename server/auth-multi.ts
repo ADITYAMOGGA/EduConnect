@@ -450,4 +450,115 @@ router.post("/api/teacher/login", async (req, res) => {
   }
 });
 
+// SETUP ROUTE - Create default admin user (for initial setup)
+router.post("/api/setup/admin", async (req, res) => {
+  try {
+    const { force = false } = req.body;
+    
+    // Check if any admin users already exist
+    const { data: existingAdmins } = await supabase
+      .from("admins")
+      .select("id")
+      .limit(1);
+
+    if (existingAdmins && existingAdmins.length > 0 && !force) {
+      return res.status(400).json({ message: "Admin users already exist. Use force=true to create anyway." });
+    }
+
+    // Create default admin user
+    const defaultAdmin = {
+      username: "admin",
+      password: "admin123",
+      name: "System Administrator",
+      email: "admin@marksheetpro.com",
+      role: "admin",
+      status: "active"
+    };
+
+    const passwordHash = await hashPassword(defaultAdmin.password);
+
+    const { data: newAdmin, error } = await supabase
+      .from("admins")
+      .insert({
+        username: defaultAdmin.username,
+        password_hash: passwordHash,
+        name: defaultAdmin.name,
+        email: defaultAdmin.email,
+        role: defaultAdmin.role,
+        status: defaultAdmin.status
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating default admin:", error);
+      return res.status(500).json({ message: "Failed to create default admin" });
+    }
+
+    const { password_hash, ...adminData } = newAdmin;
+    res.json({ 
+      admin: adminData, 
+      message: "Default admin user created successfully",
+      credentials: {
+        username: defaultAdmin.username,
+        password: defaultAdmin.password
+      }
+    });
+  } catch (error) {
+    console.error("Setup admin error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// RESET ADMIN - Create new admin user (for development/setup)
+router.post("/api/reset/admin", async (req, res) => {
+  try {
+    // Delete all existing admins
+    await supabase.from("admins").delete().neq("id", "");
+
+    // Create new admin user
+    const defaultAdmin = {
+      username: "admin",
+      password: "admin123",
+      name: "System Administrator",
+      email: "admin@marksheetpro.com",
+      role: "admin",
+      status: "active"
+    };
+
+    const passwordHash = await hashPassword(defaultAdmin.password);
+
+    const { data: newAdmin, error } = await supabase
+      .from("admins")
+      .insert({
+        username: defaultAdmin.username,
+        password_hash: passwordHash,
+        name: defaultAdmin.name,
+        email: defaultAdmin.email,
+        role: defaultAdmin.role,
+        status: defaultAdmin.status
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating admin:", error);
+      return res.status(500).json({ message: "Failed to create admin" });
+    }
+
+    const { password_hash, ...adminData } = newAdmin;
+    res.json({ 
+      admin: adminData, 
+      message: "Admin user reset successfully",
+      credentials: {
+        username: defaultAdmin.username,
+        password: defaultAdmin.password
+      }
+    });
+  } catch (error) {
+    console.error("Reset admin error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
