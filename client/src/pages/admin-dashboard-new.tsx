@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +38,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
-  const { user, logoutMutation } = useAuth();
+  const [, navigate] = useLocation();
+  const [admin, setAdmin] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -56,21 +57,35 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  if (!user || user.role !== 'admin') {
+  useEffect(() => {
+    // Get admin data from localStorage
+    const adminData = localStorage.getItem("adminData");
+    const userRole = localStorage.getItem("userRole");
+    
+    if (adminData && userRole === "admin") {
+      setAdmin(JSON.parse(adminData));
+    } else {
+      // Redirect to admin login if not authenticated
+      navigate("/admin/login");
+    }
+  }, [navigate]);
+
+  if (!admin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
-        <Alert className="max-w-md border-red-200 bg-red-50">
-          <Shield className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            Access Denied: Admin privileges required to view this page.
-          </AlertDescription>
-        </Alert>
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-red-600 mx-auto" />
+          <p className="text-red-800">Loading admin dashboard...</p>
+        </div>
       </div>
     );
   }
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    localStorage.removeItem("adminData");
+    localStorage.removeItem("userRole");
+    navigate("/admin/login");
+    toast({ title: "Logged out successfully" });
   };
 
   // Query for system statistics

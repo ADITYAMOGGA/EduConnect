@@ -1,6 +1,6 @@
-import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import { useEffect, useState } from "react";
 
 export function ProtectedRoute({
   path,
@@ -9,9 +9,23 @@ export function ProtectedRoute({
   path: string;
   component: () => JSX.Element | null;
 }) {
-  const { user, isLoading } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  if (isLoading) {
+  useEffect(() => {
+    // Check for role-specific authentication in localStorage
+    const userRole = localStorage.getItem("userRole");
+    const adminData = localStorage.getItem("adminData");
+    const orgAdminData = localStorage.getItem("orgAdminData");
+    const teacherData = localStorage.getItem("teacherData");
+
+    if (userRole && (adminData || orgAdminData || teacherData)) {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  if (isAuthenticated === null) {
     return (
       <Route path={path}>
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
@@ -24,10 +38,10 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <Route path={path}>
-        <Redirect to="/auth" />
+        <Redirect to="/" />
       </Route>
     );
   }
