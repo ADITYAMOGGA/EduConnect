@@ -3,7 +3,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Shield, 
   Users, 
@@ -31,13 +34,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const { user, logoutMutation } = useAuth();
@@ -171,251 +169,224 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-pink-50 dark:from-slate-900 dark:via-red-900 dark:to-pink-900">
       {/* Admin Header */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg border-b border-red-100 dark:border-red-800">
+      <motion.div 
+        className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg border-b border-red-100 dark:border-red-800"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+              <motion.div 
+                className="w-12 h-12 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl flex items-center justify-center mr-4 shadow-lg"
+                whileHover={{ rotate: 5, scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
                 <Shield className="text-white text-xl" />
-              </div>
+              </motion.div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                <motion.h1 
+                  className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
                   ADMIN PANEL
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                </motion.h1>
+                <motion.p 
+                  className="text-sm text-slate-600 dark:text-slate-300"
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                >
                   MARKSHEET PRO Administrative Control
-                </p>
+                </motion.p>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
-              <Badge variant="destructive" className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium animate-pulse">
-                <Shield className="h-3 w-3 mr-1" />
-                ADMINISTRATOR
-              </Badge>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="flex items-center space-x-3 hover:bg-red-50 dark:hover:bg-red-900/50 p-3 rounded-lg transition-colors"
-                  >
-                    <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center">
-                      <School className="text-white text-sm" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                        {user.firstName} {user.lastName}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">@{user.username}</p>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400 dark:text-slate-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="flex items-center space-x-2">
-                    <Settings className="h-4 w-4" />
-                    <span>Admin Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => window.open('/support', '_blank')}
-                    className="flex items-center space-x-2"
-                  >
-                    <Code className="h-4 w-4" />
-                    <span>Developers</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleLogout}
-                    className="flex items-center space-x-2 text-red-600 dark:text-red-400"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.3 }}
+              >
+                <Badge variant="destructive" className="bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium animate-pulse">
+                  <Shield className="h-3 w-3 mr-1" />
+                  ADMINISTRATOR
+                </Badge>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLogout}
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Admin Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white dark:bg-slate-800 shadow-lg rounded-xl p-1">
-            <TabsTrigger 
-              value="overview" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="users" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="schools" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <School className="h-4 w-4" />
-              <span className="hidden sm:inline">Schools</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="database" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <Database className="h-4 w-4" />
-              <span className="hidden sm:inline">Database</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="system" 
-              className="flex items-center space-x-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">System</span>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+          >
+            <TabsList className="grid w-full grid-cols-5 bg-white/80 backdrop-blur-sm border border-red-100 shadow-lg">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <Users className="h-4 w-4 mr-2" />
+                User Management
+              </TabsTrigger>
+              <TabsTrigger value="schools" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <School className="h-4 w-4 mr-2" />
+                School Management
+              </TabsTrigger>
+              <TabsTrigger value="database" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <Database className="h-4 w-4 mr-2" />
+                Database
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-500 data-[state=active]:text-white">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </motion.div>
 
+          {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+            <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
             >
-              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-800">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-900">
-                    {statsLoading ? "..." : (systemStats as any)?.totalUsers || 0}
-                  </div>
-                  <p className="text-xs text-blue-600">Active accounts</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Total Schools</CardTitle>
-                  <School className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-900">
-                    {statsLoading ? "..." : (systemStats as any)?.totalSchools || 0}
-                  </div>
-                  <p className="text-xs text-green-600">Registered schools</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-yellow-800">Total Students</CardTitle>
-                  <UserCheck className="h-4 w-4 text-yellow-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-yellow-900">
-                    {statsLoading ? "..." : (systemStats as any)?.totalStudents || 0}
-                  </div>
-                  <p className="text-xs text-yellow-600">Across all schools</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-800">Total Exams</CardTitle>
-                  <FileText className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {statsLoading ? "..." : (systemStats as any)?.totalExams || 0}
-                  </div>
-                  <p className="text-xs text-purple-600">Created by teachers</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Activity className="h-5 w-5 text-red-600" />
-                    <span>System Health</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {healthLoading ? (
-                    <div className="animate-pulse space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
+              {[
+                { 
+                  title: "Total Users", 
+                  value: systemStats?.totalUsers || 0, 
+                  icon: Users, 
+                  color: "from-blue-500 to-blue-600",
+                  delay: 0.1 
+                },
+                { 
+                  title: "Total Schools", 
+                  value: systemStats?.totalSchools || 0, 
+                  icon: School, 
+                  color: "from-green-500 to-green-600",
+                  delay: 0.2 
+                },
+                { 
+                  title: "Active Students", 
+                  value: systemStats?.totalStudents || 0, 
+                  icon: UserCheck, 
+                  color: "from-purple-500 to-purple-600",
+                  delay: 0.3 
+                },
+                { 
+                  title: "Database Status", 
+                  value: systemHealth?.database === 'connected' ? 'Connected' : 'Error', 
+                  icon: Database, 
+                  color: "from-red-500 to-red-600",
+                  delay: 0.4 
+                }
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.title}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: stat.delay, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                >
+                  <Card className="relative overflow-hidden border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                    <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-10`}></div>
+                    <CardContent className="relative p-6">
                       <div className="flex items-center justify-between">
-                        <span>Database Connection</span>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Connected
-                        </Badge>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                          <motion.p 
+                            className="text-2xl font-bold text-gray-900"
+                            initial={{ scale: 0.5 }}
+                            animate={{ scale: 1 }}
+                            transition={{ delay: stat.delay + 0.2, duration: 0.3 }}
+                          >
+                            {statsLoading ? '...' : stat.value}
+                          </motion.p>
+                        </div>
+                        <motion.div 
+                          className={`p-3 rounded-full bg-gradient-to-r ${stat.color} shadow-lg`}
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <stat.icon className="h-6 w-6 text-white" />
+                        </motion.div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span>API Status</span>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Operational
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Storage Status</span>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Healthy
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </motion.div>
           </TabsContent>
 
+          {/* User Management Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card>
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center space-x-2">
+                  <motion.span 
+                    className="flex items-center space-x-2"
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
                     <Users className="h-5 w-5 text-red-600" />
                     <span>User Management</span>
-                  </span>
-                  <Button 
-                    size="sm" 
-                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
-                    onClick={() => setShowAddUser(true)}
+                  </motion.span>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Admin
-                  </Button>
+                    <Button 
+                      size="sm" 
+                      className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+                      onClick={() => setShowAddUser(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Admin
+                    </Button>
+                  </motion.div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-16 bg-gray-200 rounded"></div>
-                      </div>
+                      <motion.div 
+                        key={i} 
+                        className="animate-pulse"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <div className="h-20 bg-gray-200 rounded-lg"></div>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
@@ -425,7 +396,7 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    {allUsers?.filter(u => u.role !== 'admin').map((user, index) => (
+                    {allUsers?.filter((u: any) => u.role !== 'admin').map((user: any, index: number) => (
                       <motion.div 
                         key={user.id} 
                         className="group relative overflow-hidden"
@@ -543,19 +514,25 @@ export default function AdminDashboard() {
                       </motion.div>
                     ))}
                     
-                    {(!allUsers || allUsers.filter(u => u.role !== 'admin').length === 0) && (
-                      <div className="text-center py-8 text-slate-500">
+                    {(!allUsers || allUsers.filter((u: any) => u.role !== 'admin').length === 0) && (
+                      <motion.div 
+                        className="text-center py-8 text-slate-500"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                      >
                         No regular users found. Only admin accounts exist.
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* School Management Tab */}
           <TabsContent value="schools" className="space-y-6">
-            <Card>
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <School className="h-5 w-5 text-red-600" />
@@ -566,9 +543,15 @@ export default function AdminDashboard() {
                 {usersLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="h-12 bg-gray-200 rounded"></div>
-                      </div>
+                      <motion.div 
+                        key={i} 
+                        className="animate-pulse"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <div className="h-16 bg-gray-200 rounded-lg"></div>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
@@ -578,11 +561,11 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    {Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).map((schoolName, index) => {
-                      const schoolUsers = allUsers?.filter(u => u.schoolName === schoolName) || [];
-                      const activeUsers = schoolUsers.filter(u => u.status === 'active').length;
-                      const onHoldUsers = schoolUsers.filter(u => u.status === 'hold').length;
-                      const teachers = schoolUsers.filter(u => u.role === 'teacher').length;
+                    {Array.from(new Set(allUsers?.map((u: any) => u.schoolName).filter(Boolean))).map((schoolName: any, index: number) => {
+                      const schoolUsers = allUsers?.filter((u: any) => u.schoolName === schoolName) || [];
+                      const activeUsers = schoolUsers.filter((u: any) => u.status === 'active').length;
+                      const onHoldUsers = schoolUsers.filter((u: any) => u.status === 'hold').length;
+                      const teachers = schoolUsers.filter((u: any) => u.role === 'teacher').length;
                       
                       return (
                         <motion.div 
@@ -667,19 +650,25 @@ export default function AdminDashboard() {
                       );
                     })}
                     
-                    {(!allUsers || Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).length === 0) && (
-                      <div className="text-center py-8 text-slate-500">
+                    {(!allUsers || Array.from(new Set(allUsers?.map((u: any) => u.schoolName).filter(Boolean))).length === 0) && (
+                      <motion.div 
+                        className="text-center py-8 text-slate-500"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                      >
                         No schools found with registered users.
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Database Tab */}
           <TabsContent value="database" className="space-y-6">
-            <Card>
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Database className="h-5 w-5 text-red-600" />
@@ -687,47 +676,40 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-slate-500">
+                <motion.div 
+                  className="text-center py-8 text-slate-500"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
                   Database administration tools will be implemented here.
                   <br />
                   Features: Backup management, data cleanup, performance monitoring.
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5 text-red-600" />
-                  <span>System Analytics</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  Analytics dashboard will be implemented here.
-                  <br />
-                  Features: Usage patterns, performance metrics, user activity logs.
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="system" className="space-y-6">
-            <Card>
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Settings className="h-5 w-5 text-red-600" />
-                  <span>System Configuration</span>
+                  <span>System Settings</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-slate-500">
-                  System configuration panel will be implemented here.
+                <motion.div 
+                  className="text-center py-8 text-slate-500"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  System settings and configuration options will be implemented here.
                   <br />
-                  Features: Global settings, feature flags, maintenance mode.
-                </div>
+                  Features: Global settings, security policies, system maintenance.
+                </motion.div>
               </CardContent>
             </Card>
           </TabsContent>

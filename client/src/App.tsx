@@ -7,7 +7,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
-import AdminDashboard from "@/pages/admin-dashboard";
+import AdminDashboard from "@/pages/admin-dashboard-new";
 import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
 

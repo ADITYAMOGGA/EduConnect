@@ -58,6 +58,17 @@ export function setupAuth(app: Express) {
         if (!user || !user.password || !(await comparePasswords(password, user.password))) {
           return done(null, false);
         }
+
+        // Check if user account is on hold
+        if (user.status === 'hold') {
+          return done(null, false, { message: 'Your account is currently on hold. Please contact administrator.' });
+        }
+
+        // Check if user account is suspended or inactive
+        if (user.status === 'suspended' || user.status === 'inactive') {
+          return done(null, false, { message: 'Your account has been suspended. Please contact administrator.' });
+        }
+
         return done(null, user);
       } catch (error) {
         return done(error);
