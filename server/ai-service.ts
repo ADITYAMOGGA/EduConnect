@@ -1,11 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { storage } from './storage';
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-  throw new Error("GOOGLE_GENERATIVE_AI_API_KEY environment variable is required");
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY environment variable is required");
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export class AIService {
   private model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
