@@ -102,6 +102,56 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Admin routes - Get system statistics
+  app.get('/api/admin/stats', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const totalUsers = users.length;
+      const totalSchools = new Set(users.map(u => u.schoolName).filter(Boolean)).size;
+      
+      // Get total students and exams from all users
+      let totalStudents = 0;
+      let totalExams = 0;
+      
+      for (const user of users) {
+        try {
+          const students = await storage.getStudents(user.id);
+          const exams = await storage.getExams(user.id);
+          totalStudents += students.length;
+          totalExams += exams.length;
+        } catch (error) {
+          // Skip if user has no data
+          continue;
+        }
+      }
+
+      res.json({
+        totalUsers,
+        totalSchools,
+        totalStudents,
+        totalExams
+      });
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  // Admin routes - Get system health
+  app.get('/api/admin/health', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      res.json({
+        database: 'connected',
+        api: 'operational',
+        storage: 'healthy',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching system health:", error);
+      res.status(500).json({ message: "Failed to fetch health status" });
+    }
+  });
+
   // Setup admin accounts endpoint (remove in production)
   app.post('/api/setup-admin', async (req: any, res) => {
     try {

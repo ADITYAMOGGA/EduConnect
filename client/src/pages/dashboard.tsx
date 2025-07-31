@@ -37,6 +37,12 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  // Redirect admin users to admin dashboard
+  if (user.role === 'admin') {
+    window.location.href = '/admin';
+    return null;
+  }
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
