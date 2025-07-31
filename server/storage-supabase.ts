@@ -28,6 +28,8 @@ export class SupabaseStorage {
       schoolLogoUrl: data.school_logo_url,
       username: data.username,
       password: data.password,
+      role: data.role,
+      status: data.status,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
@@ -58,12 +60,94 @@ export class SupabaseStorage {
       schoolLogoUrl: data.school_logo_url,
       username: data.username,
       password: data.password,
+      role: data.role,
+      status: data.status,
       createdAt: data.created_at,
       updatedAt: data.updated_at
     };
   }
 
-  async createUser(userData: UpsertUser): Promise<User> {
+  async getAllUsers(): Promise<User[]> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching all users:', error);
+      throw error;
+    }
+    
+    return data.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      profileImageUrl: user.profile_image_url,
+      schoolName: user.school_name,
+      schoolLogoUrl: user.school_logo_url,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      status: user.status,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at
+    }));
+  }
+
+  async updateUser(userId: string, updates: Partial<User>): Promise<User> {
+    // Map camelCase to snake_case
+    const dbUpdates: any = {};
+    if (updates.email) dbUpdates.email = updates.email;
+    if (updates.firstName) dbUpdates.first_name = updates.firstName;
+    if (updates.lastName) dbUpdates.last_name = updates.lastName;
+    if (updates.schoolName) dbUpdates.school_name = updates.schoolName;
+    if (updates.role) dbUpdates.role = updates.role;
+    if (updates.status) dbUpdates.status = updates.status;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(dbUpdates)
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+    
+    return {
+      id: data.id,
+      email: data.email,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      profileImageUrl: data.profile_image_url,
+      schoolName: data.school_name,
+      schoolLogoUrl: data.school_logo_url,
+      username: data.username,
+      password: data.password,
+      role: data.role,
+      status: data.status,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+
+  async createUser(userData: any): Promise<User> {
     // Map the camelCase fields to snake_case for Supabase
     const dbUserData = {
       id: userData.id,
@@ -74,7 +158,9 @@ export class SupabaseStorage {
       school_name: userData.schoolName,
       school_logo_url: userData.schoolLogoUrl,
       username: userData.username,
-      password: userData.password
+      password: userData.password,
+      role: userData.role || 'teacher',
+      status: userData.status || 'active'
     };
 
     console.log('Creating user with data:', dbUserData);

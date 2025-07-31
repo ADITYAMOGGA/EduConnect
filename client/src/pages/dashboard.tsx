@@ -14,7 +14,8 @@ import {
   School,
   HelpCircle,
   Code,
-  ChevronDown
+  ChevronDown,
+  Shield
 } from "lucide-react";
 import StudentManagement from "@/components/StudentManagement";
 import MarksEntry from "@/components/MarksEntry";
@@ -23,6 +24,7 @@ import SettingsComponent from "@/components/Settings";
 import SettingsPage from "@/components/SettingsPage";
 import ExamSubjectManagement from "@/components/ExamSubjectManagement";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import AdminDashboard from "@/components/AdminDashboard";
 import { AIChatButton } from '@/components/AIChat';
 import { BulkProgressCards } from "@/components/BulkProgressCards";
 
@@ -79,6 +81,13 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center space-x-4">
+              {user?.role === 'admin' && (
+                <div className="flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 rounded-full text-white text-sm font-medium shadow-lg animate-pulse">
+                  <Shield className="h-4 w-4 mr-2" />
+                  ADMIN ACCESS
+                </div>
+              )}
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -139,7 +148,13 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl border-purple-200 dark:border-purple-700">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-800 dark:to-indigo-800">
+            <TabsList className={`grid w-full ${user?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-6'} bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-800 dark:to-indigo-800`}>
+              {user?.role === 'admin' && (
+                <TabsTrigger value="admin" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-red-700 dark:data-[state=active]:text-red-300 text-slate-600 dark:text-slate-300">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin
+                </TabsTrigger>
+              )}
               <TabsTrigger value="students" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300 text-slate-600 dark:text-slate-300">
                 <Users className="h-4 w-4 mr-2" />
                 Students
@@ -167,6 +182,12 @@ export default function Dashboard() {
                 Settings
               </TabsTrigger>
             </TabsList>
+            
+            {user?.role === 'admin' && (
+              <TabsContent value="admin" className="space-y-4">
+                <AdminDashboard />
+              </TabsContent>
+            )}
             
             <TabsContent value="students" className="space-y-4">
               <StudentManagement />

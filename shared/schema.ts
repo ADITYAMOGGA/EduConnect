@@ -37,6 +37,8 @@ export const users = pgTable("users", {
   schoolLogoUrl: varchar("school_logo_url"),
   username: varchar("username").unique(),
   password: varchar("password"),
+  role: varchar("role", { length: 50 }).default("teacher"),
+  status: varchar("status", { length: 50 }).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

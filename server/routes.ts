@@ -33,6 +33,8 @@ export function registerRoutes(app: Express): Server {
         lastName: req.user.lastName,
         schoolName: req.user.schoolName,
         profileImageUrl: req.user.profileImageUrl,
+        role: req.user.role || 'teacher',
+        status: req.user.status || 'active',
       };
       
       // Cache the response for 5 minutes to reduce database calls
@@ -41,6 +43,120 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Admin-only middleware
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    }
+    next();
+  };
+
+  // Admin routes - Get all users
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Admin routes - Create user
+  app.post('/api/admin/users', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userData = req.body;
+      const newUser = await storage.createUser(userData);
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  // Admin routes - Update user
+  app.patch('/api/admin/users/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const updatedUser = await storage.updateUser(id, updates);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Admin routes - Delete user
+  app.delete('/api/admin/users/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Setup admin accounts endpoint (remove in production)
+  app.post('/api/setup-admin', async (req: any, res) => {
+    try {
+      // Create admin account
+      const adminData = {
+        username: 'Navaneeth Reddy',
+        password: 'Knull@123',
+        email: 'navaneeth@marksheetpro.com',
+        firstName: 'Navaneeth',
+        lastName: 'Reddy',
+        schoolName: 'MARKSHEET PRO Admin',
+        role: 'admin',
+        status: 'active'
+      };
+
+      // Check if admin already exists
+      const existingAdmin = await storage.getUserByUsername('Navaneeth Reddy');
+      if (!existingAdmin) {
+        await storage.createUser(adminData);
+        console.log('Admin account created');
+      } else {
+        // Update existing admin to ensure proper role
+        await storage.updateUser(existingAdmin.id, { role: 'admin', status: 'active' });
+        console.log('Admin account updated');
+      }
+
+      // Create student demo account
+      const studentData = {
+        username: 'student_demo',
+        password: 'demo123',
+        email: 'student@demo.com',
+        firstName: 'Demo',
+        lastName: 'Student',
+        schoolName: 'Demo School',
+        role: 'student',
+        status: 'active'
+      };
+
+      const existingStudent = await storage.getUserByUsername('student_demo');
+      if (!existingStudent) {
+        await storage.createUser(studentData);
+        console.log('Student demo account created');
+      } else {
+        await storage.updateUser(existingStudent.id, { role: 'student', status: 'active' });
+        console.log('Student demo account updated');
+      }
+
+      res.json({ 
+        message: "Admin and demo accounts setup complete",
+        admin: { username: 'Navaneeth Reddy', role: 'admin' },
+        student: { username: 'student_demo', role: 'student' }
+      });
+    } catch (error) {
+      console.error("Error setting up admin accounts:", error);
+      res.status(500).json({ message: "Failed to setup accounts", error: error.message });
     }
   });
 

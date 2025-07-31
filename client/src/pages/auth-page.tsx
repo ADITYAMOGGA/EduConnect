@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GraduationCap, Eye, EyeOff, Loader2, UserPlus, LogIn, Users, Award, FileText } from "lucide-react";
+import { GraduationCap, Eye, EyeOff, Loader2, UserPlus, LogIn, Users, Award, FileText, Shield, GraduationCapIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 
@@ -136,13 +136,21 @@ export default function AuthPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="login" className="flex items-center gap-2">
-                    <LogIn className="w-4 h-4" />
-                    Sign In
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  <TabsTrigger value="login" className="flex items-center gap-1 text-xs">
+                    <LogIn className="w-3 h-3" />
+                    Teacher
                   </TabsTrigger>
-                  <TabsTrigger value="register" className="flex items-center gap-2">
-                    <UserPlus className="w-4 h-4" />
+                  <TabsTrigger value="admin" className="flex items-center gap-1 text-xs">
+                    <Shield className="w-3 h-3" />
+                    Admin
+                  </TabsTrigger>
+                  <TabsTrigger value="student" className="flex items-center gap-1 text-xs">
+                    <GraduationCapIcon className="w-3 h-3" />
+                    Student
+                  </TabsTrigger>
+                  <TabsTrigger value="register" className="flex items-center gap-1 text-xs">
+                    <UserPlus className="w-3 h-3" />
                     Sign Up
                   </TabsTrigger>
                 </TabsList>
@@ -199,7 +207,141 @@ export default function AuthPage() {
                           Signing In...
                         </>
                       ) : (
-                        "Sign In"
+                        "Sign In as Teacher"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="admin" className="space-y-4">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-username">Admin Username</Label>
+                      <Input
+                        id="admin-username"
+                        type="text"
+                        placeholder="Enter admin username"
+                        value={loginForm.username}
+                        onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="admin-password">Admin Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="admin-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter admin password"
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                          required
+                          className="h-11 pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-sm text-red-800">
+                        <strong>Admin Access Required</strong><br />
+                        Enter your admin credentials to access system management features.
+                      </p>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing In...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Sign In as Admin
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="student" className="space-y-4">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="student-username">Student Username</Label>
+                      <Input
+                        id="student-username"
+                        type="text"
+                        placeholder="Enter student username"
+                        value={loginForm.username}
+                        onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="student-password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="student-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter password"
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                          required
+                          className="h-11 pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm text-green-800">
+                        <strong>Student Portal</strong><br />
+                        View your academic progress and report cards.
+                      </p>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing In...
+                        </>
+                      ) : (
+                        <>
+                          <GraduationCapIcon className="mr-2 h-4 w-4" />
+                          Sign In as Student
+                        </>
                       )}
                     </Button>
                   </form>
