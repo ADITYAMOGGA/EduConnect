@@ -36,27 +36,10 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<User | null>({
-    queryKey: ["/api/user"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/user", { credentials: "include" });
-        if (res.status === 401) return null;
-        if (!res.ok) throw new Error("Failed to fetch user");
-        const userData = await res.json();
-        console.log("User data fetched:", userData);
-        return userData;
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        return null;
-      }
-    },
-    retry: false,
-  });
+  // Disable old authentication system - using organization-based auth instead
+  const user = null;
+  const error = null;
+  const isLoading = false;
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
