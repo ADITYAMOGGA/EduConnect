@@ -77,7 +77,7 @@ Available Students: ${JSON.stringify(schoolData.students.map(s => ({
 
 Available Exams: ${JSON.stringify(schoolData.exams.map(e => ({
   name: e.name,
-  class: e.class
+  class: e.classLevel
 })))}
 
 Available Subjects: ${JSON.stringify(schoolData.subjects.map(s => ({
