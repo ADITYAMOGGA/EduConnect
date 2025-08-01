@@ -77,7 +77,8 @@ export default function SubjectManagementEnhanced() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/org/subjects", 'POST', data);
+      const res = await apiRequest("POST", "/api/org/subjects", data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
@@ -98,7 +99,8 @@ export default function SubjectManagementEnhanced() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest(`/api/org/subjects/${editingSubject?.id}`, 'PATCH', data);
+      const res = await apiRequest("PATCH", `/api/org/subjects/${editingSubject?.id}`, data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
@@ -119,7 +121,7 @@ export default function SubjectManagementEnhanced() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/org/subjects/${id}`, 'DELETE');
+      await apiRequest("DELETE", `/api/org/subjects/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
