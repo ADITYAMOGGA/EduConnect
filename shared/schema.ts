@@ -68,11 +68,21 @@ export const students = pgTable("students", {
 
 export const exams = pgTable("exams", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: uuid("org_id").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  class: varchar("class", { length: 10 }).notNull(),
-  maxMarks: integer("max_marks").notNull().default(100),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  description: text("description"),
+  classLevel: varchar("class_level", { length: 20 }).notNull(),
+  examType: varchar("exam_type", { length: 50 }).default("Term Exam"),
+  examDate: timestamp("exam_date"),
+  totalMarks: integer("total_marks").default(100),
+  passingMarks: integer("passing_marks").default(35),
+  duration: integer("duration_minutes").default(180),
+  academicYear: varchar("academic_year", { length: 20 }).default("2024-25"),
+  status: varchar("status", { length: 20 }).default("scheduled"),
+  instructions: text("instructions"),
+  userId: varchar("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const subjects = pgTable("subjects", {
@@ -91,11 +101,20 @@ export const subjects = pgTable("subjects", {
 
 export const marks = pgTable("marks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: uuid("org_id").notNull(),
   studentId: uuid("student_id").notNull().references(() => students.id),
   examId: uuid("exam_id").notNull().references(() => exams.id),
-  subject: varchar("subject", { length: 100 }).notNull(),
-  marks: integer("marks").notNull(),
+  subjectId: uuid("subject_id").notNull().references(() => subjects.id),
+  subjectName: varchar("subject_name", { length: 255 }).notNull(),
+  marksObtained: integer("marks_obtained").notNull(),
   maxMarks: integer("max_marks").notNull().default(100),
+  grade: varchar("grade", { length: 2 }),
+  remarks: text("remarks"),
+  teacherId: uuid("teacher_id").references(() => teachers.id),
+  entryDate: timestamp("entry_date").defaultNow(),
+  verifiedBy: uuid("verified_by"),
+  verifiedAt: timestamp("verified_at"),
+  status: varchar("status", { length: 20 }).default("draft"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

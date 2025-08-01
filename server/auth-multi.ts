@@ -1880,4 +1880,263 @@ router.delete("/api/org/teacher-subjects/:id", requireOrgAuth, async (req: any, 
   }
 });
 
+// Exam Management API
+router.get("/api/org/exams", requireOrgAuth, async (req: any, res) => {
+  try {
+    const orgId = req.orgId;
+
+    const { data: exams, error } = await supabase
+      .from("exams")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching exams:", error);
+      return res.status(500).json({ message: "Failed to fetch exams" });
+    }
+
+    res.json(exams || []);
+  } catch (error) {
+    console.error("Error in exams route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/exams", requireOrgAuth, async (req: any, res) => {
+  try {
+    const { orgId, ...examData } = req.body;
+    const actualOrgId = orgId || req.orgId;
+
+    const { data: exam, error } = await supabase
+      .from("exams")
+      .insert({
+        org_id: actualOrgId,
+        name: examData.name,
+        description: examData.description,
+        class_level: examData.classLevel,
+        exam_type: examData.examType,
+        exam_date: examData.examDate ? new Date(examData.examDate).toISOString() : null,
+        total_marks: examData.totalMarks,
+        passing_marks: examData.passingMarks,
+        duration_minutes: examData.duration,
+        academic_year: examData.academicYear,
+        instructions: examData.instructions,
+        status: "scheduled"
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating exam:", error);
+      return res.status(500).json({ message: "Failed to create exam" });
+    }
+
+    res.status(201).json(exam);
+  } catch (error) {
+    console.error("Error creating exam:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/exams/:id", requireOrgAuth, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Transform the data for database
+    const dbUpdates: any = {};
+    if (updates.name) dbUpdates.name = updates.name;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.classLevel) dbUpdates.class_level = updates.classLevel;
+    if (updates.examType) dbUpdates.exam_type = updates.examType;
+    if (updates.examDate) dbUpdates.exam_date = new Date(updates.examDate).toISOString();
+    if (updates.totalMarks) dbUpdates.total_marks = updates.totalMarks;
+    if (updates.passingMarks) dbUpdates.passing_marks = updates.passingMarks;
+    if (updates.duration) dbUpdates.duration_minutes = updates.duration;
+    if (updates.academicYear) dbUpdates.academic_year = updates.academicYear;
+    if (updates.instructions !== undefined) dbUpdates.instructions = updates.instructions;
+    if (updates.status) dbUpdates.status = updates.status;
+
+    const { data: exam, error } = await supabase
+      .from("exams")
+      .update(dbUpdates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating exam:", error);
+      return res.status(500).json({ message: "Failed to update exam" });
+    }
+
+    res.json(exam);
+  } catch (error) {
+    console.error("Error updating exam:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/org/exams/:id", requireOrgAuth, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+
+    // Delete related marks first
+    await supabase
+      .from("marks")
+      .delete()
+      .eq("exam_id", id);
+
+    // Delete exam
+    const { error } = await supabase
+      .from("exams")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting exam:", error);
+      return res.status(500).json({ message: "Failed to delete exam" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting exam:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Marks Management API
+router.get("/api/org/marks", requireOrgAuth, async (req: any, res) => {
+  try {
+    const orgId = req.orgId;
+    const { examId, subjectId, classLevel } = req.query;
+
+    let query = supabase
+      .from("marks")
+      .select(`
+        *,
+        students!inner(id, name, admission_no, class_level, section, roll_no),
+        subjects!inner(id, name, code, class_level, max_marks)
+      `)
+      .eq("org_id", orgId);
+
+    if (examId) query = query.eq("exam_id", examId);
+    if (subjectId) query = query.eq("subject_id", subjectId);
+    if (classLevel) query = query.eq("students.class_level", classLevel);
+
+    const { data: marks, error } = await query.order("students.name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching marks:", error);
+      return res.status(500).json({ message: "Failed to fetch marks" });
+    }
+
+    // Transform the data to match expected structure
+    const transformedMarks = marks?.map(mark => ({
+      id: mark.id,
+      orgId: mark.org_id,
+      studentId: mark.student_id,
+      examId: mark.exam_id,
+      subjectId: mark.subject_id,
+      subjectName: mark.subject_name,
+      marksObtained: mark.marks_obtained,
+      maxMarks: mark.max_marks,
+      grade: mark.grade,
+      remarks: mark.remarks,
+      status: mark.status,
+      student: mark.students,
+      subject: mark.subjects
+    }));
+
+    res.json(transformedMarks || []);
+  } catch (error) {
+    console.error("Error in marks route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/marks/bulk-create", requireOrgAuth, async (req: any, res) => {
+  try {
+    const orgId = req.orgId;
+    const { examId, subjectId, studentIds } = req.body;
+
+    if (!examId || !subjectId || !studentIds || !Array.isArray(studentIds)) {
+      return res.status(400).json({ message: "Exam ID, Subject ID, and Student IDs are required" });
+    }
+
+    // Get subject details for max marks
+    const { data: subject } = await supabase
+      .from("subjects")
+      .select("name, max_marks")
+      .eq("id", subjectId)
+      .single();
+
+    const marksData = studentIds.map(studentId => ({
+      org_id: orgId,
+      student_id: studentId,
+      exam_id: examId,
+      subject_id: subjectId,
+      subject_name: subject?.name || "Unknown Subject",
+      marks_obtained: 0,
+      max_marks: subject?.max_marks || 100,
+      status: "draft"
+    }));
+
+    const { data: marks, error } = await supabase
+      .from("marks")
+      .insert(marksData)
+      .select();
+
+    if (error) {
+      console.error("Error creating marks:", error);
+      return res.status(500).json({ message: "Failed to create marks" });
+    }
+
+    res.status(201).json(marks);
+  } catch (error) {
+    console.error("Error creating marks:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.patch("/api/org/marks/bulk-update", requireOrgAuth, async (req: any, res) => {
+  try {
+    const orgId = req.orgId;
+    const { examId, subjectId, marks } = req.body;
+
+    if (!examId || !subjectId || !marks || !Array.isArray(marks)) {
+      return res.status(400).json({ message: "Exam ID, Subject ID, and marks array are required" });
+    }
+
+    const updatePromises = marks.map(async (markData) => {
+      const { studentId, marksObtained, remarks } = markData;
+
+      return supabase
+        .from("marks")
+        .update({
+          marks_obtained: marksObtained,
+          remarks: remarks || null,
+          status: "entered"
+        })
+        .eq("org_id", orgId)
+        .eq("exam_id", examId)
+        .eq("subject_id", subjectId)
+        .eq("student_id", studentId);
+    });
+
+    const results = await Promise.all(updatePromises);
+    
+    const errors = results.filter(result => result.error);
+    if (errors.length > 0) {
+      console.error("Error updating marks:", errors);
+      return res.status(500).json({ message: "Failed to update some marks" });
+    }
+
+    res.json({ success: true, updated: marks.length });
+  } catch (error) {
+    console.error("Error updating marks:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

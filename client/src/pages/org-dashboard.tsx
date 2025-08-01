@@ -31,6 +31,8 @@ import StudentManagement from "@/components/StudentManagement";
 import SubjectManagementEnhanced from "@/components/SubjectManagementEnhanced";
 import TeacherManagementEnhanced from "@/components/TeacherManagementEnhanced";
 import TeacherSubjectAssignment from "@/components/TeacherSubjectAssignment";
+import ExamManagement from "@/components/ExamManagement";
+import MarksManagement from "@/components/MarksManagement";
 import AddStudentModal from "@/components/AddStudentModal";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddSubjectModal from "@/components/AddSubjectModal";
@@ -201,7 +203,7 @@ export default function OrgDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard</span>
@@ -225,6 +227,10 @@ export default function OrgDashboard() {
             <TabsTrigger value="exams" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>Exams</span>
+            </TabsTrigger>
+            <TabsTrigger value="marks" className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>Marks</span>
             </TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
@@ -369,23 +375,26 @@ export default function OrgDashboard() {
 
           {/* Exams Management */}
           <TabsContent value="exams" className="space-y-6">
-            <Card className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Exams Management</CardTitle>
-                <CardDescription>Create and manage exams</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Exams Yet</h3>
-                  <p className="text-slate-600 dark:text-slate-400 mb-4">Create your first exam to get started</p>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Exam
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <motion.div
+              key="exams"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ExamManagement />
+            </motion.div>
+          </TabsContent>
+
+          {/* Marks Management */}
+          <TabsContent value="marks" className="space-y-6">
+            <motion.div
+              key="marks"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <MarksManagement />
+            </motion.div>
           </TabsContent>
 
           {/* Reports */}

@@ -45,11 +45,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Key Features and Technical Implementations
 - **Authentication System**: Custom username/password authentication, supporting Platform Admin, School Admin, and Teacher roles with dedicated login portals.
-- **Student Management**: CRUD operations, CSV import for bulk student data, class-based filtering, and admission number/class management.
-- **Marks Entry System**: Subject-wise marks entry, exam creation, Excel-like inline editing with real-time validation, automatic calculations (totals, percentages), and grade assignments.
+- **Student Management**: CRUD operations with instant UI updates, CSV import for bulk student data, class-based filtering, admission number/class management, and comprehensive student profiles with extended fields (father/mother names, contact details, etc.).
+- **Teacher-Subject Assignment**: Advanced teacher-subject assignment system with class-level mapping, academic year tracking, and comprehensive filtering and search capabilities.
+- **Exam Management**: Full exam lifecycle management with detailed exam creation (type, date, duration, instructions), status tracking (scheduled/ongoing/completed), and comprehensive exam administration.
+- **Marks Management**: Advanced marks entry and management system with Excel-like inline editing, automatic grade calculations, bulk operations, teacher-wise marks entry organization, and real-time validation.
+- **Instant UI Updates**: TanStack Query cache invalidation for immediate UI updates on all CRUD operations without page reloads.
 - **Certificate Generation**: Dynamic preview, configurable options (photo, admission number, logo, marks display), PDF generation with professional styling (e.g., gradient backgrounds, tabular displays), and school branding integration.
 - **Data Import/Export**: CSV file parsing for bulk imports with format validation and preview; export functionality (CSV, JSON).
-- **Admin & School Admin Panels**: Comprehensive dashboards for managing users, organizations, students, teachers, and subjects with CRUD operations, statistics, and search/filter capabilities. Includes account hold functionality for users.
+- **Admin & School Admin Panels**: Comprehensive dashboards for managing users, organizations, students, teachers, subjects, exams, and marks with CRUD operations, statistics, and search/filter capabilities. Includes account hold functionality for users.
 - **AI Assistant**: Gemini API integration for an AI-powered chatbot to provide student data insights.
 - **Theming**: Dynamic theme switching with localStorage persistence.
 
