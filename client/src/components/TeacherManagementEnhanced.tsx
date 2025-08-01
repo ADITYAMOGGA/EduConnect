@@ -26,6 +26,7 @@ interface Teacher {
   experience_years: number;
   employee_id: string;
   status: string;
+  classes?: string[];
   created_at: string;
 }
 
@@ -184,7 +185,7 @@ export default function TeacherManagementEnhanced() {
       employee_id: teacher.employee_id,
       password: "", // Don't populate password for security
       status: teacher.status,
-      classes: []
+      classes: teacher.classes || []
     });
     setIsDialogOpen(true);
   };

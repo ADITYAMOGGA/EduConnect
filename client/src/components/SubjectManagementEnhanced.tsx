@@ -41,6 +41,7 @@ export default function SubjectManagementEnhanced() {
     name: "",
     code: "",
     class_level: "all",
+    selected_classes: [] as string[],
     max_marks: 100,
     is_optional: false,
     is_required: false,
@@ -78,10 +79,24 @@ export default function SubjectManagementEnhanced() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await apiRequest("POST", "/api/org/subjects", data);
+      // Determine final class_level based on selection
+      const finalClassLevel = data.class_level === 'all' ? 'all' : 
+                             data.selected_classes.length === 1 ? data.selected_classes[0] :
+                             data.selected_classes.length > 1 ? data.selected_classes.join(',') : 'all';
+      
+      const payload = {
+        ...data,
+        class_level: finalClassLevel
+      };
+      const res = await apiRequest("POST", "/api/org/subjects", payload);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (newSubject) => {
+      // Optimistically update the cache with the new subject
+      queryClient.setQueryData(["/api/org/subjects", orgId, selectedClass], (oldData: Subject[] | undefined) => {
+        if (!oldData) return [newSubject];
+        return [...oldData, newSubject];
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
       handleCloseDialog();
       toast({
@@ -100,7 +115,16 @@ export default function SubjectManagementEnhanced() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const res = await apiRequest("PATCH", `/api/org/subjects/${editingSubject?.id}`, data);
+      // Determine final class_level based on selection
+      const finalClassLevel = data.class_level === 'all' ? 'all' : 
+                             data.selected_classes.length === 1 ? data.selected_classes[0] :
+                             data.selected_classes.length > 1 ? data.selected_classes.join(',') : 'all';
+      
+      const payload = {
+        ...data,
+        class_level: finalClassLevel
+      };
+      const res = await apiRequest("PATCH", `/api/org/subjects/${editingSubject?.id}`, payload);
       return await res.json();
     },
     onSuccess: () => {
@@ -155,6 +179,7 @@ export default function SubjectManagementEnhanced() {
       name: subject.name,
       code: subject.code,
       class_level: subject.class_level,
+      selected_classes: subject.class_level === 'all' ? [] : [subject.class_level],
       max_marks: subject.max_marks,
       is_optional: subject.is_optional,
       is_required: false,
@@ -183,6 +208,7 @@ export default function SubjectManagementEnhanced() {
       name: "",
       code: "",
       class_level: "all",
+      selected_classes: [],
       max_marks: 100,
       is_optional: false,
       is_required: false,
@@ -370,42 +396,85 @@ export default function SubjectManagementEnhanced() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="class_level">Class</Label>
-                <Select value={formData.class_level} onValueChange={(value) => setFormData({ ...formData, class_level: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Classes</SelectItem>
-                    <SelectItem value="1">Class 1</SelectItem>
-                    <SelectItem value="2">Class 2</SelectItem>
-                    <SelectItem value="3">Class 3</SelectItem>
-                    <SelectItem value="4">Class 4</SelectItem>
-                    <SelectItem value="5">Class 5</SelectItem>
-                    <SelectItem value="6">Class 6</SelectItem>
-                    <SelectItem value="7">Class 7</SelectItem>
-                    <SelectItem value="8">Class 8</SelectItem>
-                    <SelectItem value="9">Class 9</SelectItem>
-                    <SelectItem value="10">Class 10</SelectItem>
-                    <SelectItem value="11">Class 11</SelectItem>
-                    <SelectItem value="12">Class 12</SelectItem>
-                  </SelectContent>
-                </Select>
+            {/* Multiple Class Selection for Subjects */}
+            <div className="space-y-2">
+              <Label>Applicable Classes (Select Multiple)</Label>
+              <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg bg-gray-50">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="class-all"
+                    checked={formData.class_level === 'all'}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFormData({
+                          ...formData,
+                          class_level: 'all',
+                          selected_classes: []
+                        });
+                      } else {
+                        setFormData({
+                          ...formData,
+                          class_level: '',
+                          selected_classes: []
+                        });
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <Label htmlFor="class-all" className="text-sm font-medium">
+                    All Classes
+                  </Label>
+                </div>
+                
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((classNum) => (
+                  <div key={classNum} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`subject-class-${classNum}`}
+                      checked={formData.selected_classes.includes(classNum.toString())}
+                      disabled={formData.class_level === 'all'}
+                      onChange={(e) => {
+                        const classStr = classNum.toString();
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            class_level: '',
+                            selected_classes: [...formData.selected_classes, classStr]
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            selected_classes: formData.selected_classes.filter(c => c !== classStr)
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <Label htmlFor={`subject-class-${classNum}`} className={`text-sm ${formData.class_level === 'all' ? 'text-gray-400' : ''}`}>
+                      Class {classNum}
+                    </Label>
+                  </div>
+                ))}
               </div>
+              <p className="text-sm text-gray-500">
+                {formData.class_level === 'all' 
+                  ? 'Subject will be available for all classes'
+                  : `Selected classes: ${formData.selected_classes.length > 0 ? formData.selected_classes.map(c => `Class ${c}`).join(', ') : 'None'}`
+                }
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="max_marks">Max Marks</Label>
-                <Input
-                  id="max_marks"
-                  type="number"
-                  value={formData.max_marks}
-                  onChange={(e) => setFormData({ ...formData, max_marks: parseInt(e.target.value) || 100 })}
-                  min="1"
-                  max="200"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="max_marks">Max Marks</Label>
+              <Input
+                id="max_marks"
+                type="number"
+                value={formData.max_marks}
+                onChange={(e) => setFormData({ ...formData, max_marks: parseInt(e.target.value) || 100 })}
+                min="1"
+                max="200"
+              />
             </div>
 
             <div className="space-y-2">
