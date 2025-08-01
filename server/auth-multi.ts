@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { supabase } from "./db";
 import multer from "multer";
+import Papa from "papaparse";
 
 const router = Router();
 
@@ -843,15 +844,28 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
       return res.status(400).json({ message: "Organization ID is required" });
     }
 
-    // Parse CSV file
+    // Parse CSV file using Papa Parse for proper handling of quoted fields
     const csvData = file.buffer.toString('utf8');
     console.log("Raw CSV data:", csvData);
-    const lines = csvData.split('\n').filter((line: string) => line.trim());
-    console.log("Parsed lines:", lines);
-    const headers = lines[0].split(',').map((h: string) => h.trim().replace(/"/g, ''));
-    console.log("Headers:", headers);
+    
+    const parseResult = Papa.parse(csvData, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim()
+    });
+
+    if (parseResult.errors.length > 0) {
+      console.log("CSV parsing errors:", parseResult.errors);
+      return res.status(400).json({ 
+        message: `CSV parsing error: ${parseResult.errors[0].message}` 
+      });
+    }
+
+    const students = parseResult.data as any[];
+    console.log("Parsed students:", students);
     
     const requiredFields = ['name', 'admission_no', 'class_level'];
+    const headers = Object.keys(students[0] || {});
     const missingFields = requiredFields.filter(field => !headers.includes(field));
     
     if (missingFields.length > 0) {
@@ -865,21 +879,19 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
     const errorMessages: string[] = [];
 
     // Process each row
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map((v: string) => v.trim().replace(/"/g, ''));
-      console.log(`Processing row ${i + 1}:`, values);
+    for (let i = 0; i < students.length; i++) {
+      const studentRow = students[i];
+      console.log(`Processing row ${i + 1}:`, studentRow);
       
-      if (values.length < headers.length) {
-        console.log(`Skipping row ${i + 1}: not enough values`);
+      // Skip empty rows
+      if (!studentRow.name && !studentRow.admission_no) {
         continue;
       }
 
-      const studentData: any = { org_id: orgId };
-      headers.forEach((header: string, index: number) => {
-        if (values[index]) {
-          studentData[header] = values[index];
-        }
-      });
+      const studentData: any = { 
+        org_id: orgId,
+        ...studentRow
+      };
       console.log(`Student data for row ${i + 1}:`, studentData);
 
       // Validate required fields
@@ -899,12 +911,15 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
         if (error) {
           errors++;
           errorMessages.push(`Row ${i + 1}: ${error.message}`);
+          console.log(`Database error for row ${i + 1}:`, error);
         } else {
           imported++;
+          console.log(`Successfully imported row ${i + 1}`);
         }
       } catch (error) {
         errors++;
         errorMessages.push(`Row ${i + 1}: Database error`);
+        console.log(`Exception for row ${i + 1}:`, error);
       }
     }
 
