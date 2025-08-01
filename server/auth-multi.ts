@@ -1759,4 +1759,125 @@ router.post("/api/reset/admin", async (req, res) => {
   }
 });
 
+// Teacher-Subject Assignment Management
+router.get("/api/org/teacher-subjects", requireOrgAuth, async (req: any, res) => {
+  try {
+    const orgId = req.orgId;
+
+    const { data: assignments, error } = await supabase
+      .from("teacher_subjects")
+      .select(`
+        *,
+        teachers!inner(id, name, email, phone, qualification, employee_id),
+        subjects!inner(id, name, code, class_level, max_marks)
+      `)
+      .eq("teachers.org_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching teacher-subject assignments:", error);
+      return res.status(500).json({ message: "Failed to fetch assignments" });
+    }
+
+    // Transform the data to match the expected structure
+    const transformedAssignments = assignments?.map(assignment => ({
+      id: assignment.id,
+      teacherId: assignment.teacher_id,
+      subjectId: assignment.subject_id,
+      classLevel: assignment.class_level,
+      academicYear: assignment.academic_year,
+      createdAt: assignment.created_at,
+      teacher: assignment.teachers,
+      subject: assignment.subjects
+    }));
+
+    res.json(transformedAssignments || []);
+  } catch (error) {
+    console.error("Error in teacher-subjects route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/api/org/teacher-subjects", requireOrgAuth, async (req: any, res) => {
+  try {
+    const { teacherId, subjectId, classLevel, academicYear } = req.body;
+
+    if (!teacherId || !subjectId || !classLevel) {
+      return res.status(400).json({ message: "Teacher ID, Subject ID, and Class Level are required" });
+    }
+
+    // Check if assignment already exists
+    const { data: existing } = await supabase
+      .from("teacher_subjects")
+      .select("id")
+      .eq("teacher_id", teacherId)
+      .eq("subject_id", subjectId)
+      .eq("class_level", classLevel)
+      .eq("academic_year", academicYear || "2024-25")
+      .single();
+
+    if (existing) {
+      return res.status(400).json({ message: "This assignment already exists" });
+    }
+
+    const { data: assignment, error } = await supabase
+      .from("teacher_subjects")
+      .insert({
+        teacher_id: teacherId,
+        subject_id: subjectId,
+        class_level: classLevel,
+        academic_year: academicYear || "2024-25"
+      })
+      .select(`
+        *,
+        teachers!inner(id, name, email, phone, qualification, employee_id),
+        subjects!inner(id, name, code, class_level, max_marks)
+      `)
+      .single();
+
+    if (error) {
+      console.error("Error creating assignment:", error);
+      return res.status(500).json({ message: "Failed to create assignment" });
+    }
+
+    // Transform the data to match the expected structure
+    const transformedAssignment = {
+      id: assignment.id,
+      teacherId: assignment.teacher_id,
+      subjectId: assignment.subject_id,
+      classLevel: assignment.class_level,
+      academicYear: assignment.academic_year,
+      createdAt: assignment.created_at,
+      teacher: assignment.teachers,
+      subject: assignment.subjects
+    };
+
+    res.status(201).json(transformedAssignment);
+  } catch (error) {
+    console.error("Error creating assignment:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/api/org/teacher-subjects/:id", requireOrgAuth, async (req: any, res) => {
+  try {
+    const { id } = req.params;
+
+    const { error } = await supabase
+      .from("teacher_subjects")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting assignment:", error);
+      return res.status(500).json({ message: "Failed to delete assignment" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting assignment:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

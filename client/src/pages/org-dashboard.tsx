@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import StudentManagement from "@/components/StudentManagement";
 import SubjectManagementEnhanced from "@/components/SubjectManagementEnhanced";
 import TeacherManagementEnhanced from "@/components/TeacherManagementEnhanced";
+import TeacherSubjectAssignment from "@/components/TeacherSubjectAssignment";
 import AddStudentModal from "@/components/AddStudentModal";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddSubjectModal from "@/components/AddSubjectModal";
@@ -200,7 +201,7 @@ export default function OrgDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-7 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="w-4 h-4" />
               <span>Dashboard</span>
@@ -216,6 +217,10 @@ export default function OrgDashboard() {
             <TabsTrigger value="subjects" className="flex items-center space-x-2">
               <BookOpen className="w-4 h-4" />
               <span>Subjects</span>
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="flex items-center space-x-2">
+              <Users className="w-4 h-4" />
+              <span>Assign T-S</span>
             </TabsTrigger>
             <TabsTrigger value="exams" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
@@ -347,6 +352,18 @@ export default function OrgDashboard() {
               transition={{ duration: 0.3 }}
             >
               <SubjectManagementEnhanced />
+            </motion.div>
+          </TabsContent>
+
+          {/* Teacher-Subject Assignments */}
+          <TabsContent value="assignments" className="space-y-6">
+            <motion.div
+              key="assignments"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <TeacherSubjectAssignment />
             </motion.div>
           </TabsContent>
 

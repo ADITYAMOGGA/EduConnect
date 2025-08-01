@@ -40,13 +40,13 @@ export default function EditStudentModal({ open, onOpenChange, orgId, student }:
         name: student.name || "",
         admission_no: student.admissionNo || "",
         class_level: student.class || "",
-        section: "",
-        roll_no: "",
-        father_name: "",
-        mother_name: "",
-        phone: "",
-        address: "",
-        date_of_birth: "",
+        section: student.section || "",
+        roll_no: student.rollNo || "",
+        father_name: student.fatherName || "",
+        mother_name: student.motherName || "",
+        phone: student.phone || "",
+        address: student.address || "",
+        date_of_birth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : "",
       });
     } else {
       setFormData({
