@@ -31,6 +31,7 @@ interface Teacher {
 
 export default function TeacherManagementEnhanced() {
   const { toast } = useToast();
+  const { orgId, isAuthenticated } = useOrgAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
