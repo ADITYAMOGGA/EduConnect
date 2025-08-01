@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { supabase } from "./db";
 import multer from "multer";
 import Papa from "papaparse";
+import { logActivity, getClientInfo, ACTIVITIES } from "./activity-logger";
 
 const router = Router();
 
@@ -51,6 +52,19 @@ router.post("/api/admin/login", async (req, res) => {
       .from("admins")
       .update({ last_login: new Date().toISOString() })
       .eq("id", admin.id);
+
+    // Log admin login activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: 'system', // System-wide admin
+      userId: admin.id,
+      userType: 'admin',
+      userName: admin.username,
+      activity: ACTIVITIES.LOGIN,
+      description: `Admin ${admin.username} logged in`,
+      metadata: { loginTime: new Date().toISOString() },
+      ...clientInfo,
+    });
 
     // Remove password from response
     const { password_hash, ...adminData } = admin;
@@ -484,6 +498,31 @@ router.post("/api/org/signup", async (req, res) => {
 });
 
 // ORG ADMIN LOGIN
+// Get recent activities for organization
+router.get("/api/org/activities", requireOrgAuth, async (req, res) => {
+  try {
+    const orgId = (req as any).orgId;
+    const limit = parseInt(req.query.limit as string) || 50;
+
+    const { data: activities, error } = await supabase
+      .from("activity_logs")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Error fetching activities:", error);
+      return res.status(500).json({ message: "Failed to fetch activities" });
+    }
+
+    res.json(activities || []);
+  } catch (error) {
+    console.error("Error in activities route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 router.post("/api/org/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -518,6 +557,19 @@ router.post("/api/org/login", async (req, res) => {
       .from("org_admins")
       .update({ last_login: new Date().toISOString() })
       .eq("id", orgAdmin.id);
+
+    // Log organization admin login activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: orgAdmin.org_id,
+      userId: orgAdmin.id,
+      userType: 'org_admin',
+      userName: orgAdmin.username,
+      activity: ACTIVITIES.LOGIN,
+      description: `School Admin ${orgAdmin.username} logged in`,
+      metadata: { loginTime: new Date().toISOString() },
+      ...clientInfo,
+    });
 
     // Remove password from response
     const { password_hash, organizations, ...adminData } = orgAdmin;
@@ -575,6 +627,19 @@ router.post("/api/teacher/login", async (req, res) => {
       .from("teachers")
       .update({ last_login: new Date().toISOString() })
       .eq("id", teacher.id);
+
+    // Log teacher login activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: teacher.org_id,
+      userId: teacher.id,
+      userType: 'teacher',
+      userName: teacher.username,
+      activity: ACTIVITIES.LOGIN,
+      description: `Teacher ${teacher.username} logged in`,
+      metadata: { loginTime: new Date().toISOString() },
+      ...clientInfo,
+    });
 
     // Extract subjects from teacher_subjects relation
     const subjects = teacher.teacher_subjects?.map((ts: any) => ts.subjects) || [];
@@ -777,6 +842,24 @@ router.post("/api/org/students", requireOrgAuth, async (req: any, res) => {
       console.error("Error creating student:", error);
       return res.status(500).json({ message: "Failed to create student" });
     }
+
+    // Log student creation activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: actualOrgId,
+      userId: req.userId || 'system',
+      userType: 'org_admin',
+      userName: req.userName || 'Admin',
+      activity: ACTIVITIES.CREATE_STUDENT,
+      description: `Created new student: ${studentData.name}`,
+      metadata: { 
+        studentId: student.id, 
+        admissionNo: studentData.admission_no,
+        classLevel: studentData.class_level,
+        section: studentData.section 
+      },
+      ...clientInfo,
+    });
 
     res.status(201).json(student);
   } catch (error) {
@@ -1001,6 +1084,19 @@ router.post("/api/org/teachers", requireOrgAuth, async (req: any, res) => {
         .insert(subjectAssignments);
     }
 
+    // Log teacher creation activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: actualOrgId,
+      userId: req.userId || 'system',
+      userType: 'org_admin',
+      userName: req.userName || 'Admin',
+      activity: ACTIVITIES.CREATE_TEACHER,
+      description: `Created new teacher: ${teacherData.name}`,
+      metadata: { teacherId: teacher.id, username: teacherData.username },
+      ...clientInfo,
+    });
+
     res.status(201).json(teacher);
   } catch (error) {
     console.error("Error creating teacher:", error);
@@ -1137,6 +1233,24 @@ router.post("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
       console.error("Error creating subject:", error);
       return res.status(500).json({ message: "Failed to create subject" });
     }
+
+    // Log subject creation activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: actualOrgId,
+      userId: req.userId || 'system',
+      userType: 'org_admin',
+      userName: req.userName || 'Admin',
+      activity: ACTIVITIES.CREATE_SUBJECT,
+      description: `Created new subject: ${subjectData.name}`,
+      metadata: { 
+        subjectId: subject.id, 
+        code: subjectData.code,
+        classLevel: subjectData.class_level,
+        maxMarks: subjectData.max_marks 
+      },
+      ...clientInfo,
+    });
 
     res.status(201).json(subject);
   } catch (error) {
@@ -1848,6 +1962,25 @@ router.post("/api/org/teacher-subjects", requireOrgAuth, async (req: any, res) =
       console.error("Error creating assignment:", error);
       return res.status(500).json({ message: "Failed to create assignment" });
     }
+
+    // Log teacher assignment activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: req.orgId,
+      userId: req.userId || 'system',
+      userType: 'org_admin',
+      userName: req.userName || 'Admin',  
+      activity: ACTIVITIES.ASSIGN_TEACHER,
+      description: `Assigned teacher to subject: ${assignment.teachers?.name} → ${assignment.subjects?.name} (Class ${classLevel})`,
+      metadata: { 
+        assignmentId: assignment.id,
+        teacherId: teacherId,
+        subjectId: subjectId,
+        classLevel: classLevel,
+        academicYear: academicYear || "2024-25"
+      },
+      ...clientInfo,
+    });
 
     // Transform the data to match the expected structure
     const transformedAssignment = {

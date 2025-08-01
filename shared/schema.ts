@@ -145,6 +145,21 @@ export const teacherSubjects = pgTable("teacher_subjects", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Activity logs table for tracking real system activities
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orgId: uuid("org_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  userType: varchar("user_type", { length: 50 }).notNull(), // 'admin', 'org_admin', 'teacher'
+  userName: varchar("user_name", { length: 255 }).notNull(),
+  activity: varchar("activity", { length: 100 }).notNull(), // 'login', 'create_student', 'update_marks', etc.
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"), // Additional context data
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -184,6 +199,11 @@ export const insertTeacherSubjectSchema = createInsertSchema(teacherSubjects).om
   createdAt: true,
 });
 
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
@@ -206,3 +226,5 @@ export type InsertTeacher = z.infer<typeof insertTeacherSchema>;
 export type Teacher = typeof teachers.$inferSelect;
 export type InsertTeacherSubject = z.infer<typeof insertTeacherSubjectSchema>;
 export type TeacherSubject = typeof teacherSubjects.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;

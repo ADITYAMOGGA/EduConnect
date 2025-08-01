@@ -81,6 +81,11 @@ interface Subject {
 export default function OrgDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch recent activities for the organization
+  const { data: recentActivities = [], isLoading: activitiesLoading } = useQuery({
+    queryKey: ['/api/org/activities'],
+  });
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -88,6 +93,46 @@ export default function OrgDashboard() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Helper function to get appropriate icon for activity type
+  const getActivityIcon = (activityType: string) => {
+    switch (activityType) {
+      case 'login':
+        return <Users className="w-5 h-5 text-blue-600" />;
+      case 'create_student':
+        return <GraduationCap className="w-5 h-5 text-green-600" />;
+      case 'create_teacher':
+        return <Users className="w-5 h-5 text-purple-600" />;
+      case 'create_subject':
+        return <BookOpen className="w-5 h-5 text-orange-600" />;
+      case 'assign_teacher':
+        return <CheckCircle className="w-5 h-5 text-teal-600" />;
+      case 'enter_marks':
+        return <FileText className="w-5 h-5 text-indigo-600" />;
+      case 'create_exam':
+        return <FileText className="w-5 h-5 text-red-600" />;
+      case 'bulk_import':
+        return <Upload className="w-5 h-5 text-yellow-600" />;
+      default:
+        return <Clock className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  // Helper function to format activity time
+  const formatActivityTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   // Get organization data from localStorage
   const orgData = JSON.parse(localStorage.getItem("organizationData") || "{}");
@@ -304,22 +349,38 @@ export default function OrgDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p className="font-medium">New student registered</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Arjun Kumar added to Class 10-A</p>
-                      </div>
+                  {activitiesLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg animate-pulse">
+                          <div className="w-5 h-5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <Users className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium">Teacher assigned</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Mrs. Priya Sharma assigned to Mathematics</p>
-                      </div>
+                  ) : Array.isArray(recentActivities) && recentActivities.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentActivities.map((activity: any) => (
+                        <div key={activity.id} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          {getActivityIcon(activity.activity)}
+                          <div>
+                            <p className="font-medium">{activity.description}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              {activity.user_name} • {formatActivityTime(activity.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <Clock className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                      <p>No recent activity to display</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
