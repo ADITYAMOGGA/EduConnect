@@ -40,7 +40,7 @@ export default function SubjectManagementEnhanced() {
   const [formData, setFormData] = useState({
     name: "",
     code: "",
-    class_level: "10",
+    class_level: "all",
     max_marks: 100,
     is_optional: false,
     description: ""
@@ -178,7 +178,7 @@ export default function SubjectManagementEnhanced() {
     setFormData({
       name: "",
       code: "",
-      class_level: "10",
+      class_level: "all",
       max_marks: 100,
       is_optional: false,
       description: ""
@@ -295,7 +295,7 @@ export default function SubjectManagementEnhanced() {
                         <Badge variant="outline">{subject.code}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge>Class {subject.class_level}</Badge>
+                        <Badge>{subject.class_level === 'all' ? 'All Classes' : `Class ${subject.class_level}`}</Badge>
                       </TableCell>
                       <TableCell>{subject.max_marks}</TableCell>
                       <TableCell>
@@ -373,6 +373,15 @@ export default function SubjectManagementEnhanced() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All Classes</SelectItem>
+                    <SelectItem value="1">Class 1</SelectItem>
+                    <SelectItem value="2">Class 2</SelectItem>
+                    <SelectItem value="3">Class 3</SelectItem>
+                    <SelectItem value="4">Class 4</SelectItem>
+                    <SelectItem value="5">Class 5</SelectItem>
+                    <SelectItem value="6">Class 6</SelectItem>
+                    <SelectItem value="7">Class 7</SelectItem>
+                    <SelectItem value="8">Class 8</SelectItem>
                     <SelectItem value="9">Class 9</SelectItem>
                     <SelectItem value="10">Class 10</SelectItem>
                     <SelectItem value="11">Class 11</SelectItem>

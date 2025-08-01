@@ -1202,7 +1202,7 @@ router.get("/api/org/exams", async (req, res) => {
       .from("exams")
       .select("*")
       .eq("org_id", orgId)
-      .order("exam_date", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching exams:", error);
