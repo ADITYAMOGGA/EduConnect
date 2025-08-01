@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Upload, Edit, Trash2, User, UserX, Search, Filter, AlertTriangle } from "lucide-react";
 import type { Student } from "@shared/schema";
 import AddStudentModal from "./AddStudentModal";
+import EditStudentModal from "./EditStudentModal";
 import CSVImportModal from "./CSVImportModal";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOrgAuth } from "@/hooks/useOrgAuth";
@@ -21,6 +22,7 @@ export default function StudentManagement() {
 
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
@@ -87,7 +89,13 @@ export default function StudentManagement() {
   // Bulk delete students mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
-      await Promise.all(studentIds.map(id => apiRequest(`/api/org/students/${id}`, 'DELETE')));
+      const results = await Promise.allSettled(
+        studentIds.map(id => apiRequest(`/api/org/students/${id}`, 'DELETE'))
+      );
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        throw new Error(`Failed to delete ${failures.length} students`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/org/students'] });
@@ -144,11 +152,11 @@ export default function StudentManagement() {
 
   const handleEditStudent = (student: Student) => {
     setEditingStudent(student);
-    setShowAddModal(true);
+    setShowEditModal(true);
   };
 
-  const handleCloseModal = () => {
-    setShowAddModal(false);
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
     setEditingStudent(null);
   };
 
@@ -357,6 +365,15 @@ export default function StudentManagement() {
           open={showAddModal}
           onOpenChange={setShowAddModal}
           orgId={orgId || ''}
+        />
+      )}
+
+      {showEditModal && (
+        <EditStudentModal
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          orgId={orgId || ''}
+          student={editingStudent}
         />
       )}
 
