@@ -845,8 +845,11 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
 
     // Parse CSV file
     const csvData = file.buffer.toString('utf8');
+    console.log("Raw CSV data:", csvData);
     const lines = csvData.split('\n').filter((line: string) => line.trim());
+    console.log("Parsed lines:", lines);
     const headers = lines[0].split(',').map((h: string) => h.trim().replace(/"/g, ''));
+    console.log("Headers:", headers);
     
     const requiredFields = ['name', 'admission_no', 'class_level'];
     const missingFields = requiredFields.filter(field => !headers.includes(field));
@@ -864,8 +867,12 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
     // Process each row
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map((v: string) => v.trim().replace(/"/g, ''));
+      console.log(`Processing row ${i + 1}:`, values);
       
-      if (values.length < headers.length) continue;
+      if (values.length < headers.length) {
+        console.log(`Skipping row ${i + 1}: not enough values`);
+        continue;
+      }
 
       const studentData: any = { org_id: orgId };
       headers.forEach((header: string, index: number) => {
@@ -873,11 +880,14 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
           studentData[header] = values[index];
         }
       });
+      console.log(`Student data for row ${i + 1}:`, studentData);
 
       // Validate required fields
       if (!studentData.name || !studentData.admission_no || !studentData.class_level) {
         errors++;
-        errorMessages.push(`Row ${i + 1}: Missing required fields`);
+        const missingFieldsMsg = `Row ${i + 1}: Missing required fields - name: ${studentData.name}, admission_no: ${studentData.admission_no}, class_level: ${studentData.class_level}`;
+        errorMessages.push(missingFieldsMsg);
+        console.log(missingFieldsMsg);
         continue;
       }
 
@@ -898,6 +908,7 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
       }
     }
 
+    console.log("Import result:", { imported, errors, errorMessages });
     res.json({
       imported,
       errors,
