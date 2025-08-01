@@ -39,6 +39,9 @@ interface User {
   role: string;
   status: string;
   createdAt: string;
+  userType?: string;
+  designation?: string;
+  qualification?: string;
 }
 
 export default function AdminDashboard() {
@@ -454,9 +457,9 @@ export default function AdminDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="admin">Platform Admin</SelectItem>
+                  <SelectItem value="school_admin">School Admin</SelectItem>
                   <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -524,7 +527,7 @@ export default function AdminDashboard() {
                         <td className="p-3">
                           <Badge className={`${getRoleBadgeColor(user.role)} flex items-center gap-1 w-fit`}>
                             {getRoleIcon(user.role)}
-                            {user.role}
+                            {user.userType || user.role}
                           </Badge>
                         </td>
                         <td className="p-3">

@@ -212,21 +212,66 @@ router.get("/api/admin/users", async (req, res) => {
       .from("admins")
       .select("id, username, name, email, role, status, created_at, last_login");
     
-    // Get all org admins
+    // Get all org admins with organization name
     const { data: orgAdmins } = await supabase
       .from("org_admins")
-      .select("id, username, name, email, role, status, created_at, organization_id");
+      .select(`
+        id, username, name, email, designation, status, created_at, org_id,
+        organizations!inner(name)
+      `);
     
-    // Get all teachers
+    // Get all teachers with organization name
     const { data: teachers } = await supabase
       .from("teachers")
-      .select("id, username, name, email, role, status, created_at, organization_id");
+      .select(`
+        id, username, name, email, qualification, status, created_at, org_id,
+        organizations!inner(name)
+      `);
     
-    // Combine all users with role information
+    // Combine all users with proper formatting for frontend
     const allUsers = [
-      ...(admins || []).map(user => ({ ...user, userType: 'admin' })),
-      ...(orgAdmins || []).map(user => ({ ...user, userType: 'org_admin' })),
-      ...(teachers || []).map(user => ({ ...user, userType: 'teacher' }))
+      ...(admins || []).map(user => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email || '',
+        schoolName: 'Platform Administration',
+        role: user.role || 'admin',
+        status: user.status,
+        createdAt: user.created_at,
+        lastLogin: user.last_login,
+        userType: 'Platform Admin'
+      })),
+      ...(orgAdmins || []).map(user => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email || '',
+        schoolName: (user.organizations as any)?.name || 'Unknown School',
+        role: 'school_admin',
+        status: user.status,
+        createdAt: user.created_at,
+        designation: user.designation,
+        userType: 'School Admin'
+      })),
+      ...(teachers || []).map(user => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email || '',
+        schoolName: (user.organizations as any)?.name || 'Unknown School',
+        role: 'teacher',
+        status: user.status,
+        createdAt: user.created_at,
+        qualification: user.qualification,
+        userType: 'Teacher'
+      }))
     ];
     
     res.json(allUsers);
@@ -1580,7 +1625,7 @@ router.post("/api/setup/test-data", async (req, res) => {
         });
     }
 
-    // Create test exam
+    // Create test exam (using correct schema fields)
     const { data: exam, error: examError } = await supabase
       .from("exams")
       .insert({
@@ -1588,8 +1633,9 @@ router.post("/api/setup/test-data", async (req, res) => {
         name: "Mid Term Exam 2025",
         class_level: "10",
         exam_type: "Mid Term",
-        exam_date: "2025-02-15",
-        max_marks: 100,
+        start_date: "2025-02-15",
+        end_date: "2025-02-20",
+        academic_year: "2024-25",
         status: "active"
       })
       .select()
