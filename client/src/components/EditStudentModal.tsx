@@ -66,9 +66,10 @@ export default function EditStudentModal({ open, onOpenChange, orgId, student }:
 
   const updateStudentMutation = useMutation({
     mutationFn: async (studentData: any) => {
-      const response = await fetch(`/api/org/students/${student?.id}`, {
+      const response = await fetch(`/api/org/students/${student?.id}?orgId=${orgId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ...studentData, orgId }),
       });
       if (!response.ok) throw new Error('Failed to update student');

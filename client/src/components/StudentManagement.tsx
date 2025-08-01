@@ -38,6 +38,13 @@ export default function StudentManagement() {
   // Fetch students with optional filters
   const { data: allStudents = [], isLoading } = useQuery<Student[]>({
     queryKey: ['/api/org/students', orgId],
+    queryFn: async () => {
+      const response = await fetch(`/api/org/students?orgId=${orgId}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch students');
+      return response.json();
+    },
     enabled: !!orgId && isAuthenticated,
   });
 
@@ -57,7 +64,12 @@ export default function StudentManagement() {
   // Delete student mutation
   const deleteStudentMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      await apiRequest(`/api/org/students/${studentId}`, 'DELETE');
+      const response = await fetch(`/api/org/students/${studentId}?orgId=${orgId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to delete student');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/org/students'] });
@@ -90,7 +102,14 @@ export default function StudentManagement() {
   const bulkDeleteMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
       const results = await Promise.allSettled(
-        studentIds.map(id => apiRequest(`/api/org/students/${id}`, 'DELETE'))
+        studentIds.map(async (id) => {
+          const response = await fetch(`/api/org/students/${id}?orgId=${orgId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          if (!response.ok) throw new Error('Failed to delete student');
+          return response.json();
+        })
       );
       const failures = results.filter(result => result.status === 'rejected');
       if (failures.length > 0) {

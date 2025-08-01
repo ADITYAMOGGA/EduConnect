@@ -705,10 +705,17 @@ router.post("/api/reset/admin", async (req, res) => {
 
 // Middleware to check org admin authentication and extract orgId
 function requireOrgAuth(req: any, res: any, next: any) {
-  const orgId = req.query.orgId || req.body.orgId || (req as any).session?.orgId;
+  // Check if user is authenticated
+  if (!req.session?.orgAdmin && !req.session?.teacher) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  
+  // Get orgId from multiple sources
+  const orgId = req.query.orgId || req.body.orgId || req.session?.orgId || req.session?.organization?.id;
   if (!orgId) {
     return res.status(400).json({ message: "Organization ID is required" });
   }
+  
   req.orgId = orgId;
   next();
 }
@@ -823,19 +830,23 @@ router.delete("/api/org/students/:id", requireOrgAuth, async (req: any, res) => 
 });
 
 // Import students from CSV
-router.post("/api/org/students/import", upload.single('file'), async (req, res) => {
+router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), async (req: any, res) => {
   try {
-    const { orgId } = req.body;
+    const orgId = req.body.orgId || req.orgId;
     const file = req.file;
 
-    if (!file || !orgId) {
-      return res.status(400).json({ message: "File and organization ID are required" });
+    if (!file) {
+      return res.status(400).json({ message: "File is required" });
+    }
+
+    if (!orgId) {
+      return res.status(400).json({ message: "Organization ID is required" });
     }
 
     // Parse CSV file
     const csvData = file.buffer.toString('utf8');
-    const lines = csvData.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const lines = csvData.split('\n').filter((line: string) => line.trim());
+    const headers = lines[0].split(',').map((h: string) => h.trim().replace(/"/g, ''));
     
     const requiredFields = ['name', 'admission_no', 'class_level'];
     const missingFields = requiredFields.filter(field => !headers.includes(field));
@@ -848,16 +859,16 @@ router.post("/api/org/students/import", upload.single('file'), async (req, res) 
 
     let imported = 0;
     let errors = 0;
-    const errorMessages = [];
+    const errorMessages: string[] = [];
 
     // Process each row
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      const values = lines[i].split(',').map((v: string) => v.trim().replace(/"/g, ''));
       
       if (values.length < headers.length) continue;
 
       const studentData: any = { org_id: orgId };
-      headers.forEach((header, index) => {
+      headers.forEach((header: string, index: number) => {
         if (values[index]) {
           studentData[header] = values[index];
         }

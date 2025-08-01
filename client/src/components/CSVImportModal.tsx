@@ -32,6 +32,7 @@ export default function CSVImportModal({ open, onOpenChange, orgId }: CSVImportM
       const response = await fetch('/api/org/students/import', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Include session cookies
       });
       if (!response.ok) {
         const error = await response.json();

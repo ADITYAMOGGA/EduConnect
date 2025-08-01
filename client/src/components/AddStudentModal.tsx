@@ -33,9 +33,10 @@ export default function AddStudentModal({ open, onOpenChange, orgId }: AddStuden
 
   const createStudentMutation = useMutation({
     mutationFn: async (studentData: any) => {
-      const response = await fetch('/api/org/students', {
+      const response = await fetch(`/api/org/students?orgId=${orgId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ...studentData, orgId }),
       });
       if (!response.ok) throw new Error('Failed to create student');
