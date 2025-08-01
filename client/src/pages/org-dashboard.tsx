@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import StudentManagement from "@/components/StudentManagement";
+import SubjectManagementEnhanced from "@/components/SubjectManagementEnhanced";
+import TeacherManagementEnhanced from "@/components/TeacherManagementEnhanced";
 import AddStudentModal from "@/components/AddStudentModal";
 import AddTeacherModal from "@/components/AddTeacherModal";
 import AddSubjectModal from "@/components/AddSubjectModal";
@@ -288,195 +291,17 @@ export default function OrgDashboard() {
 
           {/* Students Management */}
           <TabsContent value="students" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search students..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" onClick={() => setShowCSVImport(true)}>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import CSV
-                </Button>
-                <Button onClick={() => setShowAddStudent(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Student
-                </Button>
-              </div>
-            </div>
-
-            <Card className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Students List</CardTitle>
-                <CardDescription>Manage all students in your school</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredStudents.map((student: Student) => (
-                    <motion.div
-                      key={student.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {student.name.charAt(0)}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{student.name}</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {student.admission_no} • Class {student.class_level}-{student.section} • Roll No: {student.roll_no}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            Father: {student.father_name} • {student.phone}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">Class {student.class_level}</Badge>
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <StudentManagement />
           </TabsContent>
 
           {/* Teachers Management */}
           <TabsContent value="teachers" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search teachers..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-              </div>
-              <Button onClick={() => setShowAddTeacher(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Teacher
-              </Button>
-            </div>
-
-            <Card className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Teachers List</CardTitle>
-                <CardDescription>Manage all teachers in your school</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredTeachers.map((teacher: Teacher) => (
-                    <motion.div
-                      key={teacher.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
-                          {teacher.name.charAt(0)}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{teacher.name}</h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {teacher.email} • {teacher.phone}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {teacher.qualification} • {teacher.experience_years} years exp • ID: {teacher.employee_id}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">{teacher.experience_years}y exp</Badge>
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <TeacherManagementEnhanced />
           </TabsContent>
 
           {/* Subjects Management */}
           <TabsContent value="subjects" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search subjects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-              </div>
-              <Button onClick={() => setShowAddSubject(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Subject
-              </Button>
-            </div>
-
-            <Card className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Subjects List</CardTitle>
-                <CardDescription>Manage all subjects and teacher assignments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredSubjects.map((subject: Subject) => (
-                    <motion.div
-                      key={subject.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold">{subject.name}</h3>
-                        <Badge variant="outline">Class {subject.class_level}</Badge>
-                      </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        Code: {subject.code}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-                        Max Marks: {subject.max_marks}
-                      </p>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <SubjectManagementEnhanced />
           </TabsContent>
 
           {/* Exams Management */}

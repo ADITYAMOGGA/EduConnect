@@ -7,26 +7,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Upload, Edit, Trash2, User, UserX } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Upload, Edit, Trash2, User, UserX, Search, Filter, AlertTriangle } from "lucide-react";
 import type { Student } from "@shared/schema";
 import AddStudentModal from "./AddStudentModal";
 import ImportModal from "./ImportModal";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 export default function StudentManagement() {
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [selectedSection, setSelectedSection] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch students with optional class filter
-  const { data: students = [], isLoading } = useQuery<Student[]>({
-    queryKey: ['/api/students', selectedClass !== 'all' ? `?class=${selectedClass}` : ''],
+  // Fetch students with optional filters
+  const { data: allStudents = [], isLoading } = useQuery<Student[]>({
+    queryKey: ['/api/students'],
   });
+
+  // Filter students based on class, section, and search term
+  const filteredStudents = allStudents.filter((student: Student) => {
+    const matchesClass = selectedClass === "all" || student.class === selectedClass;
+    const matchesSection = selectedSection === "all" || student.section === selectedSection;
+    const matchesSearch = searchTerm === "" || 
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.rollNumber?.toString().includes(searchTerm);
+    
+    return matchesClass && matchesSection && matchesSearch;
+  });
+
+  // Get unique class levels and sections for filters
+  const availableClasses = [...new Set(allStudents.map(s => s.class))].sort();
+  const availableSections = [...new Set(allStudents.map(s => s.section))].filter(Boolean).sort();
 
   // Delete student mutation
   const deleteStudentMutation = useMutation({
@@ -95,9 +119,27 @@ export default function StudentManagement() {
   });
 
   const handleDeleteStudent = (student: Student) => {
-    if (window.confirm(`Are you sure you want to delete ${student.name}?`)) {
-      deleteStudentMutation.mutate(student.id);
+    setStudentToDelete(student);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteStudent = () => {
+    if (studentToDelete) {
+      deleteStudentMutation.mutate(studentToDelete.id);
+      setShowDeleteConfirm(false);
+      setStudentToDelete(null);
     }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedStudents.size > 0) {
+      setShowBulkDeleteConfirm(true);
+    }
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeleteMutation.mutate(Array.from(selectedStudents));
+    setShowBulkDeleteConfirm(false);
   };
 
   const handleEditStudent = (student: Student) => {
@@ -118,183 +160,200 @@ export default function StudentManagement() {
       newSelected.delete(studentId);
     }
     setSelectedStudents(newSelected);
-    setSelectAll(newSelected.size === students.length && students.length > 0);
+    setSelectAll(newSelected.size === filteredStudents.length && filteredStudents.length > 0);
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedStudents(new Set(students.map(s => s.id)));
+      setSelectedStudents(new Set(filteredStudents.map(s => s.id)));
     } else {
       setSelectedStudents(new Set());
     }
     setSelectAll(checked);
   };
 
-  const handleBulkDelete = () => {
-    if (selectedStudents.size === 0) return;
-    
-    const count = selectedStudents.size;
-    const message = count === students.length 
-      ? `Are you sure you want to delete ALL ${count} students? This action cannot be undone.`
-      : `Are you sure you want to delete the ${count} selected students? This action cannot be undone.`;
-    
-    if (window.confirm(message)) {
-      bulkDeleteMutation.mutate(Array.from(selectedStudents));
-    }
-  };
-
   return (
-    <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-2">Student Management</h2>
-        <p className="text-gray-600">Manage your school's student records</p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <Button 
-          onClick={() => setShowAddModal(true)}
-          className="bg-primary-500 text-white hover:bg-primary-600 transition-all duration-200 transform hover:scale-105"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Student
-        </Button>
-        <Button 
-          onClick={() => setShowImportModal(true)}
-          className="bg-success-500 text-white hover:bg-success-600 transition-all duration-200 transform hover:scale-105"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Import CSV/XML
-        </Button>
-        {selectedStudents.size > 0 && (
-          <Button 
-            onClick={handleBulkDelete}
-            className="bg-red-500 text-white hover:bg-red-600 transition-all duration-200 transform hover:scale-105"
-            disabled={bulkDeleteMutation.isPending}
-          >
-            <UserX className="w-4 h-4 mr-2" />
-            Delete Selected ({selectedStudents.size})
+    <div className="space-y-6">
+      {/* Header with Actions */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Student Management</h2>
+          <p className="text-gray-600">Manage student records and information</p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowImportModal(true)} variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
           </Button>
-        )}
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Filter by Class:</label>
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Classes</SelectItem>
-              <SelectItem value="1">Class 1</SelectItem>
-              <SelectItem value="2">Class 2</SelectItem>
-              <SelectItem value="3">Class 3</SelectItem>
-              <SelectItem value="4">Class 4</SelectItem>
-              <SelectItem value="5">Class 5</SelectItem>
-              <SelectItem value="6">Class 6</SelectItem>
-              <SelectItem value="7">Class 7</SelectItem>
-              <SelectItem value="8">Class 8</SelectItem>
-              <SelectItem value="9">Class 9</SelectItem>
-              <SelectItem value="10">Class 10</SelectItem>
-              <SelectItem value="11">Class 11</SelectItem>
-              <SelectItem value="12">Class 12</SelectItem>
-            </SelectContent>
-          </Select>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Student
+          </Button>
         </div>
       </div>
 
-      {/* Students Table */}
+      {/* Filters and Search */}
       <Card>
-        <CardHeader className="bg-gray-50">
-          <CardTitle className="text-lg font-medium text-gray-800">Student Records</CardTitle>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters & Search
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading students...</p>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          ) : students.length === 0 ? (
-            <div className="p-8 text-center">
-              <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No students found</h3>
-              <p className="text-gray-600 mb-4">Get started by adding your first student or importing from CSV.</p>
-              <Button onClick={() => setShowAddModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add First Student
+
+            {/* Class Filter */}
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Classes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {availableClasses.map(classLevel => (
+                  <SelectItem key={classLevel} value={classLevel}>
+                    Class {classLevel}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Section Filter */}
+            <Select value={selectedSection} onValueChange={setSelectedSection}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Sections" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sections</SelectItem>
+                {availableSections.map(section => (
+                  <SelectItem key={section} value={section}>
+                    Section {section}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Results Counter */}
+            <div className="flex items-center">
+              <Badge variant="secondary">
+                {filteredStudents.length} of {allStudents.length} students
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Student List */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Students ({filteredStudents.length})
+            </CardTitle>
+            {selectedStudents.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedStudents.size})
               </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="text-gray-500">Loading students...</div>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="text-center py-8">
+              <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Found</h3>
+              <p className="text-gray-500">
+                {allStudents.length === 0 
+                  ? "Add your first student to get started"
+                  : "No students match your current filters"
+                }
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left">
-                      <Checkbox 
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left p-3">
+                      <Checkbox
                         checked={selectAll}
                         onCheckedChange={handleSelectAll}
                       />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Admission No.
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Class
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="text-left p-3 font-medium text-gray-900">Student</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Class</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Section</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Roll No.</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Admission No.</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Contact</th>
+                    <th className="text-left p-3 font-medium text-gray-900">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <Checkbox 
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3">
+                        <Checkbox
                           checked={selectedStudents.has(student.id)}
-                          onCheckedChange={(checked) => handleSelectStudent(student.id, !!checked)}
+                          onCheckedChange={(checked) => 
+                            handleSelectStudent(student.id, checked as boolean)
+                          }
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center mr-4">
-                            <User className="text-gray-600 w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                            {student.email && (
-                              <div className="text-sm text-gray-500">{student.email}</div>
-                            )}
-                          </div>
+                      <td className="p-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{student.name}</p>
+                          <p className="text-sm text-gray-500">{student.fatherName || 'Father not specified'}</p>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {student.admissionNo}
+                      <td className="p-3">
+                        <Badge variant="outline">Class {student.class}</Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          student.class === '9' 
-                            ? 'bg-primary-100 text-primary-800'
-                            : 'bg-warning-100 text-warning-800'
-                        }`}>
-                          Class {student.class}
-                        </span>
+                      <td className="p-3">
+                        <Badge variant="secondary">{student.section || 'N/A'}</Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button 
-                          onClick={() => handleEditStudent(student)}
-                          className="text-primary-600 hover:text-primary-900 transition-colors duration-200"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteStudent(student)}
-                          className="text-red-600 hover:text-red-900 transition-colors duration-200"
-                          disabled={deleteStudentMutation.isPending}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="p-3 text-sm text-gray-600">{student.rollNumber || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">{student.admissionNumber}</td>
+                      <td className="p-3 text-sm text-gray-600">{student.phone || 'N/A'}</td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditStudent(student)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteStudent(student)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -306,14 +365,43 @@ export default function StudentManagement() {
       </Card>
 
       {/* Modals */}
-      <AddStudentModal 
-        isOpen={showAddModal} 
-        onClose={handleCloseModal}
-        student={editingStudent}
+      {showAddModal && (
+        <AddStudentModal
+          isOpen={showAddModal}
+          onClose={handleCloseModal}
+          studentToEdit={editingStudent}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          type="students"
+        />
+      )}
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Student"
+        description={`Are you sure you want to delete ${studentToDelete?.name}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteStudent}
+        variant="destructive"
       />
-      <ImportModal 
-        isOpen={showImportModal} 
-        onClose={() => setShowImportModal(false)}
+
+      <ConfirmationDialog
+        open={showBulkDeleteConfirm}
+        onOpenChange={setShowBulkDeleteConfirm}
+        title="Delete Multiple Students"
+        description={`Are you sure you want to delete ${selectedStudents.size} selected students? This action cannot be undone.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        onConfirm={confirmBulkDelete}
+        variant="destructive"
       />
     </div>
   );
