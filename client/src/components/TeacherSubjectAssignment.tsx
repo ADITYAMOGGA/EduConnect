@@ -56,11 +56,15 @@ export default function TeacherSubjectAssignment() {
     enabled: !!orgId && isAuthenticated,
   });
 
-  // Fetch subjects
+  // Fetch subjects (filtered by selected class if specified)
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
-    queryKey: ['/api/org/subjects', orgId],
+    queryKey: ['/api/org/subjects', orgId, selectedClass],
     queryFn: async () => {
-      const response = await fetch(`/api/org/subjects?orgId=${orgId}`, {
+      const url = selectedClass 
+        ? `/api/org/subjects?orgId=${orgId}&class=${selectedClass}`
+        : `/api/org/subjects?orgId=${orgId}`;
+      
+      const response = await fetch(url, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch subjects');
@@ -404,18 +408,27 @@ export default function TeacherSubjectAssignment() {
 
             <div>
               <Label htmlFor="subject">Subject *</Label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select 
+                value={selectedSubject} 
+                onValueChange={setSelectedSubject}
+                disabled={!selectedClass}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select subject" />
+                  <SelectValue placeholder={!selectedClass ? "Select class first" : "Choose a subject"} />
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map(subject => (
                     <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.code})
+                      {subject.name} ({subject.code}) - Class {subject.class_level}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {selectedClass && subjects.length === 0 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  No subjects found for Class {selectedClass}. Create subjects first.
+                </p>
+              )}
             </div>
 
             <div>

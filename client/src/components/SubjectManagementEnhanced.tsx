@@ -47,7 +47,18 @@ export default function SubjectManagementEnhanced() {
   });
 
   const { data: subjects = [], isLoading } = useQuery<Subject[]>({
-    queryKey: ["/api/org/subjects", orgId],
+    queryKey: ["/api/org/subjects", orgId, selectedClass],
+    queryFn: async () => {
+      const url = selectedClass === "all" 
+        ? `/api/org/subjects?orgId=${orgId}`
+        : `/api/org/subjects?orgId=${orgId}&class=${selectedClass}`;
+      
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      return response.json();
+    },
     enabled: !!orgId && isAuthenticated,
   });
 
@@ -62,7 +73,7 @@ export default function SubjectManagementEnhanced() {
   });
 
   // Get unique class levels for filter
-  const availableClasses = [...new Set(subjects.map(s => s.class_level))].sort();
+  const availableClasses = Array.from(new Set(subjects.map(s => s.class_level))).sort();
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {

@@ -1091,12 +1091,21 @@ router.delete("/api/org/teachers/:id", requireOrgAuth, async (req: any, res) => 
 router.get("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
   try {
     const orgId = req.orgId;
+    const { class: classLevel } = req.query;
 
-    const { data: subjects, error } = await supabase
+    let query = supabase
       .from("subjects")
       .select("*")
-      .eq("org_id", orgId)
-      .order("class_level", { ascending: true });
+      .eq("org_id", orgId);
+
+    // Filter by class level if provided
+    if (classLevel && classLevel !== 'all') {
+      query = query.eq("class_level", classLevel);
+    }
+
+    const { data: subjects, error } = await query
+      .order("class_level", { ascending: true })
+      .order("name", { ascending: true });
 
     if (error) {
       console.error("Error fetching subjects:", error);
