@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOrgAuth } from "@/hooks/useOrgAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,8 @@ export default function TeacherManagementEnhanced() {
   });
 
   const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
-    queryKey: ["/api/org/teachers"],
+    queryKey: ["/api/org/teachers", orgId],
+    enabled: !!orgId && isAuthenticated,
   });
 
   // Filter teachers based on search and status

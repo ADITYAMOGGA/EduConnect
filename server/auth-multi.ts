@@ -521,6 +521,11 @@ router.post("/api/org/login", async (req, res) => {
     // Remove password from response
     const { password_hash, organizations, ...adminData } = orgAdmin;
     
+    // Store in session for subsequent requests
+    (req as any).session.orgAdmin = adminData;
+    (req as any).session.organization = organizations;
+    (req as any).session.orgId = organizations.id;
+    
     res.json({ 
       orgAdmin: adminData, 
       organization: organizations 
@@ -698,16 +703,35 @@ router.post("/api/reset/admin", async (req, res) => {
   }
 });
 
+// Middleware to check org admin authentication and extract orgId
+function requireOrgAuth(req: any, res: any, next: any) {
+  const orgId = req.query.orgId || req.body.orgId || (req as any).session?.orgId;
+  if (!orgId) {
+    return res.status(400).json({ message: "Organization ID is required" });
+  }
+  req.orgId = orgId;
+  next();
+}
+
+// Add session user endpoint for org admins
+router.get("/api/org/auth/user", (req: any, res) => {
+  if (!req.session?.orgAdmin) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  
+  res.json({
+    orgAdmin: req.session.orgAdmin,
+    organization: req.session.organization
+  });
+});
+
 // ORGANIZATION ADMIN API ROUTES
 // ===============================
 
 // Students Management
-router.get("/api/org/students", async (req, res) => {
+router.get("/api/org/students", requireOrgAuth, async (req: any, res) => {
   try {
-    const orgId = req.query.orgId;
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const orgId = req.orgId;
 
     const { data: students, error } = await supabase
       .from("students")
@@ -727,18 +751,15 @@ router.get("/api/org/students", async (req, res) => {
   }
 });
 
-router.post("/api/org/students", async (req, res) => {
+router.post("/api/org/students", requireOrgAuth, async (req: any, res) => {
   try {
     const { orgId, ...studentData } = req.body;
-    
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const actualOrgId = orgId || req.orgId;
 
     const { data: student, error } = await supabase
       .from("students")
       .insert({
-        org_id: orgId,
+        org_id: actualOrgId,
         ...studentData
       })
       .select()
@@ -756,7 +777,7 @@ router.post("/api/org/students", async (req, res) => {
   }
 });
 
-router.patch("/api/org/students/:id", async (req, res) => {
+router.patch("/api/org/students/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -780,7 +801,7 @@ router.patch("/api/org/students/:id", async (req, res) => {
   }
 });
 
-router.delete("/api/org/students/:id", async (req, res) => {
+router.delete("/api/org/students/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
 
@@ -879,12 +900,9 @@ router.post("/api/org/students/import", upload.single('file'), async (req, res) 
 });
 
 // Teachers Management
-router.get("/api/org/teachers", async (req, res) => {
+router.get("/api/org/teachers", requireOrgAuth, async (req: any, res) => {
   try {
-    const orgId = req.query.orgId;
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const orgId = req.orgId;
 
     const { data: teachers, error } = await supabase
       .from("teachers")
@@ -909,13 +927,10 @@ router.get("/api/org/teachers", async (req, res) => {
   }
 });
 
-router.post("/api/org/teachers", async (req, res) => {
+router.post("/api/org/teachers", requireOrgAuth, async (req: any, res) => {
   try {
     const { orgId, subjects = [], ...teacherData } = req.body;
-    
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const actualOrgId = orgId || req.orgId;
 
     // Hash password if provided
     if (teacherData.password) {
@@ -926,7 +941,7 @@ router.post("/api/org/teachers", async (req, res) => {
     const { data: teacher, error } = await supabase
       .from("teachers")
       .insert({
-        org_id: orgId,
+        org_id: actualOrgId,
         ...teacherData
       })
       .select()
@@ -956,7 +971,7 @@ router.post("/api/org/teachers", async (req, res) => {
   }
 });
 
-router.patch("/api/org/teachers/:id", async (req, res) => {
+router.patch("/api/org/teachers/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
     const { subjects, ...updates } = req.body;
@@ -1007,7 +1022,7 @@ router.patch("/api/org/teachers/:id", async (req, res) => {
   }
 });
 
-router.delete("/api/org/teachers/:id", async (req, res) => {
+router.delete("/api/org/teachers/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
 
@@ -1036,12 +1051,9 @@ router.delete("/api/org/teachers/:id", async (req, res) => {
 });
 
 // Subjects Management
-router.get("/api/org/subjects", async (req, res) => {
+router.get("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
   try {
-    const orgId = req.query.orgId;
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const orgId = req.orgId;
 
     const { data: subjects, error } = await supabase
       .from("subjects")
@@ -1061,18 +1073,15 @@ router.get("/api/org/subjects", async (req, res) => {
   }
 });
 
-router.post("/api/org/subjects", async (req, res) => {
+router.post("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
   try {
     const { orgId, ...subjectData } = req.body;
-    
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const actualOrgId = orgId || req.orgId;
 
     const { data: subject, error } = await supabase
       .from("subjects")
       .insert({
-        org_id: orgId,
+        org_id: actualOrgId,
         ...subjectData
       })
       .select()
@@ -1090,7 +1099,7 @@ router.post("/api/org/subjects", async (req, res) => {
   }
 });
 
-router.patch("/api/org/subjects/:id", async (req, res) => {
+router.patch("/api/org/subjects/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -1114,7 +1123,7 @@ router.patch("/api/org/subjects/:id", async (req, res) => {
   }
 });
 
-router.delete("/api/org/subjects/:id", async (req, res) => {
+router.delete("/api/org/subjects/:id", requireOrgAuth, async (req: any, res) => {
   try {
     const { id } = req.params;
 
@@ -1191,12 +1200,9 @@ router.post("/api/org/exams", async (req, res) => {
 });
 
 // Organization Dashboard Stats
-router.get("/api/org/stats", async (req, res) => {
+router.get("/api/org/stats", requireOrgAuth, async (req: any, res) => {
   try {
-    const orgId = req.query.orgId;
-    if (!orgId) {
-      return res.status(400).json({ message: "Organization ID is required" });
-    }
+    const orgId = req.orgId;
 
     // Get counts for dashboard
     const [studentsResult, teachersResult, subjectsResult, examsResult] = await Promise.all([

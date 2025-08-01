@@ -14,6 +14,7 @@ import type { Student } from "@shared/schema";
 import AddStudentModal from "./AddStudentModal";
 import ImportModal from "./ImportModal";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useOrgAuth } from "@/hooks/useOrgAuth";
 
 export default function StudentManagement() {
   const [selectedClass, setSelectedClass] = useState<string>("all");
@@ -30,35 +31,35 @@ export default function StudentManagement() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { orgId, isAuthenticated } = useOrgAuth();
 
   // Fetch students with optional filters
   const { data: allStudents = [], isLoading } = useQuery<Student[]>({
-    queryKey: ['/api/students'],
+    queryKey: ['/api/org/students', orgId],
+    enabled: !!orgId && isAuthenticated,
   });
 
   // Filter students based on class, section, and search term
   const filteredStudents = allStudents.filter((student: Student) => {
     const matchesClass = selectedClass === "all" || student.class === selectedClass;
-    const matchesSection = selectedSection === "all" || student.section === selectedSection;
+    const matchesSection = selectedSection === "all" || true;
     const matchesSearch = searchTerm === "" || 
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber?.toString().includes(searchTerm);
+      student.admissionNo?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesClass && matchesSection && matchesSearch;
   });
 
-  // Get unique class levels and sections for filters
-  const availableClasses = [...new Set(allStudents.map(s => s.class))].sort();
-  const availableSections = [...new Set(allStudents.map(s => s.section))].filter(Boolean).sort();
+  // Get unique class levels for filters
+  const availableClasses = Array.from(new Set(allStudents.map(s => s.class))).sort();
 
   // Delete student mutation
   const deleteStudentMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      await apiRequest('DELETE', `/api/students/${studentId}`);
+      await apiRequest(`/api/org/students/${studentId}`, 'DELETE');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/org/students'] });
       toast({
         title: "Success",
         description: "Student deleted successfully",
@@ -87,10 +88,10 @@ export default function StudentManagement() {
   // Bulk delete students mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
-      await Promise.all(studentIds.map(id => apiRequest('DELETE', `/api/students/${id}`)));
+      await Promise.all(studentIds.map(id => apiRequest(`/api/org/students/${id}`, 'DELETE')));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/org/students'] });
       setSelectedStudents(new Set());
       setSelectAll(false);
       toast({
@@ -324,18 +325,18 @@ export default function StudentManagement() {
                       <td className="p-3">
                         <div>
                           <p className="font-medium text-gray-900">{student.name}</p>
-                          <p className="text-sm text-gray-500">{student.fatherName || 'Father not specified'}</p>
+                          <p className="text-sm text-gray-500">{student.email || 'No email'}</p>
                         </div>
                       </td>
                       <td className="p-3">
                         <Badge variant="outline">Class {student.class}</Badge>
                       </td>
                       <td className="p-3">
-                        <Badge variant="secondary">{student.section || 'N/A'}</Badge>
+                        <Badge variant="secondary">N/A</Badge>
                       </td>
-                      <td className="p-3 text-sm text-gray-600">{student.rollNumber || 'N/A'}</td>
-                      <td className="p-3 text-sm text-gray-600">{student.admissionNumber}</td>
-                      <td className="p-3 text-sm text-gray-600">{student.phone || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">N/A</td>
+                      <td className="p-3 text-sm text-gray-600">{student.admissionNo}</td>
+                      <td className="p-3 text-sm text-gray-600">{student.email || 'N/A'}</td>
                       <td className="p-3">
                         <div className="flex gap-2">
                           <Button
@@ -367,17 +368,16 @@ export default function StudentManagement() {
       {/* Modals */}
       {showAddModal && (
         <AddStudentModal
-          isOpen={showAddModal}
+          open={showAddModal}
           onClose={handleCloseModal}
-          studentToEdit={editingStudent}
+          student={editingStudent}
         />
       )}
 
       {showImportModal && (
         <ImportModal
-          isOpen={showImportModal}
+          open={showImportModal}
           onClose={() => setShowImportModal(false)}
-          type="students"
         />
       )}
 

@@ -35,6 +35,7 @@ import AddTeacherModal from "@/components/AddTeacherModal";
 import AddSubjectModal from "@/components/AddSubjectModal";
 import CSVImportModal from "@/components/CSVImportModal";
 import SettingsModal from "@/components/SettingsModal";
+import { useOrgAuth } from "@/hooks/useOrgAuth";
 
 interface Organization {
   id: string;

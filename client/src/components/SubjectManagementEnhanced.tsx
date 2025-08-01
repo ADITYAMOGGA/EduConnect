@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useOrgAuth } from "@/hooks/useOrgAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,8 @@ interface Subject {
 
 export default function SubjectManagementEnhanced() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { orgId, isAuthenticated } = useOrgAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -44,7 +47,8 @@ export default function SubjectManagementEnhanced() {
   });
 
   const { data: subjects = [], isLoading } = useQuery<Subject[]>({
-    queryKey: ["/api/org/subjects"],
+    queryKey: ["/api/org/subjects", orgId],
+    enabled: !!orgId && isAuthenticated,
   });
 
   // Filter subjects based on search and class
@@ -62,7 +66,7 @@ export default function SubjectManagementEnhanced() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("POST", "/api/org/subjects", data);
+      return apiRequest("/api/org/subjects", 'POST', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
@@ -83,7 +87,7 @@ export default function SubjectManagementEnhanced() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("PATCH", `/api/org/subjects/${editingSubject?.id}`, data);
+      return apiRequest(`/api/org/subjects/${editingSubject?.id}`, 'PATCH', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
@@ -104,7 +108,7 @@ export default function SubjectManagementEnhanced() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/org/subjects/${id}`);
+      await apiRequest(`/api/org/subjects/${id}`, 'DELETE');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/org/subjects"] });
