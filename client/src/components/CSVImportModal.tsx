@@ -16,9 +16,9 @@ interface CSVImportModalProps {
 }
 
 const sampleCSVData = `name,admission_no,class_level,section,roll_no,father_name,mother_name,phone,address,date_of_birth
-Arjun Kumar,2024001,10,A,1,Rajesh Kumar,Sunita Kumar,+91 98765 43210,"123 Main Street, Delhi","2008-05-15"
-Priya Sharma,2024002,10,A,2,Suresh Sharma,Meera Sharma,+91 98765 43211,"456 Park Road, Mumbai","2008-03-22"
-Rohit Singh,2024003,10,B,1,Vikram Singh,Anjali Singh,+91 98765 43212,"789 Lake View, Bangalore","2008-07-08"`;
+Arjun Kumar,2024001,10,A,1,Rajesh Kumar,Sunita Kumar,+91 98765 43210,"123 Main Street, Delhi",2008-05-15
+Priya Sharma,2024002,10,A,2,Suresh Sharma,Meera Sharma,+91 98765 43211,"456 Park Road, Mumbai",2008-03-22
+Rohit Singh,2024003,10,B,1,Vikram Singh,Anjali Singh,+91 98765 43212,"789 Lake View, Bangalore",2008-07-08`;
 
 export default function CSVImportModal({ open, onOpenChange, orgId }: CSVImportModalProps) {
   const { toast } = useToast();
