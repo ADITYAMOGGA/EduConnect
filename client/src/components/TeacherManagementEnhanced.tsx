@@ -49,7 +49,8 @@ export default function TeacherManagementEnhanced() {
     experience_years: 0,
     employee_id: "",
     password: "",
-    status: "active"
+    status: "active",
+    classes: [] as string[]
   });
 
   const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
@@ -71,9 +72,15 @@ export default function TeacherManagementEnhanced() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("POST", "/api/org/teachers", data);
+      const res = await apiRequest("POST", "/api/org/teachers", data);
+      return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (newTeacher) => {
+      // Optimistically update the cache with the new teacher
+      queryClient.setQueryData(["/api/org/teachers", orgId], (oldData: Teacher[] | undefined) => {
+        if (!oldData) return [newTeacher];
+        return [...oldData, newTeacher];
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/org/teachers"] });
       handleCloseDialog();
       toast({
@@ -157,7 +164,7 @@ export default function TeacherManagementEnhanced() {
       // Remove password from update if it's empty
       const updateData = { ...formData };
       if (!updateData.password) {
-        delete updateData.password;
+        delete (updateData as any).password;
       }
       updateMutation.mutate(updateData);
     } else {
@@ -176,7 +183,8 @@ export default function TeacherManagementEnhanced() {
       experience_years: teacher.experience_years,
       employee_id: teacher.employee_id,
       password: "", // Don't populate password for security
-      status: teacher.status
+      status: teacher.status,
+      classes: []
     });
     setIsDialogOpen(true);
   };
@@ -220,7 +228,8 @@ export default function TeacherManagementEnhanced() {
       experience_years: 0,
       employee_id: "",
       password: "",
-      status: "active"
+      status: "active",
+      classes: []
     });
   };
 
@@ -504,6 +513,43 @@ export default function TeacherManagementEnhanced() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Multiple Class Selection */}
+            <div className="space-y-2">
+              <Label>Assign Classes (Select Multiple)</Label>
+              <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg bg-gray-50">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((classNum) => (
+                  <div key={classNum} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`class-${classNum}`}
+                      checked={formData.classes.includes(classNum.toString())}
+                      onChange={(e) => {
+                        const classStr = classNum.toString();
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            classes: [...formData.classes, classStr]
+                          });
+                        } else {
+                          setFormData({
+                            ...formData,
+                            classes: formData.classes.filter(c => c !== classStr)
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <Label htmlFor={`class-${classNum}`} className="text-sm">
+                      Class {classNum}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500">
+                Selected classes: {formData.classes.length > 0 ? formData.classes.map(c => `Class ${c}`).join(', ') : 'None'}
+              </p>
             </div>
 
             <div className="space-y-2">

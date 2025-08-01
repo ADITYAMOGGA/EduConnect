@@ -43,6 +43,7 @@ export default function SubjectManagementEnhanced() {
     class_level: "all",
     max_marks: 100,
     is_optional: false,
+    is_required: false,
     description: ""
   });
 
@@ -156,6 +157,7 @@ export default function SubjectManagementEnhanced() {
       class_level: subject.class_level,
       max_marks: subject.max_marks,
       is_optional: subject.is_optional,
+      is_required: false,
       description: subject.description || ""
     });
     setIsDialogOpen(true);
@@ -183,6 +185,7 @@ export default function SubjectManagementEnhanced() {
       class_level: "all",
       max_marks: 100,
       is_optional: false,
+      is_required: false,
       description: ""
     });
   };
@@ -416,15 +419,28 @@ export default function SubjectManagementEnhanced() {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_optional"
-                checked={formData.is_optional}
-                onChange={(e) => setFormData({ ...formData, is_optional: e.target.checked })}
-                className="rounded"
-              />
-              <Label htmlFor="is_optional">Optional Subject</Label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is_optional"
+                  checked={formData.is_optional}
+                  onChange={(e) => setFormData({ ...formData, is_optional: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="is_optional">Optional Subject</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is_required"
+                  checked={formData.is_required}
+                  onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="is_required">Required Subject</Label>
+              </div>
             </div>
 
             <DialogFooter>
