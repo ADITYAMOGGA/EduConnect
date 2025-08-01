@@ -247,8 +247,8 @@ export default function StudentManagement() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Classes</SelectItem>
-                {availableClasses.map(classLevel => (
-                  <SelectItem key={classLevel} value={classLevel}>
+                {availableClasses.map((classLevel, index) => (
+                  <SelectItem key={`class-${classLevel}-${index}`} value={classLevel}>
                     Class {classLevel}
                   </SelectItem>
                 ))}
