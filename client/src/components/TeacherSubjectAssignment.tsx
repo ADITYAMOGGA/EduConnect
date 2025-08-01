@@ -47,7 +47,7 @@ export default function TeacherSubjectAssignment() {
   const { data: teachers = [], isLoading: teachersLoading } = useQuery<Teacher[]>({
     queryKey: ['/api/org/teachers', orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/teachers?orgId=${orgId}`, {
+      const response = await fetch(`/api/org/teachers`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch teachers');
@@ -60,7 +60,7 @@ export default function TeacherSubjectAssignment() {
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
     queryKey: ['/api/org/subjects', orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/subjects?orgId=${orgId}`, {
+      const response = await fetch(`/api/org/subjects`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch subjects');
@@ -73,7 +73,7 @@ export default function TeacherSubjectAssignment() {
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<TeacherSubjectWithDetails[]>({
     queryKey: ['/api/org/teacher-subjects', orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/teacher-subjects?orgId=${orgId}`, {
+      const response = await fetch(`/api/org/teacher-subjects`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch assignments');
@@ -86,17 +86,17 @@ export default function TeacherSubjectAssignment() {
   const createAssignmentMutation = useMutation({
     mutationFn: async (assignmentData: any) => {
       // Create assignments for each selected class
-      const assignments = selectedClasses.map(classLevel => ({
-        ...assignmentData,
-        class_level: classLevel
-      }));
-      
-      const promises = assignments.map(assignment => 
-        fetch(`/api/org/teacher-subjects?orgId=${orgId}`, {
+      const promises = selectedClasses.map(classLevel => 
+        fetch(`/api/org/teacher-subjects`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify(assignment),
+          body: JSON.stringify({
+            teacherId: assignmentData.teacherId,
+            subjectId: assignmentData.subjectId,
+            classLevel: classLevel,
+            academicYear: assignmentData.academicYear
+          }),
         })
       );
       
@@ -129,7 +129,7 @@ export default function TeacherSubjectAssignment() {
   // Delete assignment mutation
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: string) => {
-      const response = await fetch(`/api/org/teacher-subjects/${assignmentId}?orgId=${orgId}`, {
+      const response = await fetch(`/api/org/teacher-subjects/${assignmentId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -424,7 +424,7 @@ export default function TeacherSubjectAssignment() {
                 <SelectContent>
                   {subjects.map(subject => (
                     <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name} ({subject.code}) - Class {subject.class_level}
+                      {subject.name} ({subject.code}) - Class {subject.classLevel}
                     </SelectItem>
                   ))}
                 </SelectContent>
