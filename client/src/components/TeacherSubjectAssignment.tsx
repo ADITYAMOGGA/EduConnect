@@ -32,7 +32,7 @@ interface TeacherSubjectWithDetails extends TeacherSubject {
 export default function TeacherSubjectAssignment() {
   const [selectedTeacher, setSelectedTeacher] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [academicYear, setAcademicYear] = useState<string>("2024-25");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -56,15 +56,11 @@ export default function TeacherSubjectAssignment() {
     enabled: !!orgId && isAuthenticated,
   });
 
-  // Fetch subjects (filtered by selected class if specified)
+  // Fetch subjects 
   const { data: subjects = [], isLoading: subjectsLoading } = useQuery<Subject[]>({
-    queryKey: ['/api/org/subjects', orgId, selectedClass],
+    queryKey: ['/api/org/subjects', orgId],
     queryFn: async () => {
-      const url = selectedClass 
-        ? `/api/org/subjects?orgId=${orgId}&class=${selectedClass}`
-        : `/api/org/subjects?orgId=${orgId}`;
-      
-      const response = await fetch(url, {
+      const response = await fetch(`/api/org/subjects?orgId=${orgId}`, {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch subjects');
@@ -86,23 +82,37 @@ export default function TeacherSubjectAssignment() {
     enabled: !!orgId && isAuthenticated,
   });
 
-  // Create assignment mutation
+  // Create assignment mutation (supports multiple classes)
   const createAssignmentMutation = useMutation({
     mutationFn: async (assignmentData: any) => {
-      const response = await fetch(`/api/org/teacher-subjects?orgId=${orgId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(assignmentData),
-      });
-      if (!response.ok) throw new Error('Failed to create assignment');
-      return response.json();
+      // Create assignments for each selected class
+      const assignments = selectedClasses.map(classLevel => ({
+        ...assignmentData,
+        class_level: classLevel
+      }));
+      
+      const promises = assignments.map(assignment => 
+        fetch(`/api/org/teacher-subjects?orgId=${orgId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(assignment),
+        })
+      );
+      
+      const responses = await Promise.all(promises);
+      const results = await Promise.all(responses.map(res => {
+        if (!res.ok) throw new Error('Failed to create assignment');
+        return res.json();
+      }));
+      
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/org/teacher-subjects'] });
       toast({
         title: "Success",
-        description: "Teacher assigned to subject successfully",
+        description: `Teacher assigned to subject across ${selectedClasses.length} class${selectedClasses.length > 1 ? 'es' : ''} successfully`,
       });
       setShowAssignModal(false);
       resetForm();
@@ -145,14 +155,14 @@ export default function TeacherSubjectAssignment() {
   const resetForm = () => {
     setSelectedTeacher("");
     setSelectedSubject("");
-    setSelectedClass("");
+    setSelectedClasses([]);
   };
 
   const handleAssignTeacher = () => {
-    if (!selectedTeacher || !selectedSubject || !selectedClass) {
+    if (!selectedTeacher || !selectedSubject || selectedClasses.length === 0) {
       toast({
         title: "Error",
-        description: "Please select teacher, subject, and class",
+        description: "Please select teacher, subject, and at least one class",
         variant: "destructive",
       });
       return;
@@ -161,7 +171,6 @@ export default function TeacherSubjectAssignment() {
     createAssignmentMutation.mutate({
       teacherId: selectedTeacher,
       subjectId: selectedSubject,
-      classLevel: selectedClass,
       academicYear,
     });
   };
@@ -408,13 +417,9 @@ export default function TeacherSubjectAssignment() {
 
             <div>
               <Label htmlFor="subject">Subject *</Label>
-              <Select 
-                value={selectedSubject} 
-                onValueChange={setSelectedSubject}
-                disabled={!selectedClass}
-              >
+              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger>
-                  <SelectValue placeholder={!selectedClass ? "Select class first" : "Choose a subject"} />
+                  <SelectValue placeholder="Choose a subject" />
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map(subject => (
@@ -424,34 +429,37 @@ export default function TeacherSubjectAssignment() {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedClass && subjects.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">
-                  No subjects found for Class {selectedClass}. Create subjects first.
-                </p>
-              )}
             </div>
 
+            {/* Multiple Class Selection */}
             <div>
-              <Label htmlFor="class">Class *</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Class 1</SelectItem>
-                  <SelectItem value="2">Class 2</SelectItem>
-                  <SelectItem value="3">Class 3</SelectItem>
-                  <SelectItem value="4">Class 4</SelectItem>
-                  <SelectItem value="5">Class 5</SelectItem>
-                  <SelectItem value="6">Class 6</SelectItem>
-                  <SelectItem value="7">Class 7</SelectItem>
-                  <SelectItem value="8">Class 8</SelectItem>
-                  <SelectItem value="9">Class 9</SelectItem>
-                  <SelectItem value="10">Class 10</SelectItem>
-                  <SelectItem value="11">Class 11</SelectItem>
-                  <SelectItem value="12">Class 12</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Classes * (Select Multiple)</Label>
+              <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg bg-gray-50 max-h-48 overflow-y-auto">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((classNum) => (
+                  <div key={classNum} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`assign-class-${classNum}`}
+                      checked={selectedClasses.includes(classNum.toString())}
+                      onChange={(e) => {
+                        const classStr = classNum.toString();
+                        if (e.target.checked) {
+                          setSelectedClasses([...selectedClasses, classStr]);
+                        } else {
+                          setSelectedClasses(selectedClasses.filter(c => c !== classStr));
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <Label htmlFor={`assign-class-${classNum}`} className="text-sm">
+                      Class {classNum}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Selected classes: {selectedClasses.length > 0 ? selectedClasses.map(c => `Class ${c}`).join(', ') : 'None'}
+              </p>
             </div>
 
             <div>

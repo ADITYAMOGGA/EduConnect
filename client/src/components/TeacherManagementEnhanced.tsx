@@ -50,8 +50,7 @@ export default function TeacherManagementEnhanced() {
     experience_years: 0,
     employee_id: "",
     password: "",
-    status: "active",
-    classes: [] as string[]
+    status: "active"
   });
 
   const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
@@ -184,8 +183,7 @@ export default function TeacherManagementEnhanced() {
       experience_years: teacher.experience_years,
       employee_id: teacher.employee_id,
       password: "", // Don't populate password for security
-      status: teacher.status,
-      classes: teacher.classes || []
+      status: teacher.status
     });
     setIsDialogOpen(true);
   };
@@ -229,8 +227,7 @@ export default function TeacherManagementEnhanced() {
       experience_years: 0,
       employee_id: "",
       password: "",
-      status: "active",
-      classes: []
+      status: "active"
     });
   };
 
@@ -516,42 +513,7 @@ export default function TeacherManagementEnhanced() {
               </div>
             </div>
 
-            {/* Multiple Class Selection */}
-            <div className="space-y-2">
-              <Label>Assign Classes (Select Multiple)</Label>
-              <div className="grid grid-cols-3 gap-2 p-4 border rounded-lg bg-gray-50">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((classNum) => (
-                  <div key={classNum} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id={`class-${classNum}`}
-                      checked={formData.classes.includes(classNum.toString())}
-                      onChange={(e) => {
-                        const classStr = classNum.toString();
-                        if (e.target.checked) {
-                          setFormData({
-                            ...formData,
-                            classes: [...formData.classes, classStr]
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            classes: formData.classes.filter(c => c !== classStr)
-                          });
-                        }
-                      }}
-                      className="rounded"
-                    />
-                    <Label htmlFor={`class-${classNum}`} className="text-sm">
-                      Class {classNum}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500">
-                Selected classes: {formData.classes.length > 0 ? formData.classes.map(c => `Class ${c}`).join(', ') : 'None'}
-              </p>
-            </div>
+
 
             <div className="space-y-2">
               <Label htmlFor="password">
