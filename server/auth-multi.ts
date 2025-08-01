@@ -1244,6 +1244,376 @@ router.patch("/api/org/organization/:id", async (req, res) => {
   }
 });
 
+// MARKS MANAGEMENT API ENDPOINTS
+// ================================
+
+// Bulk import marks from CSV - Single student/mark entry
+router.post("/api/marks/bulk-import-single", async (req, res) => {
+  try {
+    const { examId, studentName, subject, marks, maxMarks = 100 } = req.body;
+
+    if (!examId || !studentName || !subject || marks === undefined || marks === null) {
+      return res.status(400).json({ message: "Exam ID, student name, subject, and marks are required" });
+    }
+
+    // Find student by name (case-insensitive search)
+    const { data: students, error: studentError } = await supabase
+      .from("students")
+      .select("id, name")
+      .ilike("name", `%${studentName.trim()}%`);
+
+    if (studentError || !students || students.length === 0) {
+      return res.status(404).json({ message: `Student "${studentName}" not found` });
+    }
+
+    // Get the closest match (exact or first partial match)
+    const student = students.find(s => s.name.toLowerCase() === studentName.toLowerCase()) || students[0];
+
+    // Check if mark already exists for this student/exam/subject
+    const { data: existingMark } = await supabase
+      .from("marks")
+      .select("id")
+      .eq("student_id", student.id)
+      .eq("exam_id", examId)
+      .eq("subject_name", subject)
+      .single();
+
+    if (existingMark) {
+      // Update existing mark
+      const { data: updatedMark, error: updateError } = await supabase
+        .from("marks")
+        .update({
+          marks_obtained: Number(marks),
+          max_marks: Number(maxMarks),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existingMark.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error("Error updating mark:", updateError);
+        return res.status(500).json({ message: "Failed to update mark" });
+      }
+
+      res.json({ mark: updatedMark, action: 'updated' });
+    } else {
+      // Create new mark
+      const { data: newMark, error: createError } = await supabase
+        .from("marks")
+        .insert({
+          student_id: student.id,
+          exam_id: examId,
+          subject_name: subject,
+          marks_obtained: Number(marks),
+          max_marks: Number(maxMarks)
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error("Error creating mark:", createError);
+        return res.status(500).json({ message: "Failed to create mark" });
+      }
+
+      res.json({ mark: newMark, action: 'created' });
+    }
+  } catch (error) {
+    console.error("Error in bulk import single:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get marks for a specific exam
+router.get("/api/marks/:examId", async (req, res) => {
+  try {
+    const { examId } = req.params;
+
+    const { data: marks, error } = await supabase
+      .from("marks")
+      .select(`
+        *,
+        students (id, name, admission_no, class_level)
+      `)
+      .eq("exam_id", examId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching marks:", error);
+      return res.status(500).json({ message: "Failed to fetch marks" });
+    }
+
+    res.json(marks);
+  } catch (error) {
+    console.error("Error in marks route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Create a new mark
+router.post("/api/marks", async (req, res) => {
+  try {
+    const { studentId, examId, subject, marks, maxMarks = 100 } = req.body;
+
+    if (!studentId || !examId || !subject || marks === undefined) {
+      return res.status(400).json({ message: "Student ID, exam ID, subject, and marks are required" });
+    }
+
+    const { data: newMark, error } = await supabase
+      .from("marks")
+      .insert({
+        student_id: studentId,
+        exam_id: examId,
+        subject_name: subject,
+        marks_obtained: Number(marks),
+        max_marks: Number(maxMarks)
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating mark:", error);
+      return res.status(500).json({ message: "Failed to create mark" });
+    }
+
+    res.status(201).json(newMark);
+  } catch (error) {
+    console.error("Error creating mark:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Update a mark
+router.patch("/api/marks/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { marks, maxMarks } = req.body;
+
+    const updates: any = { updated_at: new Date().toISOString() };
+    if (marks !== undefined) updates.marks_obtained = Number(marks);
+    if (maxMarks !== undefined) updates.max_marks = Number(maxMarks);
+
+    const { data: updatedMark, error } = await supabase
+      .from("marks")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating mark:", error);
+      return res.status(500).json({ message: "Failed to update mark" });
+    }
+
+    res.json(updatedMark);
+  } catch (error) {
+    console.error("Error updating mark:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GENERAL API ENDPOINTS FOR FRONTEND COMPATIBILITY
+// ==============================================
+
+// Get all exams (for teacher/marks entry compatibility)
+router.get("/api/exams", async (req, res) => {
+  try {
+    const { data: exams, error } = await supabase
+      .from("exams")
+      .select("*")
+      .order("exam_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching exams:", error);
+      return res.status(500).json({ message: "Failed to fetch exams" });
+    }
+
+    res.json(exams);
+  } catch (error) {
+    console.error("Error in exams route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get all students (for teacher/marks entry compatibility)
+router.get("/api/students", async (req, res) => {
+  try {
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching students:", error);
+      return res.status(500).json({ message: "Failed to fetch students" });
+    }
+
+    // Map database fields to frontend expected format
+    const formattedStudents = students.map(student => ({
+      id: student.id,
+      name: student.name,
+      admissionNumber: student.admission_no,
+      class: student.class_level,
+      email: student.email || '',
+      rollNumber: student.roll_no,
+      fatherName: student.father_name,
+      motherName: student.mother_name,
+      phone: student.phone,
+      address: student.address,
+      dateOfBirth: student.date_of_birth
+    }));
+
+    res.json(formattedStudents);
+  } catch (error) {
+    console.error("Error in students route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get all subjects (for teacher/marks entry compatibility)
+router.get("/api/subjects", async (req, res) => {
+  try {
+    const { data: subjects, error } = await supabase
+      .from("subjects")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching subjects:", error);
+      return res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+
+    // Map database fields to frontend expected format
+    const formattedSubjects = subjects.map(subject => ({
+      id: subject.id,
+      name: subject.name,
+      code: subject.code || subject.name.substring(0, 3).toUpperCase(),
+      maxMarks: subject.max_marks || 100
+    }));
+
+    res.json(formattedSubjects);
+  } catch (error) {
+    console.error("Error in subjects route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Create test data for demonstration
+router.post("/api/setup/test-data", async (req, res) => {
+  try {
+    // Only allow in development environment
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: "Test data creation not allowed in production" });
+    }
+
+    // Check if we already have an organization
+    const { data: existingOrgs } = await supabase
+      .from("organizations")
+      .select("id")
+      .limit(1);
+
+    let orgId;
+    if (!existingOrgs || existingOrgs.length === 0) {
+      // Create test organization
+      const { data: org, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          name: "Demo High School",
+          address: "123 Education Street, Knowledge City",
+          phone: "+91 98765 43210",
+          email: "admin@demohighschool.edu",
+          board_type: "CBSE",
+          established_year: 2010,
+          principal_name: "Dr. Education Master"
+        })
+        .select()
+        .single();
+
+      if (orgError) {
+        console.error("Error creating test organization:", orgError);
+        return res.status(500).json({ message: "Failed to create test organization" });
+      }
+      orgId = org.id;
+    } else {
+      orgId = existingOrgs[0].id;
+    }
+
+    // Create test students
+    const testStudents = [
+      { name: "Nikhil Varma", admission_no: "2024001", class_level: "10", section: "A", roll_no: "1" },
+      { name: "Bhavani Devi", admission_no: "2024002", class_level: "10", section: "A", roll_no: "2" },
+      { name: "Teja Reddy", admission_no: "2024003", class_level: "10", section: "A", roll_no: "3" },
+      { name: "Arjun Kumar", admission_no: "2024004", class_level: "10", section: "B", roll_no: "1" },
+      { name: "Priya Sharma", admission_no: "2024005", class_level: "10", section: "B", roll_no: "2" }
+    ];
+
+    for (const student of testStudents) {
+      await supabase
+        .from("students")
+        .insert({
+          org_id: orgId,
+          ...student,
+          father_name: "Father Name",
+          mother_name: "Mother Name",
+          phone: "+91 9876543210",
+          address: "Student Address",
+          date_of_birth: "2008-01-01"
+        });
+    }
+
+    // Create test subjects
+    const testSubjects = [
+      { name: "Science", code: "SCI", max_marks: 100 },
+      { name: "Social Studies", code: "SS", max_marks: 100 },
+      { name: "Mathematics", code: "MATH", max_marks: 100 },
+      { name: "English", code: "ENG", max_marks: 100 },
+      { name: "Hindi", code: "HIN", max_marks: 100 }
+    ];
+
+    for (const subject of testSubjects) {
+      await supabase
+        .from("subjects")
+        .insert({
+          org_id: orgId,
+          class_level: "10",
+          ...subject
+        });
+    }
+
+    // Create test exam
+    const { data: exam, error: examError } = await supabase
+      .from("exams")
+      .insert({
+        org_id: orgId,
+        name: "Mid Term Exam 2025",
+        class_level: "10",
+        exam_type: "Mid Term",
+        exam_date: "2025-02-15",
+        max_marks: 100,
+        status: "active"
+      })
+      .select()
+      .single();
+
+    if (examError) {
+      console.error("Error creating test exam:", examError);
+      return res.status(500).json({ message: "Failed to create test exam" });
+    }
+
+    res.json({
+      message: "Test data created successfully",
+      organization: { id: orgId, name: "Demo High School" },
+      studentsCreated: testStudents.length,
+      subjectsCreated: testSubjects.length,
+      examCreated: exam.name
+    });
+
+  } catch (error) {
+    console.error("Error creating test data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Remove demo credentials from reset endpoint
 router.post("/api/reset/admin", async (req, res) => {
   try {
