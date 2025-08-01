@@ -21,6 +21,7 @@ export default function OrgLogin() {
       const response = await fetch("/api/org/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!response.ok) {

@@ -93,28 +93,52 @@ export default function OrgDashboard() {
   // Fetch dashboard statistics
   const { data: stats } = useQuery({
     queryKey: ["/api/org/stats", orgData.id],
-    queryFn: () => fetch(`/api/org/stats?orgId=${orgData.id}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/org/stats?orgId=${orgData.id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    },
     enabled: !!orgData.id,
   });
 
   // Fetch students
   const { data: students = [] } = useQuery({
     queryKey: ["/api/org/students", orgData.id],
-    queryFn: () => fetch(`/api/org/students?orgId=${orgData.id}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/org/students?orgId=${orgData.id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch students');
+      return response.json();
+    },
     enabled: !!orgData.id,
   });
 
   // Fetch teachers
   const { data: teachers = [] } = useQuery({
     queryKey: ["/api/org/teachers", orgData.id],
-    queryFn: () => fetch(`/api/org/teachers?orgId=${orgData.id}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/org/teachers?orgId=${orgData.id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch teachers');
+      return response.json();
+    },
     enabled: !!orgData.id,
   });
 
   // Fetch subjects
   const { data: subjects = [] } = useQuery({
     queryKey: ["/api/org/subjects", orgData.id],
-    queryFn: () => fetch(`/api/org/subjects?orgId=${orgData.id}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/org/subjects?orgId=${orgData.id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      return response.json();
+    },
     enabled: !!orgData.id,
   });
 
