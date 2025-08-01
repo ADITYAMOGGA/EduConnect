@@ -292,17 +292,38 @@ export default function OrgDashboard() {
 
           {/* Students Management */}
           <TabsContent value="students" className="space-y-6">
-            <StudentManagement />
+            <motion.div
+              key="students"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <StudentManagement />
+            </motion.div>
           </TabsContent>
 
           {/* Teachers Management */}
           <TabsContent value="teachers" className="space-y-6">
-            <TeacherManagementEnhanced />
+            <motion.div
+              key="teachers"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <TeacherManagementEnhanced />
+            </motion.div>
           </TabsContent>
 
           {/* Subjects Management */}
           <TabsContent value="subjects" className="space-y-6">
-            <SubjectManagementEnhanced />
+            <motion.div
+              key="subjects"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SubjectManagementEnhanced />
+            </motion.div>
           </TabsContent>
 
           {/* Exams Management */}

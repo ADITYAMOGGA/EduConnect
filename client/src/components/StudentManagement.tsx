@@ -12,13 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Upload, Edit, Trash2, User, UserX, Search, Filter, AlertTriangle } from "lucide-react";
 import type { Student } from "@shared/schema";
 import AddStudentModal from "./AddStudentModal";
-import ImportModal from "./ImportModal";
+import CSVImportModal from "./CSVImportModal";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useOrgAuth } from "@/hooks/useOrgAuth";
 
 export default function StudentManagement() {
   const [selectedClass, setSelectedClass] = useState<string>("all");
-  const [selectedSection, setSelectedSection] = useState<string>("all");
+
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -39,15 +39,14 @@ export default function StudentManagement() {
     enabled: !!orgId && isAuthenticated,
   });
 
-  // Filter students based on class, section, and search term
+  // Filter students based on class and search term
   const filteredStudents = allStudents.filter((student: Student) => {
     const matchesClass = selectedClass === "all" || student.class === selectedClass;
-    const matchesSection = selectedSection === "all" || true;
     const matchesSearch = searchTerm === "" || 
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.admissionNo?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesClass && matchesSection && matchesSearch;
+    return matchesClass && matchesSearch;
   });
 
   // Get unique class levels for filters
@@ -202,7 +201,7 @@ export default function StudentManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -229,20 +228,7 @@ export default function StudentManagement() {
               </SelectContent>
             </Select>
 
-            {/* Section Filter */}
-            <Select value={selectedSection} onValueChange={setSelectedSection}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Sections" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sections</SelectItem>
-                {availableSections.map(section => (
-                  <SelectItem key={section} value={section}>
-                    Section {section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
 
             {/* Results Counter */}
             <div className="flex items-center">
@@ -369,15 +355,16 @@ export default function StudentManagement() {
       {showAddModal && (
         <AddStudentModal
           open={showAddModal}
-          onClose={handleCloseModal}
-          student={editingStudent}
+          onOpenChange={setShowAddModal}
+          orgId={orgId || ''}
         />
       )}
 
       {showImportModal && (
-        <ImportModal
+        <CSVImportModal
           open={showImportModal}
-          onClose={() => setShowImportModal(false)}
+          onOpenChange={setShowImportModal}
+          orgId={orgId || ''}
         />
       )}
 
