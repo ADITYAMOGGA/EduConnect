@@ -35,6 +35,12 @@ export default function TeacherLogin() {
       return response.json();
     },
     onSuccess: (data: any) => {
+      // Store authentication data in localStorage for protected routes
+      localStorage.setItem("userRole", "teacher");
+      localStorage.setItem("teacherData", JSON.stringify(data.teacher));
+      localStorage.setItem("organizationData", JSON.stringify(data.organization));
+      localStorage.setItem("teacherSubjects", JSON.stringify(data.subjects || []));
+      
       toast({ title: "Login successful", description: `Welcome ${data.teacher.name}!` });
       navigate("/teacher-dashboard");
     },
