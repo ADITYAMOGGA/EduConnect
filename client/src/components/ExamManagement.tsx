@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -21,7 +22,9 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  BookOpen
+  BookOpen,
+  Bell,
+  School
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOrgAuth } from "@/hooks/useOrgAuth";
@@ -47,7 +50,7 @@ interface Exam {
 interface ExamFormData {
   name: string;
   description: string;
-  classLevel: string;
+  classLevels: string[];
   examType: string;
   examDate: string;
   totalMarks: number;
@@ -55,6 +58,7 @@ interface ExamFormData {
   duration: number;
   academicYear: string;
   instructions: string;
+  notifyTeachers: boolean;
 }
 
 export default function ExamManagement() {
@@ -68,7 +72,7 @@ export default function ExamManagement() {
   const [formData, setFormData] = useState<ExamFormData>({
     name: "",
     description: "",
-    classLevel: "",
+    classLevels: [],
     examType: "Term Exam",
     examDate: "",
     totalMarks: 100,
@@ -76,6 +80,7 @@ export default function ExamManagement() {
     duration: 180,
     academicYear: "2024-25",
     instructions: "",
+    notifyTeachers: true,
   });
 
   const { toast } = useToast();
@@ -188,7 +193,7 @@ export default function ExamManagement() {
     setFormData({
       name: "",
       description: "",
-      classLevel: "",
+      classLevels: [],
       examType: "Term Exam",
       examDate: "",
       totalMarks: 100,
@@ -196,14 +201,15 @@ export default function ExamManagement() {
       duration: 180,
       academicYear: "2024-25",
       instructions: "",
+      notifyTeachers: true,
     });
   };
 
   const handleCreateExam = () => {
-    if (!formData.name || !formData.classLevel) {
+    if (!formData.name || formData.classLevels.length === 0) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields and select at least one class",
         variant: "destructive",
       });
       return;
@@ -216,7 +222,7 @@ export default function ExamManagement() {
     setFormData({
       name: exam.name,
       description: exam.description || "",
-      classLevel: exam.classLevel,
+      classLevels: [exam.classLevel], // Convert single class to array for editing
       examType: exam.examType,
       examDate: exam.examDate ? new Date(exam.examDate).toISOString().split('T')[0] : "",
       totalMarks: exam.totalMarks,
@@ -224,6 +230,7 @@ export default function ExamManagement() {
       duration: exam.duration,
       academicYear: exam.academicYear,
       instructions: exam.instructions || "",
+      notifyTeachers: false, // Don't notify on edit
     });
     setShowEditModal(true);
   };
@@ -480,27 +487,51 @@ export default function ExamManagement() {
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="classLevel">Class *</Label>
-              <Select value={formData.classLevel} onValueChange={(value) => setFormData({ ...formData, classLevel: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Class 1</SelectItem>
-                  <SelectItem value="2">Class 2</SelectItem>
-                  <SelectItem value="3">Class 3</SelectItem>
-                  <SelectItem value="4">Class 4</SelectItem>
-                  <SelectItem value="5">Class 5</SelectItem>
-                  <SelectItem value="6">Class 6</SelectItem>
-                  <SelectItem value="7">Class 7</SelectItem>
-                  <SelectItem value="8">Class 8</SelectItem>
-                  <SelectItem value="9">Class 9</SelectItem>
-                  <SelectItem value="10">Class 10</SelectItem>
-                  <SelectItem value="11">Class 11</SelectItem>
-                  <SelectItem value="12">Class 12</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="md:col-span-2">
+              <Label className="text-base font-medium">Select Classes *</Label>
+              <p className="text-sm text-gray-600 mb-3">Choose which classes this exam will be conducted for</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"].map((classLevel) => {
+                  const isSelected = formData.classLevels.includes(classLevel);
+                  return (
+                    <div key={classLevel} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`class-${classLevel}`}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({
+                              ...formData,
+                              classLevels: [...formData.classLevels, classLevel]
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              classLevels: formData.classLevels.filter(c => c !== classLevel)
+                            });
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={`class-${classLevel}`}
+                        className={`text-sm cursor-pointer ${
+                          isSelected ? 'font-medium text-blue-700' : 'text-gray-700'
+                        }`}
+                      >
+                        Class {classLevel}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              {formData.classLevels.length > 0 && (
+                <div className="mt-2 flex items-center space-x-2">
+                  <School className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">
+                    {formData.classLevels.length} class{formData.classLevels.length !== 1 ? 'es' : ''} selected
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="examType">Exam Type</Label>
@@ -593,6 +624,26 @@ export default function ExamManagement() {
             />
           </div>
 
+          {/* Teacher Notification Section */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="notifyTeachers"
+                checked={formData.notifyTeachers}
+                onCheckedChange={(checked) => setFormData({ ...formData, notifyTeachers: !!checked })}
+              />
+              <div className="flex items-center space-x-2">
+                <Bell className="h-4 w-4 text-blue-600" />
+                <Label htmlFor="notifyTeachers" className="text-sm font-medium text-blue-800 cursor-pointer">
+                  Notify Teachers
+                </Label>
+              </div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2 ml-7">
+              Automatically notify teachers of the selected classes about this new exam
+            </p>
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>
               Cancel
@@ -628,27 +679,51 @@ export default function ExamManagement() {
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="editClassLevel">Class *</Label>
-              <Select value={formData.classLevel} onValueChange={(value) => setFormData({ ...formData, classLevel: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Class 1</SelectItem>
-                  <SelectItem value="2">Class 2</SelectItem>
-                  <SelectItem value="3">Class 3</SelectItem>
-                  <SelectItem value="4">Class 4</SelectItem>
-                  <SelectItem value="5">Class 5</SelectItem>
-                  <SelectItem value="6">Class 6</SelectItem>
-                  <SelectItem value="7">Class 7</SelectItem>
-                  <SelectItem value="8">Class 8</SelectItem>
-                  <SelectItem value="9">Class 9</SelectItem>
-                  <SelectItem value="10">Class 10</SelectItem>
-                  <SelectItem value="11">Class 11</SelectItem>
-                  <SelectItem value="12">Class 12</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="md:col-span-2">
+              <Label className="text-base font-medium">Select Classes *</Label>
+              <p className="text-sm text-gray-600 mb-3">Choose which classes this exam will be conducted for</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"].map((classLevel) => {
+                  const isSelected = formData.classLevels.includes(classLevel);
+                  return (
+                    <div key={classLevel} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`edit-class-${classLevel}`}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({
+                              ...formData,
+                              classLevels: [...formData.classLevels, classLevel]
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              classLevels: formData.classLevels.filter(c => c !== classLevel)
+                            });
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={`edit-class-${classLevel}`}
+                        className={`text-sm cursor-pointer ${
+                          isSelected ? 'font-medium text-blue-700' : 'text-gray-700'
+                        }`}
+                      >
+                        Class {classLevel}
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              {formData.classLevels.length > 0 && (
+                <div className="mt-2 flex items-center space-x-2">
+                  <School className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">
+                    {formData.classLevels.length} class{formData.classLevels.length !== 1 ? 'es' : ''} selected
+                  </span>
+                </div>
+              )}
             </div>
             <div>
               <Label htmlFor="editExamType">Exam Type</Label>

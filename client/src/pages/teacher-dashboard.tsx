@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 import { useLocation } from "wouter";
+import TeacherMarksEntry from "@/components/TeacherMarksEntry";
 
 interface Student {
   id: string;

@@ -2713,32 +2713,123 @@ router.post("/api/org/exams", requireOrgAuth, async (req: any, res) => {
   try {
     const { orgId, ...examData } = req.body;
     const actualOrgId = orgId || req.orgId;
-
-    const { data: exam, error } = await supabase
-      .from("exams")
-      .insert({
-        org_id: actualOrgId,
-        name: examData.name,
-        description: examData.description,
-        class_level: examData.classLevel,
-        exam_type: examData.examType,
-        exam_date: examData.examDate ? new Date(examData.examDate).toISOString() : null,
-        total_marks: examData.totalMarks,
-        passing_marks: examData.passingMarks,
-        duration_minutes: examData.duration,
-        academic_year: examData.academicYear,
-        instructions: examData.instructions,
-        status: "scheduled"
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating exam:", error);
-      return res.status(500).json({ message: "Failed to create exam" });
+    const classLevels = examData.classLevels || [examData.classLevel];
+    
+    if (!classLevels || classLevels.length === 0) {
+      return res.status(400).json({ message: "At least one class must be selected" });
     }
 
-    res.status(201).json(exam);
+    // Create exam records for each selected class
+    const examInserts = classLevels.map((classLevel: string) => ({
+      org_id: actualOrgId,
+      name: examData.name,
+      description: examData.description,
+      class_level: classLevel,
+      exam_type: examData.examType,
+      exam_date: examData.examDate ? new Date(examData.examDate).toISOString() : null,
+      total_marks: examData.totalMarks,
+      passing_marks: examData.passingMarks,
+      duration_minutes: examData.duration,
+      academic_year: examData.academicYear,
+      instructions: examData.instructions,
+      status: "scheduled"
+    }));
+
+    const { data: exams, error } = await supabase
+      .from("exams")
+      .insert(examInserts)
+      .select();
+
+    if (error) {
+      console.error("Error creating exams:", error);
+      return res.status(500).json({ message: "Failed to create exams" });
+    }
+
+    // Notify teachers if requested
+    if (examData.notifyTeachers && exams) {
+      try {
+        // Find all teachers assigned to the selected classes
+        const { data: teacherSubjects, error: teacherError } = await supabase
+          .from("teacher_subjects")
+          .select(`
+            teacher_id,
+            class_level,
+            teachers!inner(id, name, email)
+          `)
+          .in("class_level", classLevels)
+          .eq("teachers.org_id", actualOrgId);
+
+        if (!teacherError && teacherSubjects && teacherSubjects.length > 0) {
+          // Group teachers by class to avoid duplicate notifications
+          const teachersByClass = new Map();
+          teacherSubjects.forEach((ts: any) => {
+            const key = `${ts.teacher_id}-${ts.class_level}`;
+            if (!teachersByClass.has(key)) {
+              teachersByClass.set(key, {
+                teacherId: ts.teacher_id,
+                teacherName: ts.teachers.name,
+                teacherEmail: ts.teachers.email,
+                classLevel: ts.class_level
+              });
+            }
+          });
+
+          // Create notifications for teachers
+          const notifications = Array.from(teachersByClass.values()).map((teacher: any) => ({
+            org_id: actualOrgId,
+            user_id: teacher.teacherId,
+            user_type: 'teacher',
+            title: 'New Exam Scheduled',
+            message: `A new exam "${examData.name}" has been scheduled for Class ${teacher.classLevel}. Please check your dashboard for details.`,
+            type: 'exam_notification',
+            metadata: {
+              examName: examData.name,
+              classLevel: teacher.classLevel,
+              examType: examData.examType,
+              examDate: examData.examDate,
+              totalMarks: examData.totalMarks
+            },
+            is_read: false
+          }));
+
+          // Insert notifications (assuming we have a notifications table)
+          await supabase
+            .from("notifications")
+            .insert(notifications)
+            .select();
+
+          console.log(`Notified ${notifications.length} teachers about new exam: ${examData.name}`);
+        }
+      } catch (notificationError) {
+        console.error("Error sending teacher notifications:", notificationError);
+        // Don't fail the exam creation if notifications fail
+      }
+    }
+
+    // Log exam creation activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId: actualOrgId,
+      userId: req.userId || 'system',
+      userType: 'org_admin',
+      userName: req.userName || 'Admin',
+      activity: 'create_exam',
+      description: `Created new exam: ${examData.name} for ${classLevels.length} class${classLevels.length > 1 ? 'es' : ''}`,
+      metadata: { 
+        examName: examData.name,
+        classLevels: classLevels,
+        examType: examData.examType,
+        totalMarks: examData.totalMarks,
+        notifiedTeachers: examData.notifyTeachers
+      },
+      ...clientInfo,
+    });
+
+    res.status(201).json({
+      success: true,
+      exams: exams,
+      message: `Successfully created exam for ${classLevels.length} class${classLevels.length > 1 ? 'es' : ''}${examData.notifyTeachers ? ' and notified teachers' : ''}`
+    });
   } catch (error) {
     console.error("Error creating exam:", error);
     res.status(500).json({ message: "Internal server error" });
