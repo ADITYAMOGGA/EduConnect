@@ -30,9 +30,13 @@ export async function logActivity(data: ActivityLogData): Promise<void> {
 
     if (error) {
       console.error('Failed to log activity:', error);
+      // Don't let activity logging failures break the main functionality
+      return;
     }
   } catch (err) {
     console.error('Activity logging error:', err);
+    // Fail silently to not break login process
+    return;
   }
 }
 
