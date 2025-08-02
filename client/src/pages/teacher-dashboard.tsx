@@ -170,6 +170,42 @@ export default function TeacherDashboard() {
     }
   };
 
+  // Filtered data based on search and subject selection - Move all useMemo hooks before conditional returns
+  const filteredStudents = useMemo(() => {
+    if (!students) return [];
+    return students.filter(student =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.admissionNo.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [students, searchTerm]);
+
+  const filteredMarks = useMemo(() => {
+    if (!marks) return [];
+    return marks.filter(mark => {
+      const matchesSearch = mark.student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+      const matchesSubject = selectedSubject ? mark.subject_name === selectedSubject : true;
+      return matchesSearch && matchesSubject;
+    });
+  }, [marks, searchTerm, selectedSubject]);
+
+  // Stats calculations
+  const stats = useMemo(() => {
+    const totalStudents = students?.length || 0;
+    const totalSubjects = subjects?.length || 0;
+    const totalMarksEntered = marks?.length || 0;
+    const avgMarks = marks && marks.length > 0 
+      ? marks.reduce((sum, mark) => sum + (mark.marks_obtained / mark.max_marks * 100), 0) / marks.length 
+      : 0;
+
+    return {
+      totalStudents,
+      totalSubjects,
+      totalMarksEntered,
+      avgMarks: Math.round(avgMarks * 10) / 10
+    };
+  }, [students, subjects, marks]);
+
   const handleLogout = () => {
     logoutMutation.mutate();
   };
@@ -210,40 +246,6 @@ export default function TeacherDashboard() {
       </div>
     );
   }
-
-  // Filtered data based on search and subject selection
-  const filteredStudents = useMemo(() => {
-    return students.filter(student =>
-      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admissionNo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [students, searchTerm]);
-
-  const filteredMarks = useMemo(() => {
-    return marks.filter(mark => {
-      const matchesSearch = mark.student?.name.toLowerCase().includes(searchTerm.toLowerCase()) || false;
-      const matchesSubject = selectedSubject ? mark.subject_name === selectedSubject : true;
-      return matchesSearch && matchesSubject;
-    });
-  }, [marks, searchTerm, selectedSubject]);
-
-  // Stats calculations
-  const stats = useMemo(() => {
-    const totalStudents = students.length;
-    const totalSubjects = subjects.length;
-    const totalMarksEntered = marks.length;
-    const avgMarks = marks.length > 0 
-      ? marks.reduce((sum, mark) => sum + (mark.marks_obtained / mark.max_marks * 100), 0) / marks.length 
-      : 0;
-
-    return {
-      totalStudents,
-      totalSubjects,
-      totalMarksEntered,
-      avgMarks: Math.round(avgMarks * 10) / 10
-    };
-  }, [students, subjects, marks]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
