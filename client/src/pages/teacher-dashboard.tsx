@@ -142,7 +142,10 @@ export default function TeacherDashboard() {
         credentials: 'include',
         body: JSON.stringify({ marks: value })
       });
-      if (!response.ok) throw new Error('Failed to update mark');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update mark');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -151,8 +154,12 @@ export default function TeacherDashboard() {
       setEditingMark(null);
       setEditingValue("");
     },
-    onError: () => {
-      toast({ title: "Failed to update mark", variant: "destructive" });
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to update mark", 
+        description: error.message || "Please try again",
+        variant: "destructive" 
+      });
     }
   });
 

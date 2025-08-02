@@ -925,14 +925,29 @@ router.get("/api/teacher/exams", requireTeacherAuth, async (req: any, res) => {
       .from("exams")
       .select("*")
       .eq("org_id", orgId)
-      .order("exam_date", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching teacher exams:", error);
       return res.status(500).json({ message: "Failed to fetch exams" });
     }
 
-    res.json(exams);
+    // Transform data for frontend compatibility
+    const transformedExams = exams?.map(exam => ({
+      id: exam.id,
+      name: exam.name,
+      type: exam.exam_type || 'Term Exam',
+      exam_date: exam.created_at, // Use created_at as fallback since exam_date column doesn't exist
+      status: exam.status,
+      instructions: exam.instructions,
+      max_duration: exam.duration_minutes || 180,
+      total_marks: exam.total_marks || 100,
+      class_level: exam.class_level,
+      org_id: exam.org_id,
+      created_at: exam.created_at
+    })) || [];
+
+    res.json(transformedExams);
   } catch (error) {
     console.error("Error in teacher exams route:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -1025,105 +1040,150 @@ router.post("/api/teacher/logout", requireTeacherAuth, async (req: any, res) => 
   }
 });
 
-// Setup endpoint for creating test teacher data
-router.post("/api/setup/test-teacher", async (req, res) => {
+// Update marks endpoint for teachers
+router.patch("/api/marks/:id", requireTeacherAuth, async (req: any, res) => {
   try {
-    const { force = false } = req.body;
-    
-    // Create test organization first
-    const { data: existingOrg } = await supabase
-      .from("organizations")
-      .select("id")
-      .eq("name", "Test School")
+    const { id } = req.params;
+    const { marks } = req.body;
+    const { teacherId, orgId } = req;
+
+    if (typeof marks !== 'number' || marks < 0) {
+      return res.status(400).json({ message: "Invalid marks value" });
+    }
+
+    // First, verify the mark belongs to teacher's subject and organization
+    const { data: existingMark, error: fetchError } = await supabase
+      .from("marks")
+      .select(`
+        *,
+        students (class_level),
+        subjects (name)
+      `)
+      .eq("id", id)
+      .eq("org_id", orgId)
       .single();
 
-    let orgId = existingOrg?.id;
-
-    if (!existingOrg) {
-      const { data: newOrg, error: orgError } = await supabase
-        .from("organizations")
-        .insert({
-          name: "Test School",
-          address: "123 Test Street",
-          city: "Test City",
-          state: "Test State",
-          pincode: "123456",
-          phone: "9876543210",
-          email: "test@testschool.edu",
-          status: "active"
-        })
-        .select()
-        .single();
-
-      if (orgError) {
-        console.error("Error creating test organization:", orgError);
-        return res.status(500).json({ message: "Failed to create test organization" });
-      }
-      orgId = newOrg.id;
+    if (fetchError || !existingMark) {
+      return res.status(404).json({ message: "Mark not found" });
     }
 
-    // Check if test teacher already exists
-    const { data: existingTeacher } = await supabase
-      .from("teachers")
+    // Check if teacher is assigned to this subject
+    const { data: teacherSubject } = await supabase
+      .from("teacher_subjects")
       .select("id")
-      .eq("username", "teacher_test")
+      .eq("teacher_id", teacherId)
+      .eq("subject_id", existingMark.subject_id)
       .single();
 
-    if (existingTeacher && !force) {
-      return res.status(400).json({ message: "Test teacher already exists. Use force=true to recreate." });
+    if (!teacherSubject) {
+      return res.status(403).json({ message: "Not authorized to update this mark" });
     }
 
-    // Delete existing test teacher if force is true
-    if (existingTeacher && force) {
-      await supabase.from("teachers").delete().eq("id", existingTeacher.id);
+    // Check if marks exceed max marks
+    if (marks > existingMark.max_marks) {
+      return res.status(400).json({ 
+        message: `Marks cannot exceed maximum marks (${existingMark.max_marks})` 
+      });
     }
 
-    // Create test teacher
-    const passwordHash = await hashPassword("password123");
-    
-    const { data: newTeacher, error: teacherError } = await supabase
-      .from("teachers")
-      .insert({
-        username: "teacher_test",
-        password_hash: passwordHash,
-        name: "Test Teacher",
-        email: "teacher@testschool.edu",
-        phone: "9876543210",
-        classes: ["8", "9"],
-        org_id: orgId,
-        status: "active"
+    // Calculate grade based on percentage
+    const percentage = (marks / existingMark.max_marks) * 100;
+    let grade = 'F';
+    if (percentage >= 90) grade = 'A+';
+    else if (percentage >= 80) grade = 'A';
+    else if (percentage >= 70) grade = 'B+';
+    else if (percentage >= 60) grade = 'B';
+    else if (percentage >= 50) grade = 'C+';
+    else if (percentage >= 40) grade = 'C';
+    else if (percentage >= 35) grade = 'D';
+
+    // Update the mark
+    const { data: updatedMark, error: updateError } = await supabase
+      .from("marks")
+      .update({
+        marks_obtained: marks,
+        grade,
+        teacher_id: teacherId,
+        entry_date: new Date().toISOString(),
+        status: 'submitted',
+        updated_at: new Date().toISOString()
       })
+      .eq("id", id)
       .select()
       .single();
 
-    if (teacherError) {
-      console.error("Error creating test teacher:", teacherError);
-      return res.status(500).json({ message: "Failed to create test teacher" });
+    if (updateError) {
+      console.error("Error updating mark:", updateError);
+      return res.status(500).json({ message: "Failed to update mark" });
     }
 
-    // Create test subjects
+    // Log the activity
+    await logActivity({
+      orgId,
+      userId: teacherId,
+      userType: 'teacher',
+      userName: req.session.teacher.username,
+      activity: ACTIVITIES.UPDATE,
+      description: `Updated marks for ${existingMark.subject_name}: ${marks}/${existingMark.max_marks}`,
+      metadata: { 
+        markId: id, 
+        oldMarks: existingMark.marks_obtained,
+        newMarks: marks,
+        studentId: existingMark.student_id,
+        subject: existingMark.subject_name
+      }
+    });
+
+    res.json(updatedMark);
+  } catch (error) {
+    console.error("Error updating mark:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Setup endpoint to add test data to Demo School organization
+router.post("/api/setup/demo-data", async (req, res) => {
+  try {
+    const orgId = "c7c19911-6a9d-4511-9646-23388886fc3c"; // Demo School org ID
+    const teacherId = "17d944c7-cec5-4e61-af3b-cbc03dfc3e67"; // Demo Teacher ID
+
+    // Update teacher to have assigned classes
+    await supabase
+      .from("teachers")
+      .update({ classes: ["10", "11", "12"] })
+      .eq("id", teacherId);
+
+    console.log("Updated teacher classes");
+
+    // Create test subjects for the organization
     const subjects = [
-      { name: "Mathematics", code: "MATH", class_level: "8", max_marks: 100 },
-      { name: "Science", code: "SCI", class_level: "8", max_marks: 100 },
-      { name: "Mathematics", code: "MATH", class_level: "9", max_marks: 100 }
+      { name: "Mathematics", code: "MATH10", class_level: "10", max_marks: 100 },
+      { name: "Physics", code: "PHY10", class_level: "10", max_marks: 100 },
+      { name: "Chemistry", code: "CHE10", class_level: "10", max_marks: 100 },
+      { name: "Mathematics", code: "MATH11", class_level: "11", max_marks: 100 },
+      { name: "Physics", code: "PHY11", class_level: "11", max_marks: 100 },
+      { name: "English", code: "ENG12", class_level: "12", max_marks: 100 }
     ];
 
+    // Clear existing subjects and recreate
+    await supabase.from("subjects").delete().eq("org_id", orgId);
+    
+    const createdSubjects = [];
     for (const subject of subjects) {
       const { data: newSubject, error: subjectError } = await supabase
         .from("subjects")
-        .insert({
-          ...subject,
-          org_id: orgId
-        })
+        .insert({ ...subject, org_id: orgId })
         .select()
         .single();
-
+      
       if (!subjectError && newSubject) {
+        createdSubjects.push(newSubject);
+        
         // Assign subject to teacher
         await supabase
           .from("teacher_subjects")
           .insert({
-            teacher_id: newTeacher.id,
+            teacher_id: teacherId,
             subject_id: newSubject.id,
             class_level: subject.class_level,
             academic_year: "2024-25"
@@ -1131,37 +1191,130 @@ router.post("/api/setup/test-teacher", async (req, res) => {
       }
     }
 
+    console.log(`Created ${createdSubjects.length} subjects`);
+
     // Create test students
     const students = [
-      { name: "Student One", roll_no: "1", admission_no: "2024001", class_level: "8" },
-      { name: "Student Two", roll_no: "2", admission_no: "2024002", class_level: "8" },
-      { name: "Student Three", roll_no: "3", admission_no: "2024003", class_level: "9" }
+      { name: "Arjun Sharma", roll_no: "001", admission_no: "2024001", class_level: "10", father_name: "Raj Sharma", mother_name: "Priya Sharma" },
+      { name: "Priya Patel", roll_no: "002", admission_no: "2024002", class_level: "10", father_name: "Kiran Patel", mother_name: "Meera Patel" },
+      { name: "Rohit Singh", roll_no: "003", admission_no: "2024003", class_level: "10", father_name: "Suresh Singh", mother_name: "Kavita Singh" },
+      { name: "Sneha Gupta", roll_no: "004", admission_no: "2024004", class_level: "11", father_name: "Anil Gupta", mother_name: "Sunita Gupta" },
+      { name: "Vikram Reddy", roll_no: "005", admission_no: "2024005", class_level: "11", father_name: "Krishna Reddy", mother_name: "Lakshmi Reddy" },
+      { name: "Anita Kumar", roll_no: "006", admission_no: "2024006", class_level: "11", father_name: "Rajesh Kumar", mother_name: "Sita Kumar" },
+      { name: "Ravi Verma", roll_no: "007", admission_no: "2024007", class_level: "12", father_name: "Prakash Verma", mother_name: "Geeta Verma" },
+      { name: "Deepika Jain", roll_no: "008", admission_no: "2024008", class_level: "12", father_name: "Mohan Jain", mother_name: "Rekha Jain" }
     ];
 
+    // Clear existing students and recreate
+    await supabase.from("students").delete().eq("org_id", orgId);
+    
+    const createdStudents = [];
     for (const student of students) {
-      await supabase
+      const { data: newStudent, error: studentError } = await supabase
         .from("students")
         .insert({
           ...student,
           org_id: orgId,
-          father_name: "Test Father",
-          mother_name: "Test Mother",
           phone: "9876543210",
-          email: `${student.name.toLowerCase().replace(" ", "")}@test.com`,
-          date_of_birth: "2010-01-01",
-          gender: "Male",
-          address: "Test Address"
-        });
+          email: `${student.name.toLowerCase().replace(/\s+/g, '')}@demo.com`,
+          date_of_birth: "2008-01-01",
+          gender: Math.random() > 0.5 ? "Male" : "Female",
+          address: "Demo Address, Delhi"
+        })
+        .select()
+        .single();
+      
+      if (!studentError && newStudent) {
+        createdStudents.push(newStudent);
+      }
     }
 
-    const { password_hash, ...teacherData } = newTeacher;
+    console.log(`Created ${createdStudents.length} students`);
+
+    // Create test exams
+    const exams = [
+      { name: "Mid Term Exam", exam_type: "Mid Term", class_level: "10", status: "completed" },
+      { name: "Final Term Exam", exam_type: "Final Term", class_level: "10", status: "ongoing" },
+      { name: "Mid Term Exam", exam_type: "Mid Term", class_level: "11", status: "completed" },
+      { name: "Final Term Exam", exam_type: "Final Term", class_level: "11", status: "scheduled" },
+      { name: "Annual Exam", exam_type: "Annual", class_level: "12", status: "completed" }
+    ];
+
+    // Clear existing exams and recreate
+    await supabase.from("exams").delete().eq("org_id", orgId);
+    
+    const createdExams = [];
+    for (const exam of exams) {
+      const { data: newExam, error: examError } = await supabase
+        .from("exams")
+        .insert({
+          ...exam,
+          org_id: orgId,
+          total_marks: 100,
+          passing_marks: 35,
+          duration_minutes: 180,
+          instructions: "Read all questions carefully before answering."
+        })
+        .select()
+        .single();
+      
+      if (!examError && newExam) {
+        createdExams.push(newExam);
+      }
+    }
+
+    console.log(`Created ${createdExams.length} exams`);
+
+    // Create sample marks for completed exams
+    const completedExams = createdExams.filter(e => e.status === 'completed');
+    let marksCreated = 0;
+    
+    for (const exam of completedExams) {
+      const examStudents = createdStudents.filter(s => s.class_level === exam.class_level);
+      const examSubjects = createdSubjects.filter(s => s.class_level === exam.class_level);
+      
+      for (const student of examStudents) {
+        for (const subject of examSubjects) {
+          const marks = Math.floor(Math.random() * 40) + 60; // Random marks between 60-100
+          const percentage = (marks / 100) * 100;
+          let grade = 'F';
+          if (percentage >= 90) grade = 'A+';
+          else if (percentage >= 80) grade = 'A';
+          else if (percentage >= 70) grade = 'B+';
+          else if (percentage >= 60) grade = 'B';
+          else if (percentage >= 50) grade = 'C+';
+          else if (percentage >= 40) grade = 'C';
+          else if (percentage >= 35) grade = 'D';
+
+          const { error: markError } = await supabase
+            .from("marks")
+            .insert({
+              org_id: orgId,
+              student_id: student.id,
+              exam_id: exam.id,
+              subject_id: subject.id,
+              subject_name: subject.name,
+              marks_obtained: marks,
+              max_marks: 100,
+              grade,
+              teacher_id: teacherId,
+              status: 'submitted'
+            });
+          
+          if (!markError) marksCreated++;
+        }
+      }
+    }
+
+    console.log(`Created ${marksCreated} marks entries`);
+
     res.json({ 
-      teacher: teacherData,
-      organization: { id: orgId, name: "Test School" },
-      message: "Test teacher and data created successfully",
-      credentials: {
-        username: "teacher_test",
-        password: "password123"
+      message: "Demo data created successfully",
+      summary: {
+        subjects: createdSubjects.length,
+        students: createdStudents.length,
+        exams: createdExams.length,
+        marks: marksCreated
       }
     });
   } catch (error) {
