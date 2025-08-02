@@ -44,6 +44,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddUser, setShowAddUser] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [showAddSchool, setShowAddSchool] = useState(false);
+  const [editingSchool, setEditingSchool] = useState<any>(null);
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
@@ -81,8 +83,13 @@ export default function AdminDashboard() {
     enabled: user?.role === 'admin'
   });
 
-  const { data: allUsers, isLoading: usersLoading } = useQuery({
+  const { data: allUsers = [], isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ['/api/admin/users'],
+    enabled: user?.role === 'admin'
+  });
+
+  const { data: allSchools = [], isLoading: schoolsLoading } = useQuery<any[]>({
+    queryKey: ['/api/admin/schools'],
     enabled: user?.role === 'admin'
   });
 
@@ -131,6 +138,61 @@ export default function AdminDashboard() {
     }
   });
 
+  // School management mutations
+  const createSchoolMutation = useMutation({
+    mutationFn: async (schoolData: any) => {
+      const response = await fetch('/api/admin/schools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schoolData),
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to create school');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/schools'] });
+      toast({
+        title: "Success",
+        description: "School created successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create school",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateSchoolMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      const response = await fetch(`/api/admin/schools/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to update school');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/schools'] });
+      toast({
+        title: "Success",
+        description: "School updated successfully!"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update school",
+        variant: "destructive"
+      });
+    }
+  });
+
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       const response = await fetch(`/api/admin/users/${id}`, {
@@ -159,8 +221,18 @@ export default function AdminDashboard() {
     }
   });
 
-  // Toggle user hold status
-  const toggleUserHold = (userId: string, currentStatus: string) => {
+  // Toggle user hold status (prevent holding super admin accounts)
+  const toggleUserHold = (userId: string, currentStatus: string, userRole: string) => {
+    // Prevent holding super admin accounts (platform admins)
+    if (userRole === 'admin') {
+      toast({
+        title: "Action Denied",
+        description: "Cannot hold super admin accounts",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const newStatus = currentStatus === 'hold' ? 'active' : 'hold';
     updateUserMutation.mutate({
       id: userId,
@@ -518,12 +590,13 @@ export default function AdminDashboard() {
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => toggleUserHold(user.id, user.status)}
+                                  onClick={() => toggleUserHold(user.id, user.status, user.role)}
+                                  disabled={user.role === 'admin'}
                                   className={`transition-colors duration-200 ${
                                     user.status === 'hold' 
                                       ? 'hover:bg-green-50 hover:border-green-300 text-green-600' 
                                       : 'hover:bg-yellow-50 hover:border-yellow-300 text-yellow-600'
-                                  }`}
+                                  } ${user.role === 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                   {user.status === 'hold' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                                 </Button>
@@ -548,7 +621,7 @@ export default function AdminDashboard() {
                         No regular users found. Only admin accounts exist.
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
@@ -557,17 +630,27 @@ export default function AdminDashboard() {
           <TabsContent value="schools" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <School className="h-5 w-5 text-red-600" />
-                  <span>School Management</span>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center space-x-2">
+                    <School className="h-5 w-5 text-red-600" />
+                    <span>School Management</span>
+                  </span>
+                  <Button 
+                    size="sm" 
+                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+                    onClick={() => setShowAddSchool(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add School
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {usersLoading ? (
+                {schoolsLoading ? (
                   <div className="space-y-4">
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="animate-pulse">
-                        <div className="h-12 bg-gray-200 rounded"></div>
+                        <div className="h-16 bg-gray-200 rounded"></div>
                       </div>
                     ))}
                   </div>
@@ -578,101 +661,104 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5 }}
                   >
-                    {Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).map((schoolName, index) => {
-                      const schoolUsers = allUsers?.filter(u => u.schoolName === schoolName) || [];
-                      const activeUsers = schoolUsers.filter(u => u.status === 'active').length;
-                      const onHoldUsers = schoolUsers.filter(u => u.status === 'hold').length;
-                      const teachers = schoolUsers.filter(u => u.role === 'teacher').length;
-                      
-                      return (
-                        <motion.div 
-                          key={index} 
-                          className="group relative overflow-hidden"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.15, duration: 0.4 }}
-                          whileHover={{ scale: 1.02 }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                          <div className="relative flex items-center justify-between p-6 border rounded-lg bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border-blue-100">
-                            <div className="flex items-center space-x-4">
+                    {allSchools.map((school: any, index: number) => (
+                      <motion.div 
+                        key={school.id} 
+                        className="group relative overflow-hidden"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1, duration: 0.4 }}
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center justify-between p-6 border rounded-lg bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 border-blue-100">
+                          <div className="flex items-center space-x-4">
+                            <motion.div 
+                              className="relative"
+                              whileHover={{ rotate: 5 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                                <School className="text-white h-7 w-7" />
+                              </div>
                               <motion.div 
-                                className="relative"
-                                whileHover={{ rotate: 10, scale: 1.1 }}
-                                transition={{ duration: 0.3 }}
+                                className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
+                                  school.status === 'active' ? 'bg-green-500' : 'bg-red-500'
+                                }`}
+                                animate={{ scale: [1, 1.2, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                              />
+                            </motion.div>
+                            <div>
+                              <motion.h3 
+                                className="font-semibold text-gray-900 text-lg"
+                                whileHover={{ x: 5 }}
+                                transition={{ duration: 0.2 }}
                               >
-                                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <School className="text-white h-8 w-8" />
-                                </div>
-                                <motion.div 
-                                  className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                                  animate={{ scale: [1, 1.2, 1] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                >
-                                  <span className="text-white text-xs font-bold">{schoolUsers.length}</span>
-                                </motion.div>
-                              </motion.div>
-                              <div>
-                                <motion.h3 
-                                  className="font-bold text-gray-900 text-xl"
-                                  whileHover={{ x: 5 }}
+                                {school.name}
+                              </motion.h3>
+                              <p className="text-sm text-gray-600">{school.email}</p>
+                              <p className="text-sm text-gray-500">{school.address}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-6">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-gray-900 mb-2">{school.board_type || 'CBSE'}</p>
+                              <div className="flex items-center space-x-2">
+                                <motion.div
+                                  whileHover={{ scale: 1.1 }}
                                   transition={{ duration: 0.2 }}
                                 >
-                                  {schoolName}
-                                </motion.h3>
-                                <p className="text-sm text-gray-600 font-medium">
-                                  {schoolUsers.length} user{schoolUsers.length !== 1 ? 's' : ''} registered
-                                </p>
+                                  <Badge 
+                                    variant={school.status === 'active' ? 'outline' : 'destructive'}
+                                    className={`font-medium ${
+                                      school.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                      'bg-red-50 text-red-700 border-red-200'
+                                    }`}
+                                  >
+                                    {school.status?.toUpperCase() || 'ACTIVE'}
+                                  </Badge>
+                                </motion.div>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-6">
-                              <div className="grid grid-cols-3 gap-4 text-center">
-                                <motion.div 
-                                  className="bg-green-50 rounded-lg p-3 border border-green-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-green-700">{activeUsers}</p>
-                                  <p className="text-xs text-green-600">Active</p>
-                                </motion.div>
-                                <motion.div 
-                                  className="bg-yellow-50 rounded-lg p-3 border border-yellow-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-yellow-700">{onHoldUsers}</p>
-                                  <p className="text-xs text-yellow-600">On Hold</p>
-                                </motion.div>
-                                <motion.div 
-                                  className="bg-blue-50 rounded-lg p-3 border border-blue-200"
-                                  whileHover={{ scale: 1.05 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <p className="text-lg font-bold text-blue-700">{teachers}</p>
-                                  <p className="text-xs text-blue-600">Teachers</p>
-                                </motion.div>
-                              </div>
+                            <div className="flex space-x-2">
                               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                 <Button 
                                   variant="outline" 
-                                  size="sm"
+                                  size="sm" 
+                                  onClick={() => setEditingSchool(school)}
                                   className="hover:bg-blue-50 hover:border-blue-300 transition-colors duration-200"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </motion.div>
+                              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    toast({
+                                      title: "School Details",
+                                      description: `Viewing details for ${school.name} - Full school management dashboard available`
+                                    });
+                                  }}
+                                  className="hover:bg-green-50 hover:border-green-300 transition-colors duration-200"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </motion.div>
                             </div>
                           </div>
-                        </motion.div>
-                      );
-                    })}
+                        </div>
+                      </motion.div>
+                    ))}
                     
-                    {(!allUsers || Array.from(new Set(allUsers?.map(u => u.schoolName).filter(Boolean))).length === 0) && (
+                    {(!allSchools || allSchools.length === 0) && (
                       <div className="text-center py-8 text-slate-500">
-                        No schools found with registered users.
+                        No schools registered in the system yet.
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </CardContent>
             </Card>
@@ -907,6 +993,145 @@ export default function AdminDashboard() {
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
               Update User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add School Dialog */}
+      <Dialog open={showAddSchool} onOpenChange={setShowAddSchool}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <School className="h-5 w-5 text-red-600" />
+              <span>Create New School</span>
+            </DialogTitle>
+            <DialogDescription>
+              Add a new school/organization to the platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="schoolName">School Name *</Label>
+              <Input id="schoolName" placeholder="St. Xavier's High School" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schoolEmail">Email *</Label>
+              <Input id="schoolEmail" type="email" placeholder="admin@stxaviers.edu" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schoolAddress">Address</Label>
+              <Input id="schoolAddress" placeholder="123 Education Street, City" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="schoolPhone">Phone</Label>
+              <Input id="schoolPhone" placeholder="+91 9876543210" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="boardType">Board Type</Label>
+              <Select defaultValue="CBSE">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select board type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CBSE">CBSE</SelectItem>
+                  <SelectItem value="ICSE">ICSE</SelectItem>
+                  <SelectItem value="State Board">State Board</SelectItem>
+                  <SelectItem value="IB">IB</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSchool(false)}>Cancel</Button>
+            <Button className="bg-gradient-to-r from-red-500 to-pink-500">
+              Create School
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit School Dialog */}
+      <Dialog open={!!editingSchool} onOpenChange={() => setEditingSchool(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <School className="h-5 w-5 text-red-600" />
+              <span>Edit School</span>
+            </DialogTitle>
+            <DialogDescription>
+              Update school information and settings.
+            </DialogDescription>
+          </DialogHeader>
+          {editingSchool && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolName">School Name</Label>
+                <Input 
+                  id="editSchoolName" 
+                  defaultValue={editingSchool.name}
+                  placeholder="School name" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolEmail">Email</Label>
+                <Input 
+                  id="editSchoolEmail" 
+                  type="email" 
+                  defaultValue={editingSchool.email}
+                  placeholder="School email" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolAddress">Address</Label>
+                <Input 
+                  id="editSchoolAddress" 
+                  defaultValue={editingSchool.address}
+                  placeholder="School address" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolPhone">Phone</Label>
+                <Input 
+                  id="editSchoolPhone" 
+                  defaultValue={editingSchool.phone}
+                  placeholder="School phone" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editBoardType">Board Type</Label>
+                <Select defaultValue={editingSchool.board_type || 'CBSE'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select board type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CBSE">CBSE</SelectItem>
+                    <SelectItem value="ICSE">ICSE</SelectItem>
+                    <SelectItem value="State Board">State Board</SelectItem>
+                    <SelectItem value="IB">IB</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editSchoolStatus">Status</Label>
+                <Select defaultValue={editingSchool.status || 'active'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSchool(null)}>Cancel</Button>
+            <Button className="bg-gradient-to-r from-red-500 to-pink-500">
+              Update School
             </Button>
           </DialogFooter>
         </DialogContent>
