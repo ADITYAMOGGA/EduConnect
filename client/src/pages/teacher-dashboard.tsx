@@ -76,44 +76,7 @@ export default function TeacherDashboard() {
   const [editingMark, setEditingMark] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
 
-  // Handle session expired or authentication errors (after all hooks are called)
-  if (isError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
-        <Card className="max-w-md">
-          <CardContent className="text-center py-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogOut className="h-8 w-8 text-white" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Session Expired</h2>
-            <p className="text-gray-600 mb-4">Your session has expired. Please log in again to continue.</p>
-            <Button onClick={() => navigate('/teacher-login')} className="w-full bg-gradient-to-r from-green-600 to-emerald-600">
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (authLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
-        <div className="text-center space-y-4">
-          <motion.div 
-            className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <BookOpen className="h-8 w-8 text-white" />
-          </motion.div>
-          <p className="text-green-800 text-lg font-medium">Loading teaching dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fetch students for teacher's classes
+  // Fetch students for teacher's classes - always call useQuery hooks
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ['/api/teacher/students'],
     queryFn: async () => {
@@ -210,6 +173,43 @@ export default function TeacherDashboard() {
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+
+  // Handle session expired or authentication errors (check after all hooks are called)
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+        <Card className="max-w-md">
+          <CardContent className="text-center py-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Session Expired</h2>
+            <p className="text-gray-600 mb-4">Your session has expired. Please log in again to continue.</p>
+            <Button onClick={() => navigate('/teacher-login')} className="w-full bg-gradient-to-r from-green-600 to-emerald-600">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+        <div className="text-center space-y-4">
+          <motion.div 
+            className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          >
+            <BookOpen className="h-8 w-8 text-white" />
+          </motion.div>
+          <p className="text-green-800 text-lg font-medium">Loading teaching dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Filtered data based on search and subject selection
   const filteredStudents = useMemo(() => {
