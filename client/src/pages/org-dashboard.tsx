@@ -83,44 +83,7 @@ export default function OrgDashboard() {
   const queryClient = useQueryClient();
   const { orgAdmin, organization, orgId, isAuthenticated, isLoading: authLoading, isError } = useOrgAuth();
 
-  // Handle session expired or authentication errors
-  if (isError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
-        <Card className="max-w-md">
-          <CardContent className="text-center py-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogOut className="h-8 w-8 text-white" />
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Session Expired</h2>
-            <p className="text-gray-600 mb-4">Your session has expired. Please log in again to continue.</p>
-            <Button onClick={() => window.location.href = '/'} className="w-full">
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (authLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
-            <Users className="h-8 w-8 text-white" />
-          </div>
-          <p className="text-blue-800 text-lg font-medium">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fetch recent activities for the organization
-  const { data: recentActivities = [], isLoading: activitiesLoading } = useQuery({
-    queryKey: ['/api/org/activities'],
-    enabled: !!orgId && isAuthenticated,
-  });
+  // All state hooks must be called first, before any conditional returns
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -128,6 +91,12 @@ export default function OrgDashboard() {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Fetch recent activities for the organization
+  const { data: recentActivities = [], isLoading: activitiesLoading } = useQuery({
+    queryKey: ['/api/org/activities'],
+    enabled: !!orgId && isAuthenticated,
+  });
 
   // Helper function to get appropriate icon for activity type
   const getActivityIcon = (activityType: string) => {
@@ -261,6 +230,39 @@ export default function OrgDashboard() {
     subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     subject.code.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
+
+  // Handle session expired or authentication errors (after all hooks are called)
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+        <Card className="max-w-md">
+          <CardContent className="text-center py-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Session Expired</h2>
+            <p className="text-gray-600 mb-4">Your session has expired. Please log in again to continue.</p>
+            <Button onClick={() => window.location.href = '/'} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
+            <Users className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-blue-800 text-lg font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900 dark:to-purple-900">
