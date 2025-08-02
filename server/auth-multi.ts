@@ -971,9 +971,21 @@ router.post("/api/org/students/import", requireOrgAuth, upload.single('file'), a
         continue;
       }
 
+      // Map CSV column names to database column names
       const studentData: any = { 
         org_id: orgId,
-        ...studentRow
+        name: studentRow.name,
+        admission_no: studentRow.admission_no,
+        class_level: studentRow.class_level,
+        section: studentRow.section,
+        roll_no: studentRow.roll_no,
+        father_name: studentRow.father_name,
+        mother_name: studentRow.mother_name,
+        phone: studentRow.phone,
+        address: studentRow.address,
+        date_of_birth: studentRow.date_of_birth,
+        gender: studentRow.gender,
+        email: studentRow.email
       };
       console.log(`Student data for row ${i + 1}:`, studentData);
 
