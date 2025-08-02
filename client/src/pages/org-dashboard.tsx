@@ -81,10 +81,45 @@ interface Subject {
 export default function OrgDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { orgAdmin, organization, orgId, isAuthenticated, isLoading: authLoading, isError } = useOrgAuth();
+
+  // Handle session expired or authentication errors
+  if (isError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+        <Card className="max-w-md">
+          <CardContent className="text-center py-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogOut className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Session Expired</h2>
+            <p className="text-gray-600 mb-4">Your session has expired. Please log in again to continue.</p>
+            <Button onClick={() => window.location.href = '/'} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
+            <Users className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-blue-800 text-lg font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch recent activities for the organization
   const { data: recentActivities = [], isLoading: activitiesLoading } = useQuery({
     queryKey: ['/api/org/activities'],
+    enabled: !!orgId && isAuthenticated,
   });
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -134,60 +169,75 @@ export default function OrgDashboard() {
     return date.toLocaleDateString();
   };
 
-  // Get organization data from localStorage
-  const orgData = JSON.parse(localStorage.getItem("organizationData") || "{}");
-  const orgAdminData = JSON.parse(localStorage.getItem("orgAdminData") || "{}");
-
   // Fetch dashboard statistics
   const { data: stats } = useQuery({
-    queryKey: ["/api/org/stats", orgData.id],
+    queryKey: ["/api/org/stats", orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/stats?orgId=${orgData.id}`, {
+      const response = await fetch(`/api/org/stats?orgId=${orgId}`, {
         credentials: 'include'
       });
+      if (response.status === 401) {
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     },
-    enabled: !!orgData.id,
+    enabled: !!orgId && isAuthenticated,
+    retry: (failureCount, error) => {
+      // Don't retry auth errors
+      if (error?.message?.includes('Session expired') || error?.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // Fetch students
   const { data: students = [] } = useQuery({
-    queryKey: ["/api/org/students", orgData.id],
+    queryKey: ["/api/org/students", orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/students?orgId=${orgData.id}`, {
+      const response = await fetch(`/api/org/students?orgId=${orgId}`, {
         credentials: 'include'
       });
+      if (response.status === 401) {
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch students');
       return response.json();
     },
-    enabled: !!orgData.id,
+    enabled: !!orgId && isAuthenticated,
   });
 
   // Fetch teachers
   const { data: teachers = [] } = useQuery({
-    queryKey: ["/api/org/teachers", orgData.id],
+    queryKey: ["/api/org/teachers", orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/teachers?orgId=${orgData.id}`, {
+      const response = await fetch(`/api/org/teachers?orgId=${orgId}`, {
         credentials: 'include'
       });
+      if (response.status === 401) {
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch teachers');
       return response.json();
     },
-    enabled: !!orgData.id,
+    enabled: !!orgId && isAuthenticated,
   });
 
   // Fetch subjects
   const { data: subjects = [] } = useQuery({
-    queryKey: ["/api/org/subjects", orgData.id],
+    queryKey: ["/api/org/subjects", orgId],
     queryFn: async () => {
-      const response = await fetch(`/api/org/subjects?orgId=${orgData.id}`, {
+      const response = await fetch(`/api/org/subjects?orgId=${orgId}`, {
         credentials: 'include'
       });
+      if (response.status === 401) {
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch subjects');
       return response.json();
     },
-    enabled: !!orgData.id,
+    enabled: !!orgId && isAuthenticated,
   });
 
   const handleLogout = () => {
@@ -224,10 +274,10 @@ export default function OrgDashboard() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-                  {orgData.name || "School Dashboard"}
+                  {organization?.name || "School Dashboard"}
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
-                  Welcome, {orgAdminData.name}
+                  Welcome, {orgAdmin?.name}
                 </p>
               </div>
             </div>
@@ -499,22 +549,22 @@ export default function OrgDashboard() {
       <AddStudentModal 
         open={showAddStudent} 
         onOpenChange={setShowAddStudent} 
-        orgId={orgData.id} 
+        orgId={orgId} 
       />
       <AddTeacherModal 
         open={showAddTeacher} 
         onOpenChange={setShowAddTeacher} 
-        orgId={orgData.id} 
+        orgId={orgId} 
       />
       <AddSubjectModal 
         open={showAddSubject} 
         onOpenChange={setShowAddSubject} 
-        orgId={orgData.id} 
+        orgId={orgId} 
       />
       <CSVImportModal 
         open={showCSVImport} 
         onOpenChange={setShowCSVImport} 
-        orgId={orgData.id} 
+        orgId={orgId} 
       />
       <SettingsModal 
         open={showSettings} 

@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { handleAuthError } from "@/lib/authUtils";
 
 interface OrgAdmin {
   id: string;
@@ -24,10 +26,27 @@ interface OrgAuthData {
 }
 
 export function useOrgAuth() {
-  const { data, isLoading, error } = useQuery<OrgAuthData>({
+  const { toast } = useToast();
+  
+  const { data, isLoading, error, isError } = useQuery<OrgAuthData>({
     queryKey: ["/api/org/auth/user"],
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
+
+  // Handle authentication errors
+  if (isError && error) {
+    const isAuthError = handleAuthError(error, toast, () => {
+      // Clear any cached data and redirect
+      window.location.href = '/';
+    });
+    
+    if (!isAuthError) {
+      // Handle other types of errors
+      console.error("Auth check error:", error);
+    }
+  }
 
   return {
     orgAdmin: data?.orgAdmin,
@@ -35,6 +54,7 @@ export function useOrgAuth() {
     orgId: data?.organization?.id,
     isLoading,
     isAuthenticated: !!data?.orgAdmin,
-    error
+    error,
+    isError
   };
 }

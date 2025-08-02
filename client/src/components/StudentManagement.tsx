@@ -33,19 +33,45 @@ export default function StudentManagement() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { orgId, isAuthenticated } = useOrgAuth();
+  const { orgId, isAuthenticated, isError } = useOrgAuth();
+
+  // Handle session expired errors from authentication check
+  if (isError) {
+    return (
+      <Card className="mx-auto max-w-md mt-8">
+        <CardContent className="text-center py-8">
+          <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Session Expired</h3>
+          <p className="text-gray-500 mb-4">Your session has expired. Please log in again to continue.</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Go to Login
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Fetch students with optional filters
-  const { data: allStudents = [], isLoading } = useQuery<Student[]>({
+  const { data: allStudents = [], isLoading, error: studentsError } = useQuery<Student[]>({
     queryKey: ['/api/org/students', orgId],
     queryFn: async () => {
       const response = await fetch(`/api/org/students?orgId=${orgId}`, {
         credentials: 'include'
       });
+      if (response.status === 401) {
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch students');
       return response.json();
     },
     enabled: !!orgId && isAuthenticated,
+    retry: (failureCount, error) => {
+      // Don't retry auth errors
+      if (error?.message?.includes('Session expired') || error?.message?.includes('401')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   // Filter students based on class and search term
@@ -289,7 +315,16 @@ export default function StudentManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {studentsError && studentsError.message?.includes('Session expired') ? (
+            <div className="text-center py-8">
+              <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Session Expired</h3>
+              <p className="text-gray-500 mb-4">Your session has expired. Please refresh the page and log in again.</p>
+              <Button onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </div>
+          ) : isLoading ? (
             <div className="flex justify-center py-8">
               <div className="text-gray-500">Loading students...</div>
             </div>
