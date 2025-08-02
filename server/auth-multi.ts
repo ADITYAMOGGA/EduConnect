@@ -605,7 +605,8 @@ router.post("/api/teacher/login", async (req, res) => {
         *,
         organizations (*),
         teacher_subjects (
-          subjects (*)
+          subjects (*),
+          class_level
         )
       `)
       .eq("username", username)
@@ -641,25 +642,80 @@ router.post("/api/teacher/login", async (req, res) => {
       ...clientInfo,
     });
 
-    // Extract subjects from teacher_subjects relation
+    // Extract subjects and classes from teacher_subjects relation
     const subjects = teacher.teacher_subjects?.map((ts: any) => ts.subjects) || [];
+    const classLevels = teacher.teacher_subjects?.map((ts: any) => ts.class_level).filter(Boolean) || [];
+    const assignedClasses = Array.from(new Set(classLevels));
 
     // Remove password from response
     const { password_hash, organizations, teacher_subjects, ...teacherData } = teacher;
     
+    // Add classes to teacher data
+    const teacherWithClasses = { ...teacherData, classes: assignedClasses };
+    
     // Store in session for subsequent requests
-    (req as any).session.teacher = teacherData;
+    (req as any).session.teacher = teacherWithClasses;
     (req as any).session.organization = organizations;
     (req as any).session.orgId = organizations.id;
     (req as any).session.subjects = subjects;
+    (req as any).session.classes = assignedClasses;
     
     res.json({ 
-      teacher: teacherData, 
+      teacher: teacherWithClasses, 
       organization: organizations,
-      subjects 
+      subjects,
+      classes: assignedClasses
     });
   } catch (error) {
     console.error("Teacher login error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get teacher's assigned classes
+router.get("/api/teacher/classes", async (req: any, res) => {
+  try {
+    // Check if teacher is authenticated
+    if (!req.session?.teacher) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const teacherId = req.session.teacher.id;
+
+    // Get unique classes assigned to this teacher
+    const { data: teacherSubjects, error } = await supabase
+      .from("teacher_subjects")
+      .select(`
+        class_level,
+        subjects (name, code)
+      `)
+      .eq("teacher_id", teacherId);
+
+    if (error) {
+      console.error("Error fetching teacher classes:", error);
+      return res.status(500).json({ message: "Failed to fetch classes" });
+    }
+
+    // Group by class level and include subjects
+    const classData: Record<string, any> = {};
+    teacherSubjects?.forEach(ts => {
+      if (ts.class_level) {
+        if (!classData[ts.class_level]) {
+          classData[ts.class_level] = {
+            className: ts.class_level,
+            subjects: []
+          };
+        }
+        if (ts.subjects) {
+          classData[ts.class_level].subjects.push(ts.subjects);
+        }
+      }
+    });
+
+    const classes = Object.values(classData);
+    res.json(classes);
+  } catch (error) {
+    console.error("Error in teacher classes route:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -679,7 +735,8 @@ router.get("/api/teacher/auth/user", async (req: any, res) => {
         *,
         organizations (*),
         teacher_subjects (
-          subjects (*)
+          subjects (*),
+          class_level
         )
       `)
       .eq("id", req.session.teacher.id)
@@ -695,22 +752,29 @@ router.get("/api/teacher/auth/user", async (req: any, res) => {
       return res.status(401).json({ message: "Session invalid" });
     }
 
-    // Extract subjects from teacher_subjects relation
+    // Extract subjects and classes from teacher_subjects relation
     const subjects = teacher.teacher_subjects?.map((ts: any) => ts.subjects) || [];
+    const classLevels = teacher.teacher_subjects?.map((ts: any) => ts.class_level).filter(Boolean) || [];
+    const assignedClasses = Array.from(new Set(classLevels));
 
     // Remove password from response
     const { password_hash, organizations, teacher_subjects, ...teacherData } = teacher;
 
+    // Add classes to teacher data
+    const teacherWithClasses = { ...teacherData, classes: assignedClasses };
+
     // Update session with fresh data
-    req.session.teacher = teacherData;
+    req.session.teacher = teacherWithClasses;
     req.session.organization = organizations;
     req.session.orgId = organizations.id;
     req.session.subjects = subjects;
+    req.session.classes = assignedClasses;
 
     res.json({ 
-      teacher: teacherData, 
+      teacher: teacherWithClasses, 
       organization: organizations,
-      subjects 
+      subjects,
+      classes: assignedClasses
     });
   } catch (error) {
     console.error("Teacher auth check error:", error);

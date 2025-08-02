@@ -76,6 +76,19 @@ export default function TeacherDashboard() {
   const [editingMark, setEditingMark] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
 
+  // Fetch teacher's assigned classes
+  const { data: teacherClasses = [], isLoading: classesLoading } = useQuery({
+    queryKey: ['/api/teacher/classes'],
+    queryFn: async () => {
+      const response = await fetch('/api/teacher/classes', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch classes');
+      return response.json();
+    },
+    enabled: !!teacher,
+  });
+
   // Fetch students for teacher's classes - always call useQuery hooks
   const { data: students = [], isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ['/api/teacher/students'],
@@ -493,20 +506,52 @@ export default function TeacherDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      {teacher?.classes?.map((className, index) => (
+                    {classesLoading ? (
+                      <div className="text-center py-4">
                         <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg"
-                        >
-                          <span className="font-medium text-green-800">Class {className}</span>
-                          <ChevronRight className="w-4 h-4 text-green-600" />
-                        </motion.div>
-                      ))}
-                    </div>
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                          className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto"
+                        />
+                        <p className="text-sm text-slate-500 mt-2">Loading classes...</p>
+                      </div>
+                    ) : teacherClasses && teacherClasses.length > 0 ? (
+                      <div className="space-y-3">
+                        {teacherClasses.map((classData: any, index: number) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold text-green-800">Class {classData.className}</span>
+                              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                {classData.subjects?.length || 0} subjects
+                              </Badge>
+                            </div>
+                            {classData.subjects && classData.subjects.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {classData.subjects.map((subject: any, subIndex: number) => (
+                                  <Badge key={subIndex} variant="outline" className="text-xs border-green-200 text-green-700">
+                                    {subject.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No classes assigned</p>
+                        <p className="text-sm text-slate-400 mt-1">
+                          Contact your school admin to assign classes and subjects
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
