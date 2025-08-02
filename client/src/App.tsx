@@ -29,7 +29,7 @@ function App() {
             <Route path="/admin/login" component={AdminLogin} />
             <Route path="/org/login" component={OrgLogin} />
             <Route path="/org/signup" component={OrgSignup} />
-            <Route path="/teacher/login" component={TeacherLogin} />
+            <Route path="/teacher-login" component={TeacherLogin} />
             
             {/* Protected dashboard routes */}
             <ProtectedRoute path="/admin" component={AdminDashboard} />

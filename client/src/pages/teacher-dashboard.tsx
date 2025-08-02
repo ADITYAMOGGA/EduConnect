@@ -123,13 +123,27 @@ export default function TeacherDashboard() {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Logout failed');
+      return response.json();
     },
     onSuccess: () => {
+      // Clear all localStorage data
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("teacherData");
+      localStorage.removeItem("organizationData");
+      localStorage.removeItem("teacherSubjects");
+      
       toast({ title: "Logged out successfully" });
       navigate('/teacher-login');
     },
     onError: () => {
-      toast({ title: "Logout failed", variant: "destructive" });
+      // Even if logout fails on server, clear local data
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("teacherData");
+      localStorage.removeItem("organizationData");
+      localStorage.removeItem("teacherSubjects");
+      
+      toast({ title: "Logout completed", description: "Session cleared" });
+      navigate('/teacher-login');
     }
   });
 
