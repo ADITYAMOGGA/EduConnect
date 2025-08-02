@@ -14,19 +14,15 @@ export default function TeacherLogin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
 
   const loginMutation = useMutation({
-    mutationFn: (data: { email: string; password: string }) =>
+    mutationFn: (data: { username: string; password: string }) =>
       apiRequest("/api/teacher/login", {
         method: "POST",
         body: JSON.stringify(data),
       }),
     onSuccess: (data: any) => {
-      localStorage.setItem("userRole", "teacher");
-      localStorage.setItem("teacherData", JSON.stringify(data.teacher));
-      localStorage.setItem("organizationData", JSON.stringify(data.organization));
-      localStorage.setItem("assignedSubjects", JSON.stringify(data.subjects));
       toast({ title: "Login successful", description: `Welcome ${data.teacher.name}!` });
       navigate("/teacher-dashboard");
     },
@@ -133,15 +129,15 @@ export default function TeacherLogin() {
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
-                    Email
+                  <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">
+                    Username
                   </Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                    placeholder="teacher@school.edu.in"
+                    id="username"
+                    type="text"
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                    placeholder="teacher_username"
                     required
                     className="border-green-200 focus:border-green-400 dark:border-green-800 dark:focus:border-green-600"
                   />

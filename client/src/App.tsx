@@ -13,6 +13,7 @@ import TeacherLogin from "@/pages/teacher-login";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import OrgDashboard from "@/pages/org-dashboard";
+import TeacherDashboard from "@/pages/teacher-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard-fixed";
 import Support from "@/pages/support";
 import NotFound from "@/pages/not-found";
@@ -33,7 +34,7 @@ function App() {
             {/* Protected dashboard routes */}
             <ProtectedRoute path="/admin" component={AdminDashboard} />
             <ProtectedRoute path="/org-dashboard" component={OrgDashboard} />
-            <ProtectedRoute path="/teacher-dashboard" component={Dashboard} />
+            <ProtectedRoute path="/teacher-dashboard" component={TeacherDashboard} />
             <ProtectedRoute path="/support" component={Support} />
             
             {/* Legacy auth route - redirect to role selector */}

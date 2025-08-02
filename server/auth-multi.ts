@@ -647,6 +647,12 @@ router.post("/api/teacher/login", async (req, res) => {
     // Remove password from response
     const { password_hash, organizations, teacher_subjects, ...teacherData } = teacher;
     
+    // Store in session for subsequent requests
+    (req as any).session.teacher = teacherData;
+    (req as any).session.organization = organizations;
+    (req as any).session.orgId = organizations.id;
+    (req as any).session.subjects = subjects;
+    
     res.json({ 
       teacher: teacherData, 
       organization: organizations,
@@ -654,6 +660,60 @@ router.post("/api/teacher/login", async (req, res) => {
     });
   } catch (error) {
     console.error("Teacher login error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Teacher session authentication endpoint
+router.get("/api/teacher/auth/user", async (req: any, res) => {
+  try {
+    // Check if teacher is authenticated
+    if (!req.session?.teacher) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    // Fetch updated teacher data with subjects
+    const { data: teacher, error } = await supabase
+      .from("teachers")
+      .select(`
+        *,
+        organizations (*),
+        teacher_subjects (
+          subjects (*)
+        )
+      `)
+      .eq("id", req.session.teacher.id)
+      .eq("status", "active")
+      .single();
+
+    if (error || !teacher) {
+      // Clear invalid session
+      req.session.teacher = null;
+      req.session.organization = null;
+      req.session.orgId = null;
+      req.session.subjects = null;
+      return res.status(401).json({ message: "Session invalid" });
+    }
+
+    // Extract subjects from teacher_subjects relation
+    const subjects = teacher.teacher_subjects?.map((ts: any) => ts.subjects) || [];
+
+    // Remove password from response
+    const { password_hash, organizations, teacher_subjects, ...teacherData } = teacher;
+
+    // Update session with fresh data
+    req.session.teacher = teacherData;
+    req.session.organization = organizations;
+    req.session.orgId = organizations.id;
+    req.session.subjects = subjects;
+
+    res.json({ 
+      teacher: teacherData, 
+      organization: organizations,
+      subjects 
+    });
+  } catch (error) {
+    console.error("Teacher auth check error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -785,6 +845,185 @@ function requireOrgAuth(req: any, res: any, next: any) {
   req.orgId = orgId;
   next();
 }
+
+function requireTeacherAuth(req: any, res: any, next: any) {
+  // Check if teacher is authenticated
+  if (!req.session?.teacher) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  
+  // Get orgId from session
+  const orgId = req.session?.orgId || req.session?.organization?.id;
+  if (!orgId) {
+    return res.status(400).json({ message: "Organization ID is required" });
+  }
+  
+  req.orgId = orgId;
+  req.teacherId = req.session.teacher.id;
+  next();
+}
+
+// Teacher-specific API endpoints
+// Get students for teacher's classes
+router.get("/api/teacher/students", requireTeacherAuth, async (req: any, res) => {
+  try {
+    const { orgId, teacherId } = req;
+
+    // Get teacher's assigned classes
+    const teacher = req.session.teacher;
+    const teacherClasses = teacher.classes || [];
+
+    if (teacherClasses.length === 0) {
+      return res.json([]);
+    }
+
+    // Fetch students from teacher's classes
+    const { data: students, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("org_id", orgId)
+      .in("class_level", teacherClasses)
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching teacher students:", error);
+      return res.status(500).json({ message: "Failed to fetch students" });
+    }
+
+    // Transform snake_case to camelCase
+    const transformedStudents = students.map(student => ({
+      id: student.id,
+      name: student.name,
+      rollNo: student.roll_no,
+      admissionNo: student.admission_no,
+      classLevel: student.class_level,
+      fatherName: student.father_name,
+      motherName: student.mother_name,
+      phone: student.phone,
+      email: student.email,
+      address: student.address,
+      dateOfBirth: student.date_of_birth,
+      gender: student.gender,
+      orgId: student.org_id,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    }));
+
+    res.json(transformedStudents);
+  } catch (error) {
+    console.error("Error in teacher students route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get exams for teacher's organization
+router.get("/api/teacher/exams", requireTeacherAuth, async (req: any, res) => {
+  try {
+    const { orgId } = req;
+
+    const { data: exams, error } = await supabase
+      .from("exams")
+      .select("*")
+      .eq("org_id", orgId)
+      .order("exam_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching teacher exams:", error);
+      return res.status(500).json({ message: "Failed to fetch exams" });
+    }
+
+    res.json(exams);
+  } catch (error) {
+    console.error("Error in teacher exams route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get marks for teacher's subjects and students
+router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
+  try {
+    const { orgId, teacherId } = req;
+
+    // Get teacher's subjects
+    const { data: teacherSubjects, error: subjectsError } = await supabase
+      .from("teacher_subjects")
+      .select("subjects(*)")
+      .eq("teacher_id", teacherId);
+
+    if (subjectsError) {
+      console.error("Error fetching teacher subjects:", error);
+      return res.status(500).json({ message: "Failed to fetch teacher subjects" });
+    }
+
+    const subjectNames = teacherSubjects.map(ts => ts.subjects.name);
+
+    if (subjectNames.length === 0) {
+      return res.json([]);
+    }
+
+    // Get teacher's classes
+    const teacher = req.session.teacher;
+    const teacherClasses = teacher.classes || [];
+
+    // Fetch marks for teacher's subjects and classes
+    const { data: marks, error } = await supabase
+      .from("marks")
+      .select(`
+        *,
+        students (id, name, class_level, roll_no, admission_no)
+      `)
+      .in("subject_name", subjectNames)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching teacher marks:", error);
+      return res.status(500).json({ message: "Failed to fetch marks" });
+    }
+
+    // Filter marks for students in teacher's classes
+    const filteredMarks = marks.filter(mark => 
+      mark.students && teacherClasses.includes(mark.students.class_level)
+    );
+
+    // Transform data for frontend
+    const transformedMarks = filteredMarks.map(mark => ({
+      id: mark.id,
+      student_id: mark.student_id,
+      subject_name: mark.subject_name,
+      marks_obtained: mark.marks_obtained,
+      max_marks: mark.max_marks,
+      exam_id: mark.exam_id,
+      student: mark.students ? {
+        id: mark.students.id,
+        name: mark.students.name,
+        classLevel: mark.students.class_level,
+        rollNo: mark.students.roll_no,
+        admissionNo: mark.students.admission_no
+      } : null
+    }));
+
+    res.json(transformedMarks);
+  } catch (error) {
+    console.error("Error in teacher marks route:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Teacher logout endpoint
+router.post("/api/teacher/logout", requireTeacherAuth, async (req: any, res) => {
+  try {
+    // Clear session data
+    req.session.teacher = null;
+    req.session.organization = null;
+    req.session.orgId = null;
+    req.session.subjects = null;
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Teacher logout error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // Add session user endpoint for org admins
 router.get("/api/org/auth/user", (req: any, res) => {
