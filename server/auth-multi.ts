@@ -817,7 +817,24 @@ router.get("/api/org/students", requireOrgAuth, async (req: any, res) => {
       return res.status(500).json({ message: "Failed to fetch students" });
     }
 
-    res.json(students);
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformedStudents = students?.map(student => ({
+      ...student,
+      admissionNo: student.admission_no,
+      class: student.class_level,
+      rollNo: student.roll_no,
+      fatherName: student.father_name,
+      motherName: student.mother_name,
+      dateOfBirth: student.date_of_birth,
+      orgId: student.org_id,
+      userId: student.user_id,
+      photoUrl: student.photo_url,
+      academicYear: student.academic_year,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    })) || [];
+
+    res.json(transformedStudents);
   } catch (error) {
     console.error("Error in students route:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -861,7 +878,24 @@ router.post("/api/org/students", requireOrgAuth, async (req: any, res) => {
       ...clientInfo,
     });
 
-    res.status(201).json(student);
+    // Transform response for frontend compatibility
+    const transformedStudent = {
+      ...student,
+      admissionNo: student.admission_no,
+      class: student.class_level,
+      rollNo: student.roll_no,
+      fatherName: student.father_name,
+      motherName: student.mother_name,
+      dateOfBirth: student.date_of_birth,
+      orgId: student.org_id,
+      userId: student.user_id,
+      photoUrl: student.photo_url,
+      academicYear: student.academic_year,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    };
+
+    res.status(201).json(transformedStudent);
   } catch (error) {
     console.error("Error creating student:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -885,7 +919,24 @@ router.patch("/api/org/students/:id", requireOrgAuth, async (req: any, res) => {
       return res.status(500).json({ message: "Failed to update student" });
     }
 
-    res.json(student);
+    // Transform response for frontend compatibility
+    const transformedStudent = {
+      ...student,
+      admissionNo: student.admission_no,
+      class: student.class_level,
+      rollNo: student.roll_no,
+      fatherName: student.father_name,
+      motherName: student.mother_name,
+      dateOfBirth: student.date_of_birth,
+      orgId: student.org_id,
+      userId: student.user_id,
+      photoUrl: student.photo_url,
+      academicYear: student.academic_year,
+      createdAt: student.created_at,
+      updatedAt: student.updated_at
+    };
+
+    res.json(transformedStudent);
   } catch (error) {
     console.error("Error updating student:", error);
     res.status(500).json({ message: "Internal server error" });
