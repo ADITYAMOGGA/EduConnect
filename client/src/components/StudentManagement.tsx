@@ -345,11 +345,17 @@ export default function StudentManagement() {
                         <Badge variant="outline">Class {student.class}</Badge>
                       </td>
                       <td className="p-3">
-                        <Badge variant="secondary">N/A</Badge>
+                        <Badge variant="secondary">{student.section || 'N/A'}</Badge>
                       </td>
-                      <td className="p-3 text-sm text-gray-600">N/A</td>
+                      <td className="p-3 text-sm text-gray-600">{student.rollNo || 'N/A'}</td>
                       <td className="p-3 text-sm text-gray-600">{student.admissionNo}</td>
-                      <td className="p-3 text-sm text-gray-600">{student.email || 'N/A'}</td>
+                      <td className="p-3 text-sm text-gray-600">
+                        <div>
+                          {student.phone && <div>{student.phone}</div>}
+                          {student.email && <div className="text-xs text-gray-500">{student.email}</div>}
+                          {!student.phone && !student.email && 'N/A'}
+                        </div>
+                      </td>
                       <td className="p-3">
                         <div className="flex gap-2">
                           <Button

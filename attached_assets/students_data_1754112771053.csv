@@ -1,0 +1,11 @@
+name,admission_no,class_level,section,roll_no,father_name,mother_name,phone,address,date_of_birth
+Arjun Kumar,2024001,10,A,1,Rajesh Kumar,Sunita Kumar,+91 98765 43210,"123 Main Street, Delhi","2008-05-15"
+Priya Sharma,2024002,10,A,2,Suresh Sharma,Meena Sharma,+91 98765 43211,"456 Park Avenue, Delhi","2008-07-22"
+Ravi Teja,2024003,10,A,3,Nagesh Teja,Radha Teja,+91 98765 43212,"789 Lake View, Hyderabad","2008-03-18"
+Sneha Reddy,2024004,10,A,4,Vinod Reddy,Sandhya Reddy,+91 98765 43213,"12 Banjara Hills, Hyderabad","2008-11-09"
+Vikram Singh,2024005,10,A,5,Harish Singh,Anita Singh,+91 98765 43214,"88 Model Town, Jaipur","2008-01-25"
+Divya Patel,2024006,10,A,6,Mukesh Patel,Geeta Patel,+91 98765 43215,"76 Green Lane, Ahmedabad","2008-06-30"
+Amit Joshi,2024007,10,A,7,Manoj Joshi,Kavita Joshi,+91 98765 43216,"99 Hill Road, Pune","2008-02-14"
+Meena Kumari,2024008,10,A,8,Naresh Kumari,Rekha Kumari,+91 98765 43217,"65 Sunrise Colony, Bhopal","2008-09-03"
+Karan Verma,2024009,10,A,9,Deepak Verma,Neha Verma,+91 98765 43218,"42 Metro Street, Lucknow","2008-10-20"
+Ayesha Khan,2024010,10,A,10,Imran Khan,Sara Khan,+91 98765 43219,"110 Pearl City, Hyderabad","2008-04-12"
