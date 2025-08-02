@@ -17,11 +17,23 @@ export default function TeacherLogin() {
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
 
   const loginMutation = useMutation({
-    mutationFn: (data: { username: string; password: string }) =>
-      apiRequest("/api/teacher/login", {
+    mutationFn: async (data: { username: string; password: string }) => {
+      const response = await fetch("/api/teacher/login", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
         body: JSON.stringify(data),
-      }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+      
+      return response.json();
+    },
     onSuccess: (data: any) => {
       toast({ title: "Login successful", description: `Welcome ${data.teacher.name}!` });
       navigate("/teacher-dashboard");
@@ -137,7 +149,7 @@ export default function TeacherLogin() {
                     type="text"
                     value={loginForm.username}
                     onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                    placeholder="teacher_username"
+                    placeholder="Try: teacher1"
                     required
                     className="border-green-200 focus:border-green-400 dark:border-green-800 dark:focus:border-green-600"
                   />
@@ -153,7 +165,7 @@ export default function TeacherLogin() {
                       type={showPassword ? "text" : "password"}
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                      placeholder="Enter your password"
+                      placeholder="Try: teacher123"
                       required
                       className="border-green-200 focus:border-green-400 dark:border-green-800 dark:focus:border-green-600 pr-10"
                     />

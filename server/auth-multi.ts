@@ -951,11 +951,11 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
       .eq("teacher_id", teacherId);
 
     if (subjectsError) {
-      console.error("Error fetching teacher subjects:", error);
+      console.error("Error fetching teacher subjects:", subjectsError);
       return res.status(500).json({ message: "Failed to fetch teacher subjects" });
     }
 
-    const subjectNames = teacherSubjects.map(ts => ts.subjects.name);
+    const subjectNames = teacherSubjects?.map(ts => ts.subjects?.name).filter(Boolean) || [];
 
     if (subjectNames.length === 0) {
       return res.json([]);
@@ -1021,6 +1021,151 @@ router.post("/api/teacher/logout", requireTeacherAuth, async (req: any, res) => 
     res.json({ success: true });
   } catch (error) {
     console.error("Teacher logout error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Setup endpoint for creating test teacher data
+router.post("/api/setup/test-teacher", async (req, res) => {
+  try {
+    const { force = false } = req.body;
+    
+    // Create test organization first
+    const { data: existingOrg } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("name", "Test School")
+      .single();
+
+    let orgId = existingOrg?.id;
+
+    if (!existingOrg) {
+      const { data: newOrg, error: orgError } = await supabase
+        .from("organizations")
+        .insert({
+          name: "Test School",
+          address: "123 Test Street",
+          city: "Test City",
+          state: "Test State",
+          pincode: "123456",
+          phone: "9876543210",
+          email: "test@testschool.edu",
+          status: "active"
+        })
+        .select()
+        .single();
+
+      if (orgError) {
+        console.error("Error creating test organization:", orgError);
+        return res.status(500).json({ message: "Failed to create test organization" });
+      }
+      orgId = newOrg.id;
+    }
+
+    // Check if test teacher already exists
+    const { data: existingTeacher } = await supabase
+      .from("teachers")
+      .select("id")
+      .eq("username", "teacher_test")
+      .single();
+
+    if (existingTeacher && !force) {
+      return res.status(400).json({ message: "Test teacher already exists. Use force=true to recreate." });
+    }
+
+    // Delete existing test teacher if force is true
+    if (existingTeacher && force) {
+      await supabase.from("teachers").delete().eq("id", existingTeacher.id);
+    }
+
+    // Create test teacher
+    const passwordHash = await hashPassword("password123");
+    
+    const { data: newTeacher, error: teacherError } = await supabase
+      .from("teachers")
+      .insert({
+        username: "teacher_test",
+        password_hash: passwordHash,
+        name: "Test Teacher",
+        email: "teacher@testschool.edu",
+        phone: "9876543210",
+        classes: ["8", "9"],
+        org_id: orgId,
+        status: "active"
+      })
+      .select()
+      .single();
+
+    if (teacherError) {
+      console.error("Error creating test teacher:", teacherError);
+      return res.status(500).json({ message: "Failed to create test teacher" });
+    }
+
+    // Create test subjects
+    const subjects = [
+      { name: "Mathematics", code: "MATH", class_level: "8", max_marks: 100 },
+      { name: "Science", code: "SCI", class_level: "8", max_marks: 100 },
+      { name: "Mathematics", code: "MATH", class_level: "9", max_marks: 100 }
+    ];
+
+    for (const subject of subjects) {
+      const { data: newSubject, error: subjectError } = await supabase
+        .from("subjects")
+        .insert({
+          ...subject,
+          org_id: orgId
+        })
+        .select()
+        .single();
+
+      if (!subjectError && newSubject) {
+        // Assign subject to teacher
+        await supabase
+          .from("teacher_subjects")
+          .insert({
+            teacher_id: newTeacher.id,
+            subject_id: newSubject.id,
+            class_level: subject.class_level,
+            academic_year: "2024-25"
+          });
+      }
+    }
+
+    // Create test students
+    const students = [
+      { name: "Student One", roll_no: "1", admission_no: "2024001", class_level: "8" },
+      { name: "Student Two", roll_no: "2", admission_no: "2024002", class_level: "8" },
+      { name: "Student Three", roll_no: "3", admission_no: "2024003", class_level: "9" }
+    ];
+
+    for (const student of students) {
+      await supabase
+        .from("students")
+        .insert({
+          ...student,
+          org_id: orgId,
+          father_name: "Test Father",
+          mother_name: "Test Mother",
+          phone: "9876543210",
+          email: `${student.name.toLowerCase().replace(" ", "")}@test.com`,
+          date_of_birth: "2010-01-01",
+          gender: "Male",
+          address: "Test Address"
+        });
+    }
+
+    const { password_hash, ...teacherData } = newTeacher;
+    res.json({ 
+      teacher: teacherData,
+      organization: { id: orgId, name: "Test School" },
+      message: "Test teacher and data created successfully",
+      credentials: {
+        username: "teacher_test",
+        password: "password123"
+      }
+    });
+  } catch (error) {
+    console.error("Setup test teacher error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
