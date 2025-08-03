@@ -1118,18 +1118,29 @@ router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res)
     const marksToUpsert = [];
     
     for (const mark of marks.filter(mark => mark.marksObtained > 0)) {
+      console.log(`Looking for subject: "${mark.subjectName}" in org: ${orgId}`);
+      
       // Find subject ID by name
       const { data: subject, error: subjectError } = await supabase
         .from("subjects")
-        .select("id")
+        .select("id, name, org_id")
         .eq("name", mark.subjectName)
         .eq("org_id", orgId)
         .single();
       
       if (subjectError || !subject) {
-        console.error("Subject not found for:", mark.subjectName);
+        console.error("Subject not found for:", mark.subjectName, "Error:", subjectError);
+        
+        // Debug: Check what subjects exist for this org
+        const { data: allSubjects } = await supabase
+          .from("subjects")
+          .select("id, name, org_id")
+          .eq("org_id", orgId);
+        console.log("Available subjects for org:", allSubjects);
         continue; // Skip this mark if subject not found
       }
+      
+      console.log("Found subject:", subject);
       
       marksToUpsert.push({
         student_id: mark.studentId,
