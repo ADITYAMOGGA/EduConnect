@@ -1114,26 +1114,32 @@ router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res)
       return res.status(400).json({ message: "Invalid marks data" });
     }
 
-    // Prepare marks data for insertion/update
-    const marksToUpsert = marks.map(mark => ({
-      org_id: orgId,
-      student_id: mark.studentId,
-      exam_id: mark.examId,
-      subject_name: mark.subjectName,
-      marks_obtained: mark.marksObtained,
-      max_marks: maxMarks,
-      grade: mark.grade,
-      teacher_id: teacherId,
-      entry_date: new Date().toISOString()
-    }));
+    // Prepare marks data for insertion/update - only non-zero marks
+    const marksToUpsert = marks
+      .filter(mark => mark.marksObtained > 0) // Only save marks that have been entered
+      .map(mark => ({
+        org_id: orgId,
+        student_id: mark.studentId,
+        exam_id: mark.examId,
+        subject_name: mark.subjectName,
+        marks_obtained: mark.marksObtained,
+        max_marks: maxMarks,
+        grade: mark.grade,
+        teacher_id: teacherId
+      }));
 
-    // Use upsert to handle both insert and update cases
+    // First, delete existing marks for this exam/subject combination to avoid conflicts
+    await supabase
+      .from("marks")
+      .delete()
+      .eq("exam_id", marks[0]?.examId)
+      .eq("subject_name", marks[0]?.subjectName)
+      .eq("org_id", orgId);
+
+    // Insert new marks
     const { data: savedMarks, error } = await supabase
       .from("marks")
-      .upsert(marksToUpsert, {
-        onConflict: 'student_id,exam_id,subject_name',
-        ignoreDuplicates: false
-      })
+      .insert(marksToUpsert)
       .select();
 
     if (error) {

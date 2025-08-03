@@ -601,7 +601,7 @@ export default function TeacherDashboard() {
                       <TableBody>
                         {filteredStudents.map((student, index) => (
                           <motion.tr
-                            key={student.id}
+                            key={`student-${student.id}-${index}`}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.05 }}
