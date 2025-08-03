@@ -1118,23 +1118,23 @@ router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res)
     const marksToUpsert = marks
       .filter(mark => mark.marksObtained > 0) // Only save marks that have been entered
       .map(mark => ({
-        org_id: orgId,
         student_id: mark.studentId,
         exam_id: mark.examId,
-        subject_name: mark.subjectName,
+        subject_id: mark.subjectId || '00000000-0000-0000-0000-000000000000', // Default subject_id for now
+        teacher_id: teacherId,
         marks_obtained: mark.marksObtained,
         max_marks: maxMarks,
-        grade: mark.grade,
-        teacher_id: teacherId
+        grade: mark.grade
       }));
 
     // First, delete existing marks for this exam/subject combination to avoid conflicts
-    await supabase
-      .from("marks")
-      .delete()
-      .eq("exam_id", marks[0]?.examId)
-      .eq("subject_name", marks[0]?.subjectName)
-      .eq("org_id", orgId);
+    if (marks.length > 0) {
+      await supabase
+        .from("marks")
+        .delete()
+        .eq("exam_id", marks[0]?.examId)
+        .eq("subject_id", marks[0]?.subjectId || '00000000-0000-0000-0000-000000000000');
+    }
 
     // Insert new marks
     const { data: savedMarks, error } = await supabase
