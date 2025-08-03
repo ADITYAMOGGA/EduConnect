@@ -1104,6 +1104,57 @@ router.post("/api/teacher/logout", requireTeacherAuth, async (req: any, res) => 
   }
 });
 
+// Bulk marks entry endpoint for teachers
+router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res) => {
+  try {
+    const { marks, maxMarks, passingMarks } = req.body;
+    const { teacherId, orgId } = req;
+
+    if (!marks || !Array.isArray(marks)) {
+      return res.status(400).json({ message: "Invalid marks data" });
+    }
+
+    // Prepare marks data for insertion/update
+    const marksToUpsert = marks.map(mark => ({
+      org_id: orgId,
+      student_id: mark.studentId,
+      exam_id: mark.examId,
+      subject_name: mark.subjectName,
+      marks_obtained: mark.marksObtained,
+      max_marks: maxMarks,
+      grade: mark.grade,
+      teacher_id: teacherId,
+      entry_date: new Date().toISOString()
+    }));
+
+    // Use upsert to handle both insert and update cases
+    const { data: savedMarks, error } = await supabase
+      .from("marks")
+      .upsert(marksToUpsert, {
+        onConflict: 'student_id,exam_id,subject_name',
+        ignoreDuplicates: false
+      })
+      .select();
+
+    if (error) {
+      console.error("Error saving bulk marks:", error);
+      return res.status(500).json({ message: "Failed to save marks" });
+    }
+
+    // Log marks entry activity
+    try {
+      console.log(`Bulk marks saved by teacher ${teacherId} for ${marks.length} students`);
+    } catch (error) {
+      console.error("Activity logging error:", error);
+    }
+
+    res.status(201).json(savedMarks);
+  } catch (error) {
+    console.error("Error in bulk marks entry:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Update marks endpoint for teachers
 router.patch("/api/marks/:id", requireTeacherAuth, async (req: any, res) => {
   try {

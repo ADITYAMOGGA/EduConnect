@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,10 +22,12 @@ import {
   Filter,
   GraduationCap,
   Award,
-  BarChart3
+  BarChart3,
+  Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useOrgAuth } from "@/hooks/useOrgAuth";
+import { useTeacherAuth } from "@/hooks/useTeacherAuth";
 
 interface Exam {
   id: string;
