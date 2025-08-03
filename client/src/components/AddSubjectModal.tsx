@@ -22,7 +22,6 @@ export default function AddSubjectModal({ open, onOpenChange, orgId }: AddSubjec
     name: "",
     code: "",
     class_level: "",
-    max_marks: 100,
     description: "",
     subject_type: "Core",
   });
@@ -45,7 +44,6 @@ export default function AddSubjectModal({ open, onOpenChange, orgId }: AddSubjec
         name: "",
         code: "",
         class_level: "",
-        max_marks: 100,
         description: "",
         subject_type: "Core",
       });
@@ -127,33 +125,19 @@ export default function AddSubjectModal({ open, onOpenChange, orgId }: AddSubjec
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="max_marks">Maximum Marks</Label>
-              <Input
-                id="max_marks"
-                type="number"
-                value={formData.max_marks}
-                onChange={(e) => updateField("max_marks", parseInt(e.target.value) || 100)}
-                placeholder="100"
-                min="1"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="subject_type">Subject Type</Label>
-              <Select value={formData.subject_type} onValueChange={(value) => updateField("subject_type", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Core">Core Subject</SelectItem>
-                  <SelectItem value="Optional">Optional Subject</SelectItem>
-                  <SelectItem value="Extra-curricular">Extra-curricular</SelectItem>
-                  <SelectItem value="Language">Language</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="subject_type">Subject Type</Label>
+            <Select value={formData.subject_type} onValueChange={(value) => updateField("subject_type", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Core">Core Subject</SelectItem>
+                <SelectItem value="Optional">Optional Subject</SelectItem>
+                <SelectItem value="Extra-curricular">Extra-curricular</SelectItem>
+                <SelectItem value="Language">Language</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">

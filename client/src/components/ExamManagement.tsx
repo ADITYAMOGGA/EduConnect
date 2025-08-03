@@ -53,8 +53,6 @@ interface ExamFormData {
   classLevels: string[];
   examType: string;
   examDate: string;
-  totalMarks: number;
-  passingMarks: number;
   duration: number;
   academicYear: string;
   instructions: string;
@@ -75,8 +73,6 @@ export default function ExamManagement() {
     classLevels: [],
     examType: "Term Exam",
     examDate: "",
-    totalMarks: 100,
-    passingMarks: 35,
     duration: 180,
     academicYear: "2024-25",
     instructions: "",
@@ -196,8 +192,6 @@ export default function ExamManagement() {
       classLevels: [],
       examType: "Term Exam",
       examDate: "",
-      totalMarks: 100,
-      passingMarks: 35,
       duration: 180,
       academicYear: "2024-25",
       instructions: "",
@@ -225,8 +219,6 @@ export default function ExamManagement() {
       classLevels: [exam.classLevel], // Convert single class to array for editing
       examType: exam.examType,
       examDate: exam.examDate ? new Date(exam.examDate).toISOString().split('T')[0] : "",
-      totalMarks: exam.totalMarks,
-      passingMarks: exam.passingMarks,
       duration: exam.duration,
       academicYear: exam.academicYear,
       instructions: exam.instructions || "",
@@ -468,7 +460,7 @@ export default function ExamManagement() {
 
       {/* Create Exam Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Exam</DialogTitle>
             <DialogDescription>
@@ -557,26 +549,7 @@ export default function ExamManagement() {
                 onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
               />
             </div>
-            <div>
-              <Label htmlFor="totalMarks">Total Marks</Label>
-              <Input
-                id="totalMarks"
-                type="number"
-                value={formData.totalMarks}
-                onChange={(e) => setFormData({ ...formData, totalMarks: parseInt(e.target.value) || 100 })}
-                min="1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="passingMarks">Passing Marks</Label>
-              <Input
-                id="passingMarks"
-                type="number"
-                value={formData.passingMarks}
-                onChange={(e) => setFormData({ ...formData, passingMarks: parseInt(e.target.value) || 35 })}
-                min="1"
-              />
-            </div>
+
             <div>
               <Label htmlFor="duration">Duration (minutes)</Label>
               <Input
@@ -660,7 +633,7 @@ export default function ExamManagement() {
 
       {/* Edit Exam Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Exam</DialogTitle>
             <DialogDescription>
@@ -749,26 +722,7 @@ export default function ExamManagement() {
                 onChange={(e) => setFormData({ ...formData, examDate: e.target.value })}
               />
             </div>
-            <div>
-              <Label htmlFor="editTotalMarks">Total Marks</Label>
-              <Input
-                id="editTotalMarks"
-                type="number"
-                value={formData.totalMarks}
-                onChange={(e) => setFormData({ ...formData, totalMarks: parseInt(e.target.value) || 100 })}
-                min="1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="editPassingMarks">Passing Marks</Label>
-              <Input
-                id="editPassingMarks"
-                type="number"
-                value={formData.passingMarks}
-                onChange={(e) => setFormData({ ...formData, passingMarks: parseInt(e.target.value) || 35 })}
-                min="1"
-              />
-            </div>
+
             <div>
               <Label htmlFor="editDuration">Duration (minutes)</Label>
               <Input
