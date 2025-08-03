@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTeacherAuth } from "@/hooks/useTeacherAuth";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 
 interface Student {
   id: string;
@@ -350,23 +351,8 @@ export default function TeacherMarksEntry() {
                 disabled={!canSaveMarks || saveMarksMutation.isPending}
                 className="ml-auto"
               >
-                {saveMarksMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <dotlottie-wc 
-                      src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                      style={{width: '20px', height: '20px'}}
-                      speed="1" 
-                      autoplay 
-                      loop
-                    ></dotlottie-wc>
-                    <span>Saving marks...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    <span>Save All Marks</span>
-                  </div>
-                )}
+                <Save className="h-4 w-4 mr-2" />
+                {saveMarksMutation.isPending ? 'Saving...' : 'Save All Marks'}
               </Button>
             </div>
           </CardHeader>
@@ -453,6 +439,12 @@ export default function TeacherMarksEntry() {
           </CardContent>
         </Card>
       )}
+
+      {/* Loading Overlay for Saving Marks */}
+      <LoadingOverlay 
+        isVisible={saveMarksMutation.isPending} 
+        message="Saving marks..." 
+      />
     </div>
   );
 }

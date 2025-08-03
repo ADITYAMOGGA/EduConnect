@@ -15,6 +15,7 @@ import AddStudentModal from "./AddStudentModal";
 import EditStudentModal from "./EditStudentModal";
 import CSVImportModal from "./CSVImportModal";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { useOrgAuth } from "@/hooks/useOrgAuth";
 
 export default function StudentManagement() {
@@ -468,6 +469,12 @@ export default function StudentManagement() {
         onConfirm={confirmBulkDelete}
         variant="destructive"
         isLoading={bulkDeleteMutation.isPending}
+      />
+
+      {/* Loading Overlay for Deleting Students */}
+      <LoadingOverlay 
+        isVisible={deleteStudentMutation.isPending || bulkDeleteMutation.isPending} 
+        message={deleteStudentMutation.isPending ? "Deleting student..." : "Deleting students..."} 
       />
     </div>
   );

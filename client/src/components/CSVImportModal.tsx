@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingOverlay } from "@/components/LoadingOverlay";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Download, Upload, FileText, AlertCircle } from "lucide-react";
 
@@ -240,26 +241,17 @@ export default function CSVImportModal({ open, onOpenChange, orgId }: CSVImportM
             disabled={!file || errors.length > 0 || importMutation.isPending}
             className="bg-gradient-to-r from-green-600 to-emerald-600"
           >
-            {importMutation.isPending ? (
-              <div className="flex items-center gap-2">
-                <dotlottie-wc 
-                  src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                  style={{width: '20px', height: '20px'}}
-                  speed="1" 
-                  autoplay 
-                  loop
-                ></dotlottie-wc>
-                <span>Importing students...</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Upload className="w-4 h-4" />
-                <span>Import Students</span>
-              </div>
-            )}
+            <Upload className="w-4 h-4 mr-2" />
+            {importMutation.isPending ? 'Importing...' : 'Import Students'}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Loading Overlay for Importing Students */}
+      <LoadingOverlay 
+        isVisible={importMutation.isPending} 
+        message="Importing students..." 
+      />
     </Dialog>
   );
 }
