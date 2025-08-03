@@ -1034,9 +1034,9 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
       return res.status(500).json({ message: "Failed to fetch teacher subjects" });
     }
 
-    const subjectNames = teacherSubjects?.map(ts => ts.subjects ? ts.subjects.name : null).filter(Boolean) || [];
+    const subjectIds = teacherSubjects?.map(ts => ts.subjects ? ts.subjects.id : null).filter(Boolean) || [];
 
-    if (subjectNames.length === 0) {
+    if (subjectIds.length === 0) {
       return res.json([]);
     }
 
@@ -1049,9 +1049,10 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
       .from("marks")
       .select(`
         *,
-        students (id, name, class_level, roll_no, admission_no)
+        students (id, name, class_level, roll_no, admission_no),
+        subjects (id, name, code)
       `)
-      .in("subject_name", subjectNames)
+      .in("subject_id", subjectIds)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -1068,7 +1069,7 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
     const transformedMarks = filteredMarks.map(mark => ({
       id: mark.id,
       student_id: mark.student_id,
-      subject_name: mark.subject_name,
+      subject_name: mark.subjects ? mark.subjects.name : 'Unknown Subject',
       marks_obtained: mark.marks_obtained,
       max_marks: mark.max_marks,
       exam_id: mark.exam_id,
@@ -1118,29 +1119,18 @@ router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res)
     const marksToUpsert = [];
     
     for (const mark of marks.filter(mark => mark.marksObtained > 0)) {
-      console.log(`Looking for subject: "${mark.subjectName}" in org: ${orgId}`);
-      
       // Find subject ID by name
       const { data: subject, error: subjectError } = await supabase
         .from("subjects")
-        .select("id, name, org_id")
+        .select("id")
         .eq("name", mark.subjectName)
         .eq("org_id", orgId)
         .single();
       
       if (subjectError || !subject) {
-        console.error("Subject not found for:", mark.subjectName, "Error:", subjectError);
-        
-        // Debug: Check what subjects exist for this org
-        const { data: allSubjects } = await supabase
-          .from("subjects")
-          .select("id, name, org_id")
-          .eq("org_id", orgId);
-        console.log("Available subjects for org:", allSubjects);
+        console.error("Subject not found for:", mark.subjectName);
         continue; // Skip this mark if subject not found
       }
-      
-      console.log("Found subject:", subject);
       
       marksToUpsert.push({
         student_id: mark.studentId,
