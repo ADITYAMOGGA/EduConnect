@@ -1034,7 +1034,7 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
       return res.status(500).json({ message: "Failed to fetch teacher subjects" });
     }
 
-    const subjectNames = teacherSubjects?.map(ts => ts.subjects?.name).filter(Boolean) || [];
+    const subjectNames = teacherSubjects?.map(ts => ts.subjects ? ts.subjects.name : null).filter(Boolean) || [];
 
     if (subjectNames.length === 0) {
       return res.json([]);
@@ -1902,16 +1902,15 @@ router.post("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
     const clientInfo = getClientInfo(req);
     await logActivity({
       orgId: actualOrgId,
-      userId: req.userId || 'system',
+      userId: 'system',
       userType: 'org_admin',
-      userName: req.userName || 'Admin',
+      userName: 'Admin',
       activity: ACTIVITIES.CREATE_SUBJECT,
       description: `Created new subject: ${subjectData.name}`,
       metadata: { 
         subjectId: subject.id, 
         code: subjectData.code,
-        classLevel: subjectData.class_level,
-        maxMarks: subjectData.max_marks 
+        classLevel: subjectData.class_level
       },
       ...clientInfo,
     });
@@ -1996,30 +1995,67 @@ router.get("/api/org/exams", async (req, res) => {
 
 router.post("/api/org/exams", async (req, res) => {
   try {
-    const { orgId, ...examData } = req.body;
+    const { orgId, classLevels, notifyTeachers, academicYear, ...examData } = req.body;
     
     if (!orgId) {
       return res.status(400).json({ message: "Organization ID is required" });
     }
 
-    const { data: exam, error } = await supabase
-      .from("exams")
-      .insert({
-        org_id: orgId,
-        ...examData
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating exam:", error);
-      return res.status(500).json({ message: "Failed to create exam" });
+    if (!classLevels || classLevels.length === 0) {
+      return res.status(400).json({ message: "At least one class level is required" });
     }
 
-    res.status(201).json(exam);
+    // Create an exam for each selected class level
+    const examPromises = classLevels.map(async (classLevel: string) => {
+      const examDataForClass = {
+        org_id: orgId,
+        ...examData,
+        class_level: classLevel,
+        academic_year: academicYear || "2024-25"
+      };
+
+      // Remove totalMarks and passingMarks since we removed these from the form
+      delete examDataForClass.totalMarks;
+      delete examDataForClass.passingMarks;
+
+      const { data: exam, error } = await supabase
+        .from("exams")
+        .insert(examDataForClass)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating exam for class", classLevel, ":", error);
+        throw error;
+      }
+
+      return exam;
+    });
+
+    const exams = await Promise.all(examPromises);
+
+    // Log exam creation activity
+    const clientInfo = getClientInfo(req);
+    await logActivity({
+      orgId,
+      userId: 'system',
+      userType: 'org_admin',
+      userName: 'Admin',
+      activity: ACTIVITIES.CREATE_EXAM,
+      description: `Created exam "${examData.name}" for ${classLevels.length} class(es): ${classLevels.join(', ')}`,
+      metadata: { 
+        examIds: exams.map(e => e.id),
+        classLevels,
+        examType: examData.examType,
+        duration: examData.duration
+      },
+      ...clientInfo,
+    });
+
+    res.status(201).json(exams);
   } catch (error) {
     console.error("Error creating exam:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Failed to create exam" });
   }
 });
 

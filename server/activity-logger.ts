@@ -66,6 +66,7 @@ export const ACTIVITIES = {
   DELETE_EXAM: 'delete_exam',
   ENTER_MARKS: 'enter_marks',
   UPDATE_MARKS: 'update_marks',
+  UPDATE: 'update',
   GENERATE_CERTIFICATE: 'generate_certificate',
   ASSIGN_TEACHER: 'assign_teacher',
   BULK_IMPORT: 'bulk_import',
