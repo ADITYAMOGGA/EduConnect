@@ -44,11 +44,16 @@ interface TeacherClass {
 
 interface Mark {
   id?: string;
-  studentId: string;
-  examId: string;
-  subjectName: string;
-  marksObtained: number;
-  maxMarks: number;
+  studentId?: string;
+  student_id?: string;
+  examId?: string;
+  exam_id?: string;
+  subjectName?: string;
+  subject_name?: string;
+  marksObtained?: number;
+  marks_obtained?: number;
+  maxMarks?: number;
+  max_marks?: number;
   grade?: string;
 }
 
@@ -212,7 +217,7 @@ export default function TeacherMarksEntry() {
       <div className="flex flex-col items-center justify-center py-16">
         <dotlottie-wc 
           src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-          style="width: 200px; height: 200px;" 
+          style={{width: '200px', height: '200px'}}
           speed="1" 
           autoplay 
           loop

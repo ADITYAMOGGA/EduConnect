@@ -511,7 +511,7 @@ export default function TeacherDashboard() {
                       <div className="flex flex-col items-center justify-center py-8">
                         <dotlottie-wc 
                           src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                          style="width: 120px; height: 120px;" 
+                          style={{width: '120px', height: '120px'}}
                           speed="1" 
                           autoplay 
                           loop
@@ -583,7 +583,7 @@ export default function TeacherDashboard() {
                     <div className="flex flex-col items-center justify-center py-12">
                       <dotlottie-wc 
                         src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                        style="width: 150px; height: 150px;" 
+                        style={{width: '150px', height: '150px'}}
                         speed="1" 
                         autoplay 
                         loop
@@ -710,7 +710,7 @@ export default function TeacherDashboard() {
                     <div className="flex flex-col items-center justify-center py-12">
                       <dotlottie-wc 
                         src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                        style="width: 150px; height: 150px;" 
+                        style={{width: '150px', height: '150px'}}
                         speed="1" 
                         autoplay 
                         loop
