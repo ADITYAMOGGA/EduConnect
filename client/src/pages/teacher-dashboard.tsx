@@ -520,7 +520,7 @@ export default function TeacherDashboard() {
                       <div className="space-y-3">
                         {teacherClasses.map((classData: any, index: number) => (
                           <motion.div
-                            key={index}
+                            key={`class-${classData.className}-${index}`}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
@@ -535,7 +535,7 @@ export default function TeacherDashboard() {
                             {classData.subjects && classData.subjects.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {classData.subjects.map((subject: any, subIndex: number) => (
-                                  <Badge key={subIndex} variant="outline" className="text-xs border-green-200 text-green-700">
+                                  <Badge key={`${subject.name}-${subject.code}-${subIndex}`} variant="outline" className="text-xs border-green-200 text-green-700">
                                     {subject.name}
                                   </Badge>
                                 ))}

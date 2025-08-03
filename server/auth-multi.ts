@@ -1114,26 +1114,53 @@ router.post("/api/teacher/marks/bulk", requireTeacherAuth, async (req: any, res)
       return res.status(400).json({ message: "Invalid marks data" });
     }
 
-    // Prepare marks data for insertion/update - only non-zero marks
-    const marksToUpsert = marks
-      .filter(mark => mark.marksObtained > 0) // Only save marks that have been entered
-      .map(mark => ({
+    // Get the subject_id from subject name for each mark
+    const marksToUpsert = [];
+    
+    for (const mark of marks.filter(mark => mark.marksObtained > 0)) {
+      // Find subject ID by name
+      const { data: subject, error: subjectError } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("name", mark.subjectName)
+        .eq("org_id", orgId)
+        .single();
+      
+      if (subjectError || !subject) {
+        console.error("Subject not found for:", mark.subjectName);
+        continue; // Skip this mark if subject not found
+      }
+      
+      marksToUpsert.push({
         student_id: mark.studentId,
         exam_id: mark.examId,
-        subject_id: mark.subjectId || '00000000-0000-0000-0000-000000000000', // Default subject_id for now
+        subject_id: subject.id,
         teacher_id: teacherId,
         marks_obtained: mark.marksObtained,
         max_marks: maxMarks,
         grade: mark.grade
-      }));
+      });
+    }
+
+    // Only proceed if we have valid marks to insert
+    if (marksToUpsert.length === 0) {
+      return res.status(400).json({ message: "No valid marks to save" });
+    }
 
     // First, delete existing marks for this exam/subject combination to avoid conflicts
-    if (marks.length > 0) {
+    const { data: subject, error: subjectError } = await supabase
+      .from("subjects")
+      .select("id")
+      .eq("name", marks[0]?.subjectName)
+      .eq("org_id", orgId)
+      .single();
+    
+    if (!subjectError && subject) {
       await supabase
         .from("marks")
         .delete()
         .eq("exam_id", marks[0]?.examId)
-        .eq("subject_id", marks[0]?.subjectId || '00000000-0000-0000-0000-000000000000');
+        .eq("subject_id", subject.id);
     }
 
     // Insert new marks

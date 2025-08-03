@@ -1,0 +1,55 @@
+chunk-WERSD76P.js?v=8ead53f7:521 Warning: Encountered two children with the same key, `edbb4924-2984-48f0-a89f-638010cbbf18`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=8ead53f7:42:13
+    at Presence (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-ACYNKHKB.js?v=8ead53f7:24:11)
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…orkspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=8ead53f7:383:13
+    at _c5 (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=8ead53f7:42:13
+    at Provider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-SG7MREQ6.js?v=8ead53f7:38:15)
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=8ead53f7:261:7
+    at div
+    at MotionComponent (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=8ead53f7:945:40)
+    at div
+    at div
+    at TeacherDashboard (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/pages/teacher-dashboard.tsx:50:21)
+    at Route (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8ead53f7:323:16)
+    at ProtectedRoute (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8ead53f7:379:17)
+    at Provider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-SG7MREQ6.js?v=8ead53f7:38:15)
+    at TooltipProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=8ead53f7:59:5)
+    at AuthProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/hooks/use-auth.tsx:25:32)
+    at QueryClientProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8ead53f7:2805:3)
+    at App
+
+2
+chunk-WERSD76P.js?v=8ead53f7:521 Warning: Encountered two children with the same key, `edbb4924-2984-48f0-a89f-638010cbbf18`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=8ead53f7:42:13
+    at Presence (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-ACYNKHKB.js?v=8ead53f7:24:11)
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…orkspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=8ead53f7:383:13
+    at _c5 (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-GVTGVYSA.js?v=8ead53f7:42:13
+    at Provider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-SG7MREQ6.js?v=8ead53f7:38:15)
+    at https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=8ead53f7:261:7
+    at div
+    at MotionComponent (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/framer-motion.js?v=8ead53f7:945:40)
+    at div
+    at div
+    at TeacherDashboard (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/pages/teacher-dashboard.tsx:50:21)
+    at Route (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8ead53f7:323:16)
+    at ProtectedRoute (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8ead53f7:379:17)
+    at Provider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…unner/workspace/node_modules/.vite/deps/chunk-SG7MREQ6.js?v=8ead53f7:38:15)
+    at TooltipProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…rkspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=8ead53f7:59:5)
+    at AuthProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/src/hooks/use-auth.tsx:25:32)
+    at QueryClientProvider (https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8ead53f7:2805:3)
+    at App
+TeacherMarksEntry.tsx:150 
+ POST https://a12e679a-bb0e-4191-ab0a-0e402604cf14-00-1rdy3vc2vulk1.riker.replit.dev/api/teacher/marks/bulk 500 (Internal Server Error)
+mutationFn	@	TeacherMarksEntry.tsx:150
+await in execute		
+onClick	@	TeacherMarksEntry.tsx:337
