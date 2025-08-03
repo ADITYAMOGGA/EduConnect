@@ -508,12 +508,14 @@ export default function TeacherDashboard() {
                   </CardHeader>
                   <CardContent>
                     {classesLoading ? (
-                      <div className="text-center py-4">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                          className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto"
-                        />
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <dotlottie-wc 
+                          src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                          style="width: 120px; height: 120px;" 
+                          speed="1" 
+                          autoplay 
+                          loop
+                        ></dotlottie-wc>
                         <p className="text-sm text-slate-500 mt-2">Loading classes...</p>
                       </div>
                     ) : teacherClasses && teacherClasses.length > 0 ? (
@@ -578,12 +580,14 @@ export default function TeacherDashboard() {
                 </CardHeader>
                 <CardContent>
                   {studentsLoading ? (
-                    <div className="text-center py-8">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full mx-auto"
-                      />
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <dotlottie-wc 
+                        src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                        style="width: 150px; height: 150px;" 
+                        speed="1" 
+                        autoplay 
+                        loop
+                      ></dotlottie-wc>
                       <p className="text-slate-600 mt-2">Loading students...</p>
                     </div>
                   ) : (
@@ -703,12 +707,14 @@ export default function TeacherDashboard() {
                 </CardHeader>
                 <CardContent>
                   {examsLoading ? (
-                    <div className="text-center py-8">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full mx-auto"
-                      />
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <dotlottie-wc 
+                        src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                        style="width: 150px; height: 150px;" 
+                        speed="1" 
+                        autoplay 
+                        loop
+                      ></dotlottie-wc>
                       <p className="text-slate-600 mt-2">Loading exams...</p>
                     </div>
                   ) : exams.length > 0 ? (

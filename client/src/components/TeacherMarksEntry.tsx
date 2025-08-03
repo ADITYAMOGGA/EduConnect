@@ -130,7 +130,9 @@ export default function TeacherMarksEntry() {
   useEffect(() => {
     const initialMarks: { [studentId: string]: number } = {};
     existingMarks.forEach(mark => {
-      initialMarks[mark.studentId] = mark.marksObtained;
+      // Use student_id from backend response
+      const studentId = mark.studentId || mark.student_id;
+      initialMarks[studentId] = mark.marksObtained || mark.marks_obtained;
     });
     setMarksData(initialMarks);
   }, [existingMarks]);
@@ -206,7 +208,18 @@ export default function TeacherMarksEntry() {
   const canSaveMarks = selectedClass && selectedSubject && selectedExam && students.length > 0;
 
   if (classesLoading) {
-    return <div className="text-center py-8">Loading your classes...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <dotlottie-wc 
+          src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+          style="width: 200px; height: 200px;" 
+          speed="1" 
+          autoplay 
+          loop
+        ></dotlottie-wc>
+        <p className="text-slate-600 mt-4">Loading your classes...</p>
+      </div>
+    );
   }
 
   return (
