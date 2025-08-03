@@ -1881,14 +1881,18 @@ router.get("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
 
 router.post("/api/org/subjects", requireOrgAuth, async (req: any, res) => {
   try {
-    const { orgId, ...subjectData } = req.body;
+    const { orgId, max_marks, ...subjectData } = req.body;
     const actualOrgId = orgId || req.orgId;
+
+    // Remove max_marks since teachers will set it during marks entry
+    const cleanSubjectData = { ...subjectData };
+    delete cleanSubjectData.max_marks;
 
     const { data: subject, error } = await supabase
       .from("subjects")
       .insert({
         org_id: actualOrgId,
-        ...subjectData
+        ...cleanSubjectData
       })
       .select()
       .single();
@@ -2009,14 +2013,16 @@ router.post("/api/org/exams", async (req, res) => {
     const examPromises = classLevels.map(async (classLevel: string) => {
       const examDataForClass = {
         org_id: orgId,
-        ...examData,
+        name: examData.name,
+        description: examData.description,
         class_level: classLevel,
-        academic_year: academicYear || "2024-25"
+        exam_type: examData.examType,
+        exam_date: examData.examDate,
+        duration_minutes: examData.duration,
+        academic_year: academicYear || "2024-25",
+        instructions: examData.instructions,
+        status: "scheduled"
       };
-
-      // Remove totalMarks and passingMarks since we removed these from the form
-      delete examDataForClass.totalMarks;
-      delete examDataForClass.passingMarks;
 
       const { data: exam, error } = await supabase
         .from("exams")
