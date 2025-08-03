@@ -1050,7 +1050,7 @@ router.get("/api/teacher/marks", requireTeacherAuth, async (req: any, res) => {
       .select(`
         *,
         students (id, name, class_level, roll_no, admission_no),
-        subjects (id, name, code)
+        subjects!marks_subject_id_fkey (id, name, code)
       `)
       .in("subject_id", subjectIds)
       .order("created_at", { ascending: false });
