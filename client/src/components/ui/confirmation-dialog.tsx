@@ -19,6 +19,7 @@ interface ConfirmationDialogProps {
   cancelText?: string;
   onConfirm: () => void;
   variant?: "default" | "destructive";
+  isLoading?: boolean;
 }
 
 export function ConfirmationDialog({
@@ -29,7 +30,8 @@ export function ConfirmationDialog({
   confirmText = "Confirm",
   cancelText = "Cancel",
   onConfirm,
-  variant = "default"
+  variant = "default",
+  isLoading = false
 }: ConfirmationDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -39,12 +41,26 @@ export function ConfirmationDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{cancelText}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm}
+            disabled={isLoading}
             className={variant === "destructive" ? "bg-red-600 hover:bg-red-700" : ""}
           >
-            {confirmText}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <dotlottie-wc 
+                  src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                  style={{width: '20px', height: '20px'}}
+                  speed="1" 
+                  autoplay 
+                  loop
+                ></dotlottie-wc>
+                <span>Deleting...</span>
+              </div>
+            ) : (
+              confirmText
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

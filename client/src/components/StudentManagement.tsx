@@ -455,6 +455,7 @@ export default function StudentManagement() {
         cancelText="Cancel"
         onConfirm={confirmDeleteStudent}
         variant="destructive"
+        isLoading={deleteStudentMutation.isPending}
       />
 
       <ConfirmationDialog
@@ -466,6 +467,7 @@ export default function StudentManagement() {
         cancelText="Cancel"
         onConfirm={confirmBulkDelete}
         variant="destructive"
+        isLoading={bulkDeleteMutation.isPending}
       />
     </div>
   );

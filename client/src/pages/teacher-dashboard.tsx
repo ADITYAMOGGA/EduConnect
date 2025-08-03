@@ -509,13 +509,7 @@ export default function TeacherDashboard() {
                   <CardContent>
                     {classesLoading ? (
                       <div className="flex flex-col items-center justify-center py-8">
-                        <dotlottie-wc 
-                          src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                          style={{width: '120px', height: '120px'}}
-                          speed="1" 
-                          autoplay 
-                          loop
-                        ></dotlottie-wc>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                         <p className="text-sm text-slate-500 mt-2">Loading classes...</p>
                       </div>
                     ) : teacherClasses && teacherClasses.length > 0 ? (
@@ -581,13 +575,7 @@ export default function TeacherDashboard() {
                 <CardContent>
                   {studentsLoading ? (
                     <div className="flex flex-col items-center justify-center py-12">
-                      <dotlottie-wc 
-                        src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                        style={{width: '150px', height: '150px'}}
-                        speed="1" 
-                        autoplay 
-                        loop
-                      ></dotlottie-wc>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                       <p className="text-slate-600 mt-2">Loading students...</p>
                     </div>
                   ) : (
@@ -708,13 +696,7 @@ export default function TeacherDashboard() {
                 <CardContent>
                   {examsLoading ? (
                     <div className="flex flex-col items-center justify-center py-12">
-                      <dotlottie-wc 
-                        src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-                        style={{width: '150px', height: '150px'}}
-                        speed="1" 
-                        autoplay 
-                        loop
-                      ></dotlottie-wc>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                       <p className="text-slate-600 mt-2">Loading exams...</p>
                     </div>
                   ) : exams.length > 0 ? (

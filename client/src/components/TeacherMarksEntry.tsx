@@ -215,13 +215,7 @@ export default function TeacherMarksEntry() {
   if (classesLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <dotlottie-wc 
-          src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
-          style={{width: '200px', height: '200px'}}
-          speed="1" 
-          autoplay 
-          loop
-        ></dotlottie-wc>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
         <p className="text-slate-600 mt-4">Loading your classes...</p>
       </div>
     );
@@ -356,8 +350,23 @@ export default function TeacherMarksEntry() {
                 disabled={!canSaveMarks || saveMarksMutation.isPending}
                 className="ml-auto"
               >
-                <Save className="h-4 w-4 mr-2" />
-                {saveMarksMutation.isPending ? 'Saving...' : 'Save All Marks'}
+                {saveMarksMutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <dotlottie-wc 
+                      src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                      style={{width: '20px', height: '20px'}}
+                      speed="1" 
+                      autoplay 
+                      loop
+                    ></dotlottie-wc>
+                    <span>Saving marks...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Save className="h-4 w-4" />
+                    <span>Save All Marks</span>
+                  </div>
+                )}
               </Button>
             </div>
           </CardHeader>

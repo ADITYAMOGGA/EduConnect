@@ -241,15 +241,21 @@ export default function CSVImportModal({ open, onOpenChange, orgId }: CSVImportM
             className="bg-gradient-to-r from-green-600 to-emerald-600"
           >
             {importMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Importing...
-              </>
+              <div className="flex items-center gap-2">
+                <dotlottie-wc 
+                  src="https://lottie.host/a76bcfe8-4ca3-4652-93e7-73215e46a037/Eqdrgfet56.lottie" 
+                  style={{width: '20px', height: '20px'}}
+                  speed="1" 
+                  autoplay 
+                  loop
+                ></dotlottie-wc>
+                <span>Importing students...</span>
+              </div>
             ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Import Students
-              </>
+              <div className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                <span>Import Students</span>
+              </div>
             )}
           </Button>
         </DialogFooter>
